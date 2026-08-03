@@ -754,7 +754,10 @@
       if (mod === 'xiushen') { renderYanghu(); renderYanghuHistory(); }
       if (mod === 'study') { renderTcm(); renderTcmHistory(); }
     }
-    function saveModule(key) {
+    function saveModule(key, opts) {
+      opts = opts || {};
+      const silent = !!opts.silent;
+      const keepEdit = !!opts.keepEdit;
       const el = document.getElementById(key);
       if (!el) return;
       const fields = readFields(el);
@@ -768,11 +771,34 @@
       store[id] = { id: id, date: ds, module: key, fields: fields, updatedAt: Date.now() };
       const wasEditing = !!editingId;
       dbPut(store[id]).then(function () {
-        if (wasEditing) exitEdit(key);
+        if (wasEditing && !keepEdit) exitEdit(key);
         renderHistory(key); renderCal(); renderDetail(ds);
         if (key === 'study') { renderStudyMonth(); renderStudyTimeCard(); }
         renderStreakBadges(); renderGoalProgress();
-        showToast(wasEditing ? ('已更新 ' + ds + ' 的记录') : (key === 'shiti' ? '已保存今日实体感录' : ('已保存今日「' + key + '」记录')));
+        if (!silent) showToast(wasEditing ? ('已更新 ' + ds + ' 的记录') : (key === 'shiti' ? '已保存今日实体感录' : ('已保存今日「' + key + '」记录')));
+      });
+    }
+    // ---- 改动即自动保存（输入 / 选择 / 滑杆） ----
+    const AUTOSAVE_MODS = ['shiti', 'study', 'xiushen'];
+    const autoSaveTimers = {};
+    function scheduleAutoSave(mod) {
+      clearTimeout(autoSaveTimers[mod]);
+      autoSaveTimers[mod] = setTimeout(function () { saveModule(mod, { silent: true, keepEdit: true }); }, 550);
+    }
+    function setupAutoSave() {
+      AUTOSAVE_MODS.forEach(function (mod) {
+        const el = document.getElementById(mod);
+        if (!el) return;
+        const panel = el.querySelector('.today-panel');
+        if (!panel) return;
+        panel.querySelectorAll('[data-save]').forEach(function (inp) {
+          let evt;
+          if (inp.tagName === 'TEXTAREA') evt = 'input';
+          else if (inp.type === 'range') evt = 'change';
+          else if (inp.classList.contains('choice-row') || inp.classList.contains('tag-group') || inp.classList.contains('pick-grid')) evt = 'click';
+          else evt = 'change';
+          inp.addEventListener(evt, function () { scheduleAutoSave(mod); });
+        });
       });
     }
     function renderHistory(mod) {
@@ -1055,6 +1081,9 @@
         else saveModule(key);
       });
     });
+
+    // ---- 日记类模块：改动即自动保存 ----
+    setupAutoSave();
 
     // ---- 全局点击委托：删除 / 编辑 / 退出编辑 / 标签筛选 ----
     document.addEventListener('click', function (e) {
@@ -2494,8 +2523,9 @@
       if (editingTodoId === t.id) {
         return '<div class="history-item"><div class="hi-main" style="flex:1;"><input class="field-input" id="todoEditInput" value="' + escapeAttr(t.text) + '" style="flex:1;"></div><div class="hi-actions"><span class="hi-edit" data-todo-save="' + t.id + '">保存</span><span class="hi-del" data-todo-cancel="' + t.id + '">取消</span></div></div>';
       }
+      var tagChip = (t.tag) ? '<span class="todo-tag-chip">' + escapeHtml(t.tag) + '</span>' : '';
       var done = t.done ? ' style="opacity:0.5; text-decoration:line-through;"' : '';
-      return '<div class="history-item"' + done + '><div class="hi-main" data-todo-toggle="' + t.id + '" style="cursor:pointer; flex:1;"><div class="hi-sum">' + escapeHtml(t.text) + '</div></div><div class="hi-actions"><span class="hi-edit" data-todo-edit="' + t.id + '">编辑</span><span class="hi-del" data-todo-del="' + t.id + '">×</span></div></div>';
+      return '<div class="history-item"' + done + '><div class="hi-main" data-todo-toggle="' + t.id + '" style="cursor:pointer; flex:1;"><div class="hi-sum">' + tagChip + escapeHtml(t.text) + '</div></div><div class="hi-actions"><span class="hi-edit" data-todo-edit="' + t.id + '">编辑</span><span class="hi-del" data-todo-del="' + t.id + '">×</span></div></div>';
     }
     function renderTodo() {
       var pending = loadTodo().filter(function (t) { return !t.done; });
@@ -2509,14 +2539,31 @@
     }
     var todoAdd = document.getElementById('todoAdd');
     var todoInput = document.getElementById('todoInput');
+    var selectedTodoTag = '';
+    var todoTagRow = document.getElementById('todoTagRow');
     if (todoAdd) todoAdd.addEventListener('click', function () {
       var v = todoInput.value.trim();
       if (!v) { showToast('请输入内容'); return; }
       var arr = loadTodo();
-      arr.unshift({ id: 't_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6), text: v, done: false });
-      saveTodo(arr); renderTodo(); todoInput.value = ''; renderStreakBadges(); renderGoalProgress();
+      arr.unshift({ id: 't_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6), text: v, done: false, tag: selectedTodoTag });
+      saveTodo(arr); renderTodo(); todoInput.value = ''; selectedTodoTag = ''; updateTodoTagUI(); renderStreakBadges(); renderGoalProgress();
     });
     if (todoInput) todoInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') todoAdd.click(); });
+    if (todoTagRow) {
+      todoTagRow.querySelectorAll('.todo-tag').forEach(function (sp) {
+        sp.addEventListener('click', function () {
+          selectedTodoTag = sp.getAttribute('data-todo-tag') || '';
+          updateTodoTagUI();
+        });
+      });
+    }
+    function updateTodoTagUI() {
+      if (!todoTagRow) return;
+      todoTagRow.querySelectorAll('.todo-tag').forEach(function (sp) {
+        sp.classList.toggle('active', (sp.getAttribute('data-todo-tag') || '') === selectedTodoTag);
+      });
+    }
+    updateTodoTagUI();
     document.addEventListener('click', function (e) {
       var tg = e.target.closest('[data-todo-toggle]');
       if (tg) {
