@@ -1,5 +1,7 @@
 
     
+    const APP_VERSION = 'wobench-v26.4';
+
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
       leaf: '<path d="M5 19 C5 10 11 5 19 5 C19 14 13 19 5 19 Z"/><path d="M5 19 C9 16 13 12 17 9"/>',
@@ -2097,7 +2099,8 @@
     // ============ PWA：Service Worker（网络优先，自动接管更新） ============
     let swReg = null;
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').then(function (reg) {
+      // updateViaCache:'none' → 浏览器永远绕过 HTTP 缓存去拉 sw.js，新版本即时生效
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function (reg) {
         swReg = reg;
         reg.addEventListener('updatefound', function () {
           const newWorker = reg.installing;
@@ -2118,14 +2121,23 @@
     }
     var swUpdateBanner = document.getElementById('swUpdateBanner');
     if (swUpdateBanner) swUpdateBanner.addEventListener('click', function () { window.location.reload(); });
+
+    // 强制刷新：清掉所有 SW 缓存 → 跳过等待中的新 SW → 重新加载（拿到最新文件）
+    async function forceRefresh() {
+      try {
+        const ks = await caches.keys();
+        await Promise.all(ks.map(function (k) { return caches.delete(k); }));
+      } catch (e) {}
+      if (swReg && swReg.waiting) { swReg.waiting.postMessage({ type: 'SKIP_WAITING' }); }
+      if (swReg) { try { await swReg.update(); } catch (e) {} }
+      window.location.reload();
+    }
     var btnCheckUpdate = document.getElementById('btnCheckUpdate');
-    if (btnCheckUpdate) btnCheckUpdate.addEventListener('click', function () {
-      if (!swReg) { showToast('暂未就绪，请稍后重试'); return; }
-      swReg.update().then(function () {
-        if (swReg.waiting) { swReg.waiting.postMessage({ type: 'SKIP_WAITING' }); }
-        else { showToast('已经是最新版本'); }
-      }).catch(function () { window.location.reload(); });
-    });
+    if (btnCheckUpdate) btnCheckUpdate.addEventListener('click', forceRefresh);
+    var btnForceRefresh = document.getElementById('btnForceRefresh');
+    if (btnForceRefresh) btnForceRefresh.addEventListener('click', forceRefresh);
+    var appVersionLabel = document.getElementById('appVersionLabel');
+    if (appVersionLabel) appVersionLabel.textContent = APP_VERSION;
 
     // ============ 隐私加密（Web Crypto: PBKDF2 + AES-GCM） ============
     const ENC_MODS = ['shiti', 'zichan']; // 需要加密的敏感模块
