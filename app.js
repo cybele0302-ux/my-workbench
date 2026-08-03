@@ -1,6 +1,6 @@
 
     
-    const APP_VERSION = 'wobench-v26.8';
+    const APP_VERSION = 'wobench-v26.9';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -2060,6 +2060,17 @@
           });
           cloudAutoStart();
           checkBackupReminder();
+          // 自愈检查：存在加密未解密的记录时提示去「数据诊断与修复」
+          setTimeout(function () {
+            try {
+              var n = encRecords().length;
+              if (n > 0) {
+                var card = document.getElementById('repairCard');
+                if (card) { card.style.display = ''; card.classList.add('repair-alert'); }
+                if (!hasPassword()) showToast('检测到 ' + n + ' 条记录处于加密状态，请到设置→数据诊断与修复');
+              }
+            } catch (e) {}
+          }, 800);
           trimBackups().then(renderBackupList);
           ['input', 'change'].forEach(function (evt) {
             const sleepInput = document.getElementById('sleepTimeInput');
@@ -2144,6 +2155,9 @@
     const SALT_KEY = 'zqdd:salt', VERIFIER_KEY = 'zqdd:verifier';
     let cryptoKey = null;       // 解锁后持有
     let isLocked = false;
+    // 未被「自动加密」包装过的原始写库函数（在下方包装 dbPut 时赋值）。
+    // 解密落库必须用它，否则会被包装层重新加密，导致刷新后记录又变密文而不可见。
+    var rawDbPut = null;
 
     function buf2b64(buf) { return btoa(String.fromCharCode.apply(null, new Uint8Array(buf))); }
     function b642buf(b64) { return Uint8Array.from(atob(b64), function (c) { return c.charCodeAt(0); }).buffer; }
@@ -2192,7 +2206,8 @@
       return Promise.all(recs.map(function (r) {
         return decryptFields(r.fields, key).then(function (dec) {
           store[r.id].fields = dec;
-          return dbPut(store[r.id]); // 落库：避免刷新后再次变密文、需重新解锁
+          // 用原始写库函数，绕过「自动加密」包装，真正把明文落库
+          return (rawDbPut || dbPut)(store[r.id]);
         }).catch(function () {});
       }));
     }
@@ -2287,10 +2302,11 @@
           return decryptAllFromStore(cryptoKey);
         });
       }).then(function () {
-        // 把敏感记录明文写回 DB
+        // 把敏感记录明文写回 DB（必须绕过自动加密包装，否则又被加密回去）
+        var _put = rawDbPut || dbPut;
         var tasks = Object.keys(store).map(function (id) {
           var r = store[id];
-          if (ENC_MODS.indexOf(r.module) >= 0 && r.fields && !r.fields._enc) return dbPut(r);
+          if (ENC_MODS.indexOf(r.module) >= 0 && r.fields && !r.fields._enc) return _put(r);
         }).filter(Boolean);
         return Promise.all(tasks);
       }).then(async function () {
@@ -2333,6 +2349,115 @@
       var b = document.getElementById('privacyBadge');
       if (b) { b.textContent = hasPassword() ? '已启用' : '未启用'; }
     }
+
+    // ============ 数据诊断与修复 ============
+    var MOD_LABEL = { shiti: '实体感录', zichan: '理财', study: '学习', xiushen: '修身', yanghu: '养护', tcm: '中医', inspiration: '灵感' };
+    function modLabel(m) { return MOD_LABEL[m] || m; }
+    function encRecords() {
+      return Object.keys(store).map(function (k) { return store[k]; })
+        .filter(function (r) { return r && r.fields && r.fields._enc; });
+    }
+    function runDiagnose() {
+      var out = document.getElementById('repairOutput');
+      if (!out) return;
+      var byMod = {}, encMod = {};
+      Object.keys(store).forEach(function (id) {
+        var r = store[id], m = r.module || '(未知)';
+        byMod[m] = (byMod[m] || 0) + 1;
+        if (r.fields && r.fields._enc) encMod[m] = (encMod[m] || 0) + 1;
+      });
+      var encTotal = encRecords().length;
+      var rows = Object.keys(byMod).sort().map(function (m) {
+        var e = encMod[m] || 0;
+        var tag = e ? '<span style="color:#c0392b;">（其中 ' + e + ' 条加密未解密）</span>' : '';
+        return '<div>· ' + escapeHtml(modLabel(m)) + '：' + byMod[m] + ' 条 ' + tag + '</div>';
+      }).join('');
+      var st = '';
+      st += '<div style="margin-top:8px;">密钥盐(salt)：' + (localStorage.getItem(SALT_KEY) ? '存在' : '<b style="color:#c0392b;">缺失</b>') + '</div>';
+      st += '<div>校验器(verifier)：' + (localStorage.getItem(VERIFIER_KEY) ? '存在' : '缺失') + '</div>';
+      st += '<div>当前是否已解锁：' + (cryptoKey ? '是' : '否') + '</div>';
+      var concl = '';
+      if (encTotal > 0) {
+        concl = '<div class="repair-warn">检测到 <b>' + encTotal + '</b> 条记录仍是加密状态，因此在历史记录里看不到。请在下方输入曾经设置过的密码，一键解密恢复。</div>';
+        var box = document.getElementById('repairPwdBox'); if (box) box.style.display = 'block';
+      } else {
+        concl = '<div class="repair-ok">没有加密未解密的记录。若某模块条数为 0，说明这些记录本身不在本机，可尝试「立即同步」或导入备份。</div>';
+      }
+      out.innerHTML = '<div class="repair-report"><div>版本：' + APP_VERSION + '</div><div><b>本机共 ' + Object.keys(store).length + ' 条记录</b></div>' + rows + st + concl + '</div>';
+    }
+    // 一键解密恢复：解密全部密文记录并以明文落库，同时解除加密设置，避免复发
+    async function repairDecryptAll(pwd) {
+      var targets = encRecords();
+      if (!targets.length) return { ok: true, n: 0, msg: '没有需要解密的记录。' };
+      var saltB64 = localStorage.getItem(SALT_KEY);
+      if (!saltB64) {
+        // 本机 salt 已丢失，尝试从云端备份里取回
+        try {
+          if (cloudCfg && cloudSpaceKey) {
+            var obj = await cloudFind();
+            if (obj && obj.payload) {
+              var data = await cloudDecrypt(obj.payload, cloudPass);
+              if (data && data.salt) { saltB64 = data.salt; localStorage.setItem(SALT_KEY, saltB64); }
+            }
+          }
+        } catch (e) { console.warn('从云端取 salt 失败', e); }
+      }
+      if (!saltB64) return { ok: false, msg: '本机缺少密钥盐（salt），无法解密。请在曾设置过密码的旧设备或旧链接上导出备份后再导入。' };
+      var salt = b642buf(saltB64);
+      var key = null, iters = [PBKDF2_ITER, 250000, 100000];
+      for (var i = 0; i < iters.length; i++) {
+        try {
+          var k = await deriveKey(pwd, salt, iters[i]);
+          await decryptFields(targets[0].fields, k);
+          key = k; break;
+        } catch (e) { /* 试下一个迭代次数 */ }
+      }
+      if (!key) return { ok: false, msg: '密码不正确，或与这批数据加密时使用的密码不一致。' };
+      var put = rawDbPut || dbPut, n = 0, fail = 0;
+      for (var j = 0; j < targets.length; j++) {
+        try {
+          var dec = await decryptFields(targets[j].fields, key);
+          store[targets[j].id].fields = dec;
+          await put(store[targets[j].id]);
+          n++;
+        } catch (e) { fail++; }
+      }
+      // 解除加密设置：还原云端口令为明文，清掉 salt/verifier，之后新记录不再加密
+      try {
+        var raw = localStorage.getItem(CLOUD_PASS_KEY) || '';
+        if (raw.indexOf('enc:') === 0) {
+          try { var dp = await decryptFields(JSON.parse(raw.slice(4)), key); cloudPass = (dp && dp._p) || cloudPass; } catch (e) {}
+          localStorage.setItem(CLOUD_PASS_KEY, cloudPass);
+        }
+      } catch (e) {}
+      localStorage.removeItem(SALT_KEY);
+      localStorage.removeItem(VERIFIER_KEY);
+      cryptoKey = null; isLocked = false;
+      updatePrivacyBadge();
+      return { ok: true, n: n, fail: fail };
+    }
+    var btnDiagnose = document.getElementById('btnDiagnose');
+    if (btnDiagnose) btnDiagnose.addEventListener('click', runDiagnose);
+    var btnRepairDecrypt = document.getElementById('btnRepairDecrypt');
+    if (btnRepairDecrypt) btnRepairDecrypt.addEventListener('click', function () {
+      var inp = document.getElementById('repairPwd');
+      var out = document.getElementById('repairOutput');
+      var pwd = inp ? inp.value : '';
+      if (!pwd) { showToast('请输入密码'); return; }
+      btnRepairDecrypt.disabled = true; btnRepairDecrypt.textContent = '解密中…';
+      repairDecryptAll(pwd).then(function (res) {
+        btnRepairDecrypt.disabled = false; btnRepairDecrypt.textContent = '解密恢复';
+        if (!res.ok) { if (out) out.innerHTML = '<div class="repair-warn">' + escapeHtml(res.msg) + '</div>'; showToast('恢复失败'); return; }
+        if (inp) inp.value = '';
+        renderAllCloud();
+        if (out) out.innerHTML = '<div class="repair-ok">已恢复 <b>' + res.n + '</b> 条记录' + (res.fail ? '（' + res.fail + ' 条失败）' : '') + '，并已解除加密。请回到实体感录 / 理财查看历史记录。</div>';
+        showToast('已恢复 ' + res.n + ' 条记录');
+        schedulePush();
+      }).catch(function (e) {
+        btnRepairDecrypt.disabled = false; btnRepairDecrypt.textContent = '解密恢复';
+        console.error(e); showToast('恢复出错');
+      });
+    });
 
     lockBtn.addEventListener('click', function () {
       if (lockMode === 'setup') doSetup();
@@ -2522,6 +2647,7 @@
 
     // 保存敏感记录时自动加密写入
     var _origDbPut = dbPut;
+    rawDbPut = _origDbPut;
     dbPut = function (rec) {
       var p = (ENC_MODS.indexOf(rec.module) >= 0 && rec.fields && !rec.fields._enc && cryptoKey)
         ? encryptFields(rec.fields, cryptoKey).then(function (enc) {

@@ -783,6 +783,23 @@
             <div class="backup-list" id="backupList"></div>
           </div>
 
+          <!-- 数据诊断与修复 -->
+          <div class="card" id="repairCard">
+            <div class="card-title">数据诊断与修复</div>
+            <div class="backup-hint" style="margin-top:4px;">如果某个模块的历史记录看不到了，先点「运行诊断」看看这些记录是不是还在本机、只是处于加密状态。</div>
+            <div class="backup-actions" style="margin-top:12px;">
+              <button class="ghost-btn" id="btnDiagnose">运行诊断</button>
+            </div>
+            <div id="repairOutput"></div>
+            <div id="repairPwdBox" style="display:none; margin-top:12px;">
+              <input class="field-input" id="repairPwd" type="password" placeholder="输入曾经设置过的隐私锁密码">
+              <div class="backup-actions" style="margin-top:8px;">
+                <button class="ghost-btn" id="btnRepairDecrypt">解密恢复</button>
+              </div>
+              <div class="backup-hint" style="margin-top:6px;">恢复后记录会以明文保存并解除加密，之后不会再被隐藏。</div>
+            </div>
+          </div>
+
           <!-- 隐私锁（独立卡片：密码管理 + 两种锁） -->
           <div class="card">
             <div class="card-title">隐私锁 <span class="privacy-badge" id="privacyBadge">未启用</span></div>

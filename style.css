@@ -1599,3 +1599,9 @@
     .theme-swatch { box-shadow: 0 2px 8px var(--sh-key); }
 
   
+/* ==== 数据诊断与修复 ==== */
+.repair-report { margin-top: 12px; font-size: 13px; line-height: 1.9; color: var(--text-2, #5a5563); }
+.repair-report b { color: var(--text-1, #2f2b36); }
+.repair-warn { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: rgba(192, 57, 43, 0.08); border: 1px solid rgba(192, 57, 43, 0.25); color: #a5342a; font-size: 13px; line-height: 1.7; }
+.repair-ok { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: rgba(39, 138, 96, 0.09); border: 1px solid rgba(39, 138, 96, 0.25); color: #1f6b4a; font-size: 13px; line-height: 1.7; }
+#repairCard.repair-alert { border: 1px solid rgba(192, 57, 43, 0.35); box-shadow: 0 6px 20px rgba(192, 57, 43, 0.12); }
