@@ -1785,7 +1785,7 @@
     function renderTrendChart(containerId, data, dates, unit, color) {
       var el = document.getElementById(containerId);
       if (!el) return;
-      var w = 300, h = 80, pad = 8;
+      var w = 300, h = 88, pad = 10;
       var max = Math.max.apply(null, data.concat([1]));
       var min = Math.min.apply(null, data.concat([0]));
       var range = max - min || 1;
@@ -1798,15 +1798,19 @@
       var pathD = pts.map(function (p, i) { return (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' ');
       var areaD = pathD + ' L' + pts[pts.length - 1][0].toFixed(1) + ' ' + (h - pad) + ' L' + pts[0][0].toFixed(1) + ' ' + (h - pad) + ' Z';
       var avg = data.length ? Math.round(data.reduce(function (a, b) { return a + b; }, 0) / data.length) : 0;
+      var gid = 'grad_' + containerId;
       var dots = pts.map(function (p, i) {
-        var v = data[i];
         var label = dates[i].slice(5);
-        return '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="2.5" fill="' + color + '"/><text x="' + p[0].toFixed(1) + '" y="' + (h - 1) + '" text-anchor="middle" font-size="7" fill="var(--text-light)">' + label + '</text>';
+        return '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3.4" fill="#fff" stroke="' + color + '" stroke-width="2"/>' +
+          '<text x="' + p[0].toFixed(1) + '" y="' + (h - 1) + '" text-anchor="middle" font-size="7" fill="var(--text-light)">' + label + '</text>';
       }).join('');
       el.innerHTML = '<div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-sub); margin-bottom:4px;"><span>均值 ' + avg + unit + '</span><span>' + (data.length ? ('最高 ' + max + unit) : '') + '</span></div>' +
-        '<svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%; height:' + h + 'px;">' +
-        '<path d="' + areaD + '" fill="' + color + '" opacity="0.08"/>' +
-        '<path d="' + pathD + '" fill="none" stroke="' + color + '" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '<svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%; height:' + h + 'px; overflow:visible;">' +
+        '<defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0%" stop-color="' + color + '" stop-opacity="0.24"/>' +
+        '<stop offset="100%" stop-color="' + color + '" stop-opacity="0"/></linearGradient></defs>' +
+        '<path d="' + areaD + '" fill="url(#' + gid + ')"/>' +
+        '<path d="' + pathD + '" fill="none" stroke="' + color + '" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 3px 4px rgba(var(--accent-deep-rgb),0.30));"/>' +
         dots + '</svg>';
     }
     document.querySelectorAll('.trend-tab').forEach(function (t) {
