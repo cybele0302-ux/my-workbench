@@ -1147,14 +1147,6 @@
     .lock-row-btns { display: flex; gap: 8px; flex: none; }
     .lock-row-btns .ghost-btn { flex: none; padding: 9px 12px; }
     .lock-row > .ghost-btn { flex: none; padding: 9px 16px; }
-    /* 信息隐私锁开启时，模糊实体感录/理财的今日录入表单，避免他人看到真实内容 */
-    body.info-privacy #shiti .today-panel,
-    body.info-privacy #zichan .today-panel {
-      filter: blur(7px);
-      -webkit-filter: blur(7px);
-      user-select: none;
-      pointer-events: none;
-    }
     .ghost-btn {
       flex: 1;
       padding: 11px;

@@ -1,6 +1,6 @@
 
     
-    const APP_VERSION = 'wobench-v26.7';
+    const APP_VERSION = 'wobench-v26.8';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -448,7 +448,7 @@
         if (recs.length) {
           html += '<div class="detail-items">';
           recs.forEach(function (r) {
-            Object.keys(r.fields).forEach(function (k) { html += '<span class="detail-chip">' + k + '：' + escapeHtml(pmask(m[0], r.fields[k])) + '</span>'; });
+            Object.keys(r.fields).forEach(function (k) { html += '<span class="detail-chip">' + k + '：' + escapeHtml(r.fields[k]) + '</span>'; });
           });
           html += '</div>';
         } else {
@@ -811,7 +811,7 @@
       const recs = recordsForModule(mod).filter(function (r) { return !isEnc(r); }).sort(function (a, b) { return b.date < a.date ? -1 : (b.date > a.date ? 1 : b.updatedAt - a.updatedAt); });
       if (!recs.length) { c.innerHTML = '<div class="history-empty">还没有记录</div>'; return; }
       c.innerHTML = recs.map(function (r) {
-        const sum = Object.keys(r.fields).map(function (k) { return k + '：' + pmask(mod, r.fields[k]); }).join(' · ') || '（空）';
+        const sum = Object.keys(r.fields).map(function (k) { return k + '：' + r.fields[k]; }).join(' · ') || '（空）';
         const lm = lunarCn(r.date).replace(/^.+?年/, '');
         return '<div class="history-item"><div class="hi-main"><div class="hi-date">' + r.date.slice(5) + ' · ' + lm + '</div><div class="hi-sum">' + escapeHtml(sum) + '</div></div><div class="hi-actions"><span class="hi-edit" data-edit-id="' + r.id + '" data-edit-mod="' + mod + '">编辑</span><span class="hi-del" data-del="' + r.id + '">×</span></div></div>';
       }).join('');
@@ -881,9 +881,9 @@
           else { exp += amt; const c = r.fields['分类'] || '其他'; cats[c] = (cats[c] || 0) + amt; }
         }
       });
-      setText('expThisMonth', pmask('zichan', '¥' + Math.round(exp).toLocaleString()));
-      setText('incThisMonth', pmask('zichan', '¥' + Math.round(inc).toLocaleString()));
-      setText('balThisMonth', pmask('zichan', '¥' + Math.round(inc - exp).toLocaleString()));
+      setText('expThisMonth', '¥' + Math.round(exp).toLocaleString());
+      setText('incThisMonth', '¥' + Math.round(inc).toLocaleString());
+      setText('balThisMonth', '¥' + Math.round(inc - exp).toLocaleString());
       const chart = document.getElementById('catChart');
       if (chart) {
         const entries = Object.keys(cats).map(function (k) { return [k, cats[k]]; }).sort(function (a, b) { return b[1] - a[1]; });
@@ -895,7 +895,7 @@
             return '<div style="display:flex; align-items:center; gap:8px; margin:7px 0; font-size:12px;">'
               + '<div style="width:44px; color:var(--text-sub); flex:none;">' + e[0] + '</div>'
               + '<div style="flex:1; height:10px; background:rgba(var(--accent-rgb),0.12); border-radius:999px; overflow:hidden;"><div style="height:100%; width:' + w + '%; background:linear-gradient(90deg,var(--purple-main),var(--purple-deep)); border-radius:999px;"></div></div>'
-              + '<div style="width:64px; text-align:right; color:var(--text-main); flex:none;">' + pmask('zichan', '¥' + Math.round(e[1]).toLocaleString()) + '</div></div>';
+              + '<div style="width:64px; text-align:right; color:var(--text-main); flex:none;">' + '¥' + Math.round(e[1]).toLocaleString() + '</div></div>';
           }).join('');
         }
       }
@@ -914,7 +914,7 @@
         const amt = parseFloat(r.fields['金额']) || 0;
         if ((r.fields['交易类型'] || '支出') === '收入') inc += amt; else exp += amt;
       });
-      const sum = '<div style="display:flex; gap:14px; margin-bottom:10px; font-size:12px; padding:4px 0;"><span style="color:#c44569;">支出 ' + pmask('zichan', '¥' + Math.round(exp).toLocaleString()) + '</span><span style="color:#1d9e75;">收入 ' + pmask('zichan', '¥' + Math.round(inc).toLocaleString()) + '</span><span style="color:var(--text-main); font-weight:600;">结余 ' + pmask('zichan', '¥' + Math.round(inc - exp).toLocaleString()) + '</span></div>';
+      const sum = '<div style="display:flex; gap:14px; margin-bottom:10px; font-size:12px; padding:4px 0;"><span style="color:#c44569;">支出 ' + '¥' + Math.round(exp).toLocaleString() + '</span><span style="color:#1d9e75;">收入 ' + '¥' + Math.round(inc).toLocaleString() + '</span><span style="color:var(--text-main); font-weight:600;">结余 ' + '¥' + Math.round(inc - exp).toLocaleString() + '</span></div>';
       c.innerHTML = sum + recs.map(function (r) { return txItemHtml(r, true); }).join('');
     }
     const TX_CATS = ['餐饮', '交通', '购物', '居住', '医疗', '娱乐', '其他', '车'];
@@ -934,8 +934,8 @@
         : '';
       return '<div class="tx-item' + (editable ? ' tx-editable' : '') + '" data-tx-id="' + r.id + '">'
         + '<div class="tx-row"><span class="tx-badge">' + escapeHtml(badge) + '</span>'
-        + '<span class="tx-note">' + escapeHtml(pmask('zichan', note)) + '</span>'
-        + '<span class="tx-amt" style="color:' + color + '">' + pmask('zichan', sign + ' ¥' + Math.round(amt).toLocaleString()) + '</span>' + editBtn + '<span class="hi-del" data-del="' + r.id + '">×</span></div>'
+        + '<span class="tx-note">' + escapeHtml(note) + '</span>'
+        + '<span class="tx-amt" style="color:' + color + '">' + sign + ' ¥' + Math.round(amt).toLocaleString() + '</span>' + editBtn + '<span class="hi-del" data-del="' + r.id + '">×</span></div>'
         + sub
         + editor
         + '</div>';
@@ -2002,7 +2002,7 @@
       text += '✅ 待办完成 ' + todoDone + ' 项。\n';
       text += '🚽 实体感录 ' + shitiCount + ' 天。';
       if (avgSleep) text += '\n🌙 平均睡眠质量 ' + avgSleep + ' 分。';
-      text += '\n💰 支出 ' + pmask('zichan', '¥' + Math.round(exp).toLocaleString()) + ' / 收入 ' + pmask('zichan', '¥' + Math.round(inc).toLocaleString()) + ' / 结余 ' + pmask('zichan', '¥' + Math.round(inc - exp).toLocaleString()) + '。';
+      text += '\n💰 支出 ' + '¥' + Math.round(exp).toLocaleString() + ' / 收入 ' + '¥' + Math.round(inc).toLocaleString() + ' / 结余 ' + '¥' + Math.round(inc - exp).toLocaleString() + '。';
 
       var savedReview = '';
       try { savedReview = localStorage.getItem('zqdd:review_' + reviewPeriod + '_' + start) || ''; } catch (e) {}
@@ -2144,13 +2144,6 @@
     const SALT_KEY = 'zqdd:salt', VERIFIER_KEY = 'zqdd:verifier';
     let cryptoKey = null;       // 解锁后持有
     let isLocked = false;
-    let infoPrivacyOn = localStorage.getItem('zqdd:infoPrivacy') === '1'; // 信息隐私锁状态
-    // 信息隐私锁：开启后实体感录(shiti)与理财(zichan)的展示内容以加密形式呈现（给他人看时不显示真实内容）
-    function pmask(mod, val) {
-      if (infoPrivacyOn && (mod === 'shiti' || mod === 'zichan')) return '🔒 已隐藏';
-      return val;
-    }
-    if (infoPrivacyOn) document.body.classList.add('info-privacy');
 
     function buf2b64(buf) { return btoa(String.fromCharCode.apply(null, new Uint8Array(buf))); }
     function b642buf(b64) { return Uint8Array.from(atob(b64), function (c) { return c.charCodeAt(0); }).buffer; }
@@ -2365,23 +2358,6 @@
       showLock('remove');
     });
 
-    // ============ 信息隐私锁开关 ============
-    var btnInfoPrivacy = document.getElementById('btnInfoPrivacy');
-    function refreshInfoPrivacyBtn() {
-      if (btnInfoPrivacy) btnInfoPrivacy.textContent = infoPrivacyOn ? '关闭' : '开启';
-    }
-    if (btnInfoPrivacy) btnInfoPrivacy.addEventListener('click', function () {
-      infoPrivacyOn = !infoPrivacyOn;
-      try { localStorage.setItem('zqdd:infoPrivacy', infoPrivacyOn ? '1' : '0'); } catch (e) {}
-      document.body.classList.toggle('info-privacy', infoPrivacyOn);
-      refreshInfoPrivacyBtn();
-      renderDetail(lastDetailDs);
-      renderHistory('shiti');
-      renderTransactions(); renderTodayTx(); renderAssetSummary();
-      try { renderReview(reviewPeriod); } catch (e) {}
-      showToast(infoPrivacyOn ? '信息隐私锁已开启' : '信息隐私锁已关闭');
-    });
-    refreshInfoPrivacyBtn();
     updatePrivacyBadge();
 
     // ============ 邀请机制 ============
