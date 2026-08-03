@@ -140,18 +140,18 @@
           <div class="module-title">日历</div>
           <div class="module-subtitle">点击某一天，回看那一日的生活记录</div>
 
-          <div class="card" id="globalSearchCard">
-            <div class="card-title">全局搜索</div>
-            <input class="field-input" id="globalSearchInput" placeholder="输入关键词，跨所有模块搜索…">
-            <div class="search-results" id="globalSearchResults"></div>
-          </div>
-
           <div class="backup-reminder hidden" id="backupReminder">
             <div class="br-text">📦 距离上次备份已超过 7 天，建议导出一份 JSON 备份以防意外丢失。</div>
             <div class="br-actions">
               <button class="ghost-btn br-btn" id="btnBackupNow">立即备份</button>
               <button class="ghost-btn br-later" id="btnBackupLater">以后再说</button>
             </div>
+          </div>
+
+          <div class="card" id="globalSearchCard">
+            <div class="card-title">全局搜索</div>
+            <input class="field-input" id="globalSearchInput" placeholder="输入关键词，跨所有模块搜索…">
+            <div class="search-results" id="globalSearchResults"></div>
           </div>
 
           <div class="card">
@@ -737,20 +737,6 @@
             </div>
           </div>
 
-          <div class="card invite-card" id="inviteCard">
-            <div class="card-title">邀请协作</div>
-            <div class="backup-hint">生成一个带令牌的邀请链接发给好友。对方打开链接后设置自己的访问口令，即获得一个与你完全隔离、且可凭口令在多设备复用的云端空间。</div>
-            <div class="backup-actions" style="margin-top:12px;">
-              <button class="ghost-btn" id="btnGenInvite">生成邀请链接</button>
-            </div>
-            <div id="inviteResult" class="invite-result hidden">
-              <div class="backup-hint" style="margin-top:10px;">复制下面的链接发给对方：</div>
-              <input class="field-input invite-link" id="inviteLink" readonly>
-              <button class="ghost-btn" id="btnCopyInvite" style="margin-top:8px;">复制链接</button>
-              <div class="backup-hint" id="inviteStatus" style="margin-top:8px;"></div>
-            </div>
-          </div>
-
           <div class="card" id="recoveryCard">
             <div class="card-title">换设备恢复指南</div>
             <div class="backup-hint">
@@ -832,6 +818,20 @@
                 </div>
                 <button class="ghost-btn" id="btnInfoPrivacy">开启</button>
               </div>
+            </div>
+          </div>
+
+          <div class="card invite-card" id="inviteCard">
+            <div class="card-title">邀请协作</div>
+            <div class="backup-hint">生成一个带令牌的邀请链接发给好友。对方打开链接后设置自己的访问口令，即获得一个与你完全隔离、且可凭口令在多设备复用的云端空间。</div>
+            <div class="backup-actions" style="margin-top:12px;">
+              <button class="ghost-btn" id="btnGenInvite">生成邀请链接</button>
+            </div>
+            <div id="inviteResult" class="invite-result hidden">
+              <div class="backup-hint" style="margin-top:10px;">复制下面的链接发给对方：</div>
+              <input class="field-input invite-link" id="inviteLink" readonly>
+              <button class="ghost-btn" id="btnCopyInvite" style="margin-top:8px;">复制链接</button>
+              <div class="backup-hint" id="inviteStatus" style="margin-top:8px;"></div>
             </div>
           </div>
         </div>

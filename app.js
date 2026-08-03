@@ -1,6 +1,6 @@
 
     
-    const APP_VERSION = 'wobench-v26.6';
+    const APP_VERSION = 'wobench-v26.7';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -1554,6 +1554,12 @@
         var local = store[id];
         var c = cloudById[id];
         if (c) {
+          var cloudEnc = !!(c.fields && c.fields._enc);
+          var localEnc = !!(local.fields && local.fields._enc);
+          // 云端是密文、本地是可见明文：保留本地明文，避免云端密文副本把可见数据覆盖成不可见
+          if (cloudEnc && !localEnc) {
+            localWins = true; delete cloudById[id]; return;
+          }
           if ((c.updatedAt || 0) > (local.updatedAt || 0)) store[id] = c; // 云端更新，采用云端
           else localWins = true; // 本地更新，保留本地（稍后回传云端）
           delete cloudById[id];
@@ -2191,7 +2197,10 @@
         return ENC_MODS.indexOf(r.module) >= 0 && r.fields && r.fields._enc;
       });
       return Promise.all(recs.map(function (r) {
-        return decryptFields(r.fields, key).then(function (dec) { store[r.id].fields = dec; }).catch(function () {});
+        return decryptFields(r.fields, key).then(function (dec) {
+          store[r.id].fields = dec;
+          return dbPut(store[r.id]); // 落库：避免刷新后再次变密文、需重新解锁
+        }).catch(function () {});
       }));
     }
 
