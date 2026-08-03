@@ -794,7 +794,7 @@
         panel.querySelectorAll('[data-save]').forEach(function (inp) {
           let evt;
           if (inp.tagName === 'TEXTAREA') evt = 'input';
-          else if (inp.type === 'range') evt = 'change';
+          else if (inp.type === 'range') evt = 'input';
           else if (inp.classList.contains('choice-row') || inp.classList.contains('tag-group') || inp.classList.contains('pick-grid')) evt = 'click';
           else evt = 'change';
           inp.addEventListener(evt, function () { scheduleAutoSave(mod); });
@@ -2045,6 +2045,13 @@
           renderInspirationList(); renderTransactions(); renderTodayTx(); renderAssetSummary();
           DAILY_MODS.forEach(renderHistory); renderTodo(); renderStudyMonth(); renderYanghu(); renderYanghuHistory(); renderTcmHistory();
           ['lingguang', 'todo', 'shiti', 'study', 'xiushen', 'zichan'].forEach(function (m) { updateModuleHeaderDate(m); switchModuleTab(m, 'today'); });
+          // 日记类模块：初始加载即回填当天记录到表单，否则滑杆/输入框会停留在 HTML 默认值（刷新后显示“回到 60”）
+          DAILY_MODS.forEach(function (mod) {
+            const el = document.getElementById(mod);
+            if (!el) return;
+            const rec = loadRecord(ymd(new Date()), mod);
+            if (Object.keys(rec).length) fillForm(el, rec); else clearForm(el);
+          });
           cloudAutoStart();
           checkBackupReminder();
           trimBackups().then(renderBackupList);
