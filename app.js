@@ -1,6 +1,6 @@
 
     
-    const APP_VERSION = 'wobench-v26.18';
+const APP_VERSION = 'wobench-v26.25';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -397,7 +397,7 @@
         else break;
       }
       setText('streakDays', streak);
-      const mods = ['lingguang', 'todo', 'shiti', 'study', 'xiushen', 'zichan'];
+      const mods = ['lingguang', 'todo', 'shiti', 'study', 'xiushen', 'zichan', 'yanghu', 'tcm'];
       const tds = ymd(new Date());
       let cnt = 0;
       mods.forEach(function (m) { if (recordsForDay(tds, m).length) cnt++; });
@@ -476,7 +476,7 @@
       const body = document.getElementById('detailBody');
       if (title) title.textContent = (ds === todayStr ? '今 · ' : '') + ds + ' · ' + lunar + ' · ' + wd;
       if (!body) return;
-      const mods = [['lingguang', '灵光闪现'], ['todo', '待办事项'], ['shiti', '实体感录'], ['study', '学习'], ['xiushen', '修身养性'], ['zichan', '理财']];
+      const mods = [['lingguang', '灵光闪现'], ['todo', '待办事项'], ['shiti', '实体感录'], ['study', '学习'], ['xiushen', '修身养性'], ['zichan', '理财'], ['yanghu', '每日养护打卡'], ['tcm', '中医学习打卡']];
       let html = '';
       mods.forEach(function (m) {
         const recs = recordsForDay(ds, m[0]);
@@ -2373,12 +2373,21 @@
       var r = store[id];
       if (!r || isEnc(r)) return;
       currentFavId = id;
+      favEditing = false;
       var detail = document.getElementById('favDetailCard');
       var grid = document.getElementById('favGrid');
       var hint = document.getElementById('favEmptyHint');
       if (grid) grid.classList.add('hidden');
       if (hint) hint.style.display = 'none';
       if (detail) detail.classList.remove('hidden');
+
+      // 恢复按钮可见性 + 清理编辑操作栏
+      var editBtn = document.getElementById('favEditBtn');
+      var delBtn = document.getElementById('favDeleteBtn');
+      if (editBtn) editBtn.classList.remove('hidden');
+      if (delBtn) delBtn.classList.remove('hidden');
+      var actionBar = document.getElementById('favEditActionBar');
+      if (actionBar) actionBar.remove();
 
       var typeMap = { note:'笔记', link:'链接', text:'文字', image:'图片' };
       var dt = document.getElementById('favDTitle');
@@ -2396,11 +2405,108 @@
 
     function hideFavDetail() {
       currentFavId = null;
+      favEditing = false;
       var detail = document.getElementById('favDetailCard');
       var grid = document.getElementById('favGrid');
       if (detail) detail.classList.add('hidden');
       if (grid) grid.classList.remove('hidden');
       renderFavGrid(document.getElementById('favSearchInput') ? document.getElementById('favSearchInput').value : '');
+    }
+
+    // ---- 收藏编辑模式 ----
+    var favEditing = false;
+    function enterFavEditMode() {
+      if (!currentFavId || favEditing) return;
+      var r = store[currentFavId];
+      if (!r || isEnc(r)) return;
+      favEditing = true;
+
+      var detail = document.getElementById('favDetailCard');
+      var dt = document.getElementById('favDTitle');
+      var dm = document.getElementById('favDMeta');
+      var db = document.getElementById('favDBody');
+      var dl = document.getElementById('favDLink');
+
+      // 隐藏按钮行中的 编辑/删除，显示 保存/取消
+      var editBtn = document.getElementById('favEditBtn');
+      var delBtn = document.getElementById('favDeleteBtn');
+      if (editBtn) editBtn.classList.add('hidden');
+      if (delBtn) delBtn.classList.add('hidden');
+
+      // 构建编辑表单（内联替换只读内容）
+      var typeMapInv = { '笔记':'note', '链接':'link', '文字':'text', '图片':'image' };
+      var fType = r.fields.favType || 'note';
+
+      dt.innerHTML = '<input class="field-input" id="favEditTitle" style="font-size:16px;font-weight:600;width:100%;box-sizing:border-box;" value="' + escapeHtml(r.fields.title || '') + '" placeholder="标题">';
+      dm.innerHTML = '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">'
+        + '<div class="fav-type-chips" id="favEditTypeChips" style="flex:1;">'
+        + '<span class="fav-type-chip' + (fType==='note'?' active':'') + '" data-favtype="note">笔记</span>'
+        + '<span class="fav-type-chip' + (fType==='link'?' active':'') + '" data-favtype="link">链接</span>'
+        + '<span class="fav-type-chip' + (fType==='text'?' active':'') + '" data-favtype="text">文字</span>'
+        + '<span class="fav-type-chip' + (fType==='image'?' active':'') + '" data-favtype="image">图片</span>'
+        + '</div></div>'
+        + '<div class="fav-form-row" style="margin-top:6px;"><div class="fav-form-label" style="font-size:11px;">标签</div><input class="field-input" id="favEditTags" value="' + escapeHtml(r.fields.tags || '') + '" placeholder="用逗号分隔"></div>'
+        + '<div class="fav-form-row" id="favEditLinkRow" style="margin-top:6px;' + (fType!=='link'?'display:none;':'') + '"><div class="fav-form-label" style="font-size:11px;">链接地址</div><input class="field-input" id="favEditUrl" value="' + escapeHtml(r.fields.url || '') + '" placeholder="https://..."></div>';
+
+      db.innerHTML = '<textarea class="field-input" id="favEditBody" rows="8" style="width:100%;box-sizing:border-box;font-size:14px;line-height:1.6;" placeholder="正文内容">' + escapeHtml(r.fields.body || '') + '</textarea>';
+
+      dl.classList.add('hidden');
+
+      // 底部操作栏：保存 / 取消
+      var actionBar = document.createElement('div');
+      actionBar.id = 'favEditActionBar';
+      actionBar.style.cssText = 'display:flex;gap:8px;margin-top:10px;';
+      actionBar.innerHTML = '<button class="ghost-btn" id="favSaveEditBtn" style="flex:1;font-size:13px;padding:6px;background:linear-gradient(135deg,#8B6FE0,#D8B25E);color:#fff;border:none;border-radius:8px;">保存修改</button>'
+        + '<button class="ghost-btn" id="favCancelEditBtn" style="flex:1;font-size:13px;padding:6px;">取消</button>';
+      detail.querySelector('.fav-detail').appendChild(actionBar);
+
+      // 绑定类型 chip 切换
+      document.querySelectorAll('#favEditTypeChips .fav-type-chip').forEach(function (chip) {
+        chip.addEventListener('click', function () {
+          document.querySelectorAll('#favEditTypeChips .fav-type-chip').forEach(function (c) { c.classList.remove('active'); });
+          this.classList.add('active');
+          var linkRow = document.getElementById('favEditLinkRow');
+          if (linkRow) linkRow.style.display = this.getAttribute('data-favtype') === 'link' ? '' : 'none';
+        });
+      });
+
+      // 绑定保存/取消
+      document.getElementById('favSaveEditBtn').addEventListener('click', saveFavEdit);
+      document.getElementById('favCancelEditBtn').addEventListener('click', cancelFavEdit);
+    }
+
+    function saveFavEdit() {
+      if (!currentFavId) return;
+      var title = (document.getElementById('favEditTitle').value || '').trim();
+      if (!title) { showToast('请输入标题'); return; }
+
+      var activeChip = document.querySelector('#favEditTypeChips .fav-type-chip.active');
+      var favType = activeChip ? activeChip.getAttribute('data-favtype') : 'note';
+      var tags = (document.getElementById('favEditTags').value || '').trim();
+      var url = (document.getElementById('favEditUrl').value || '').trim();
+      var body = (document.getElementById('favEditBody').value || '').trim();
+
+      var r = store[currentFavId];
+      if (!r) return;
+      r.fields.title = title;
+      r.fields.favType = favType;
+      r.fields.tags = tags;
+      r.fields.body = body;
+      r.updatedAt = Date.now();
+      if (url) r.fields.url = url; else delete r.fields.url;
+
+      dbPut(r).then(function () { favEditing = false; showFavDetail(currentFavId); showToast('已更新'); renderFavGrid(); });
+    }
+
+    function cancelFavEdit() {
+      favEditing = false;
+      showFavDetail(currentFavId);
+    }
+
+    function escapeHtml(s) {
+      var d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
     }
 
     // 收藏夹事件绑定
@@ -2414,6 +2520,9 @@
         dbDelete(currentFavId).then(function () { delete store[currentFavId]; hideFavDetail(); showToast('已删除'); });
       }
     });
+
+    var favEditBtn = document.getElementById('favEditBtn');
+    if (favEditBtn) favEditBtn.addEventListener('click', enterFavEditMode);
 
     var favSearchInput = document.getElementById('favSearchInput');
     if (favSearchInput) favSearchInput.addEventListener('input', function () { renderFavGrid(this.value); });
@@ -2521,15 +2630,14 @@
 
     // ============ 主题换肤 ============
     function applyTheme(name) {
-      if (!name || !document.querySelector('.theme-swatch[data-theme-set="' + name + '"]')) name = 'purple';
-      if (name === 'purple') document.documentElement.removeAttribute('data-theme');
-      else document.documentElement.setAttribute('data-theme', name);
+      if (!name || !document.querySelector('.theme-swatch[data-theme-set="' + name + '"]')) name = 'zichen';
+      document.documentElement.setAttribute('data-theme', name);
       localStorage.setItem('zqdd:theme', name);
       document.querySelectorAll('.theme-swatch').forEach(function (s) {
         s.classList.toggle('active', s.getAttribute('data-theme-set') === name);
       });
     }
-    applyTheme(localStorage.getItem('zqdd:theme') || 'purple');
+    applyTheme(localStorage.getItem('zqdd:theme') || 'zichen');
     document.querySelectorAll('.theme-swatch').forEach(function (s) {
       s.addEventListener('click', function () { applyTheme(s.getAttribute('data-theme-set')); });
     });
