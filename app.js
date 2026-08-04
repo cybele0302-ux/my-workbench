@@ -1,6 +1,6 @@
 
     
-    const APP_VERSION = 'wobench-v26.11';
+    const APP_VERSION = 'wobench-v26.12';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -20,7 +20,8 @@
       gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2 V5 M12 19 V22 M2 12 H5 M19 12 H22 M5 5 L7 7 M17 17 L19 19 M19 5 L17 7 M7 17 L5 19"/>',
       check: '<path d="M5 12 L10 17 L19 7"/>',
       study: '<path d="M12 3 L21 8 V16 L12 21 L3 16 V8 Z"/><path d="M12 12 L21 8"/><path d="M12 12 V21"/><path d="M12 12 L3 8"/>',
-      news: '<rect x="3" y="4" width="13" height="16" rx="2"/><path d="M7 8 H13 M7 11 H13 M7 14 H10"/><path d="M16 8 H18.5 A1.5 1.5 0 0 1 20 9.5 V20 H18"/>'
+      news: '<rect x="3" y="4" width="13" height="16" rx="2"/><path d="M7 8 H13 M7 11 H13 M7 14 H10"/><path d="M16 8 H18.5 A1.5 1.5 0 0 1 20 9.5 V20 H18"/>',
+      star: '<path d="M12 3 L14.6 8.6 L20.5 9.4 L16 13.6 L17.3 19.5 L12 16.4 L6.7 19.5 L8 13.6 L3.5 9.4 L9.4 8.6 Z"/>'
     };
 
     document.querySelectorAll('[data-icon]').forEach(function (el) {
@@ -216,7 +217,7 @@
       }).join('');
     }
     document.querySelectorAll('#yanghuList input[data-yanghu]').forEach(function (b) { b.addEventListener('change', saveYanghu); });
-    const FOLD_MAP = { zhuyan: 'foldZhuyan', jingong: 'foldJingong', lashen: 'foldLashen' };
+    const FOLD_MAP = { zhuyan: 'foldZhuyan', jingong: 'foldJingong', lashen: 'foldLashen', wuzang: 'foldWuzang' };
     document.querySelectorAll('.fold-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
         const body = document.getElementById(FOLD_MAP[btn.getAttribute('data-fold')]);
@@ -2096,7 +2097,7 @@
       if (rl) rl.querySelectorAll('.reading-check').forEach(function (cb) {
         cb.addEventListener('change', function () {
           var idx = +this.getAttribute('data-ridx');
-          if (this.checked && data[idx]) { data[idx].done = true; data[idx].doneDate = todayStr; saveReadingData(data); renderReadingList(); showToast('已移入「已阅读」'); }
+          if (this.checked && data[idx]) { data[idx].done = true; data[idx].doneDate = todayStr; saveReadingData(data); renderReadingList(); showToast('已移入「已学习」'); }
         });
       });
       if (rl) rl.querySelectorAll('.reading-page-input').forEach(function (inp) {
@@ -2141,6 +2142,18 @@
       showToast('已添加「' + title + '」');
     });
 
+    // 今日学习：正在学习 / 已学习 切换 tab
+    document.querySelectorAll('.study-reading-tab').forEach(function (t) {
+      t.addEventListener('click', function () {
+        document.querySelectorAll('.study-reading-tab').forEach(function (x) { x.classList.remove('active'); });
+        t.classList.add('active');
+        var panel = t.getAttribute('data-sread');
+        document.querySelectorAll('[data-sread-panel]').forEach(function (p) {
+          p.classList.toggle('hidden', p.getAttribute('data-sread-panel') !== panel);
+        });
+      });
+    });
+
     // ============ 收藏夹模块 ============
     var FAV_MODULE = 'favorite';
     var currentFavId = null;
@@ -2178,7 +2191,7 @@
         var card = document.createElement('div');
         card.className = 'fav-card';
         var typeLabel = r.fields.favType || 'note';
-        var typeMap = { note:'笔记', link:'链接', text:'文字', image:'图片', quote:'摘录' };
+        var typeMap = { note:'笔记', link:'链接', text:'文字', image:'图片' };
         card.innerHTML =
           '<div class="fav-card-type">' + escapeHtml(typeMap[typeLabel] || typeLabel) + '</div>' +
           '<div class="fav-card-title">' + escapeHtml(r.fields.title || '无标题') + '</div>' +
