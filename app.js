@@ -1,6 +1,6 @@
 
     
-    const APP_VERSION = 'wobench-v26.10';
+    const APP_VERSION = 'wobench-v26.11';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -165,13 +165,18 @@
     }
 
     // ============ 每日养护打卡（独立数据 · 即勾即存）============
-    const YANGHU_KEYS = ['推腹', '按摩头皮3分钟', '驻颜术', '练习金刚功', '震背3分钟', '午时午睡30分钟', '经络拉伸操', '泡脚20分钟', '梳理经络/按揉穴位', '11点前睡觉'];
+    const YANGHU_KEYS = ['推腹', '按摩头皮', '驻颜术', '练习金刚功', '震背', '午时午睡', '经络拉伸操', '泡脚', '梳理经络/按揉穴位', '11点前睡觉', '五脏排毒法'];
     function yanghuActiveDs() { return editingDate || todayStr; }
     function loadYanghu(ds) {
       const r = store[ds + '|yanghu'];
       let f = (r && !isEnc(r)) ? r.fields : {};
       if (f['梳理经络或按重要穴位10分钟']) { f['梳理经络/按揉穴位'] = f['梳理经络或按重要穴位10分钟']; delete f['梳理经络或按重要穴位10分钟']; }
-      if (f['靠墙震背呵3分钟']) { f['震背3分钟'] = f['靠墙震背呵3分钟']; delete f['靠墙震背呵3分钟']; }
+      if (f['靠墙震背呵3分钟']) { f['震背'] = f['靠墙震背呵3分钟']; delete f['靠墙震背呵3分钟']; }
+      // v26.11 label migration
+      if (f['按摩头皮3分钟']) { f['按摩头皮'] = f['按摩头皮3分钟']; delete f['按摩头皮3分钟']; }
+      if (f['震背3分钟']) { f['震背'] = f['震背3分钟']; delete f['震背3分钟']; }
+      if (f['午时午睡30分钟']) { f['午时午睡'] = f['午时午睡30分钟']; delete f['午时午睡30分钟']; }
+      if (f['泡脚20分钟']) { f['泡脚'] = f['泡脚20分钟']; delete f['泡脚20分钟']; }
       return f;
     }
     function renderYanghu() {
@@ -2037,6 +2042,246 @@
       }
     });
 
+    // ============ 正在学习 / 已阅读（学习模块） ============
+    var READING_KEY = 'readingList';  // localStorage key for today's reading list
+    function getReadingData() {
+      try { return JSON.parse(localStorage.getItem(READING_KEY) || '[]'); } catch (e) { return []; }
+    }
+    function saveReadingData(arr) {
+      try { localStorage.setItem(READING_KEY, JSON.stringify(arr)); } catch (e) {}
+    }
+    function renderReadingList() {
+      var data = getReadingData();
+      var active = data.filter(function (r) { return !r.done; });
+      var done = data.filter(function (r) { return r.done; });
+
+      var rl = document.getElementById('readingList');
+      var re = document.getElementById('readingEmpty');
+      var dl = document.getElementById('readDoneList');
+      var de = document.getElementById('readDoneEmpty');
+
+      if (rl) rl.innerHTML = '';
+      if (dl) dl.innerHTML = '';
+
+      active.forEach(function (item, idx) {
+        var el = document.createElement('div');
+        el.className = 'reading-item';
+        el.innerHTML =
+          '<input type="checkbox" class="reading-check" data-ridx="' + data.indexOf(item) + '">' +
+          '<div class="reading-info">' +
+            '<div class="reading-title" title="' + escapeHtml(item.title) + '">' + escapeHtml(item.title) + '</div>' +
+            '<div class="reading-progress">' +
+              '<input type="number" class="reading-page-input" data-ridx="' + data.indexOf(item) + '" value="' + (item.page || 0) + '" min="0"> / ' + (item.total || '?') + ' 页' +
+            '</div>' +
+          '</div>' +
+          '<button class="reading-del" data-ridx="' + data.indexOf(item) + '" title="删除">×</button>';
+        if (rl) rl.appendChild(el);
+      });
+      if (re) re.style.display = (active.length === 0) ? '' : 'none';
+
+      done.forEach(function (item) {
+        var el = document.createElement('div');
+        el.className = 'reading-item';
+        el.innerHTML =
+          '<input type="checkbox" class="reading-check" checked disabled>' +
+          '<div class="reading-info">' +
+            '<div class="reading-title" title="' + escapeHtml(item.title) + '">' + escapeHtml(item.title) + '</div>' +
+            '<div class="reading-progress">已完成 · 共 ' + (item.total || '?') + ' 页</div>' +
+          '</div>';
+        if (dl) dl.appendChild(el);
+      });
+      if (de) de.style.display = (done.length === 0) ? '' : 'none';
+
+      // bind events
+      if (rl) rl.querySelectorAll('.reading-check').forEach(function (cb) {
+        cb.addEventListener('change', function () {
+          var idx = +this.getAttribute('data-ridx');
+          if (this.checked && data[idx]) { data[idx].done = true; data[idx].doneDate = todayStr; saveReadingData(data); renderReadingList(); showToast('已移入「已阅读」'); }
+        });
+      });
+      if (rl) rl.querySelectorAll('.reading-page-input').forEach(function (inp) {
+        inp.addEventListener('change', function () {
+          var idx = +this.getAttribute('data-ridx');
+          if (data[idx]) { data[idx].page = +this.value || 0; saveReadingData(data); }
+        });
+      });
+      if (rl) rl.querySelectorAll('.reading-del').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var idx = +this.getAttribute('data-ridx');
+          if (confirm('删除「' + (data[idx] ? data[idx].title : '') + '」？')) { data.splice(idx, 1); saveReadingData(data); renderReadingList(); }
+        });
+      });
+    }
+
+    // 添加阅读项
+    var btnAddReading = document.getElementById('btnAddReading');
+    var readingAddForm = document.getElementById('readingAddForm');
+    if (btnAddReading) btnAddReading.addEventListener('click', function () {
+      if (readingAddForm) readingAddForm.style.display = '';
+      document.getElementById('newReadTitle').focus();
+    });
+    var btnCancelReading = document.getElementById('btnCancelReading');
+    if (btnCancelReading) btnCancelReading.addEventListener('click', function () {
+      if (readingAddForm) readingAddForm.style.display = 'none';
+    });
+    var btnSaveReading = document.getElementById('btnSaveReading');
+    if (btnSaveReading) btnSaveReading.addEventListener('click', function () {
+      var title = (document.getElementById('newReadTitle').value || '').trim();
+      var page = +(document.getElementById('newReadPage').value || 0);
+      var total = +(document.getElementById('newReadTotal').value || 0);
+      if (!title) { showToast('请输入书名或内容名称'); return; }
+      var data = getReadingData();
+      data.push({ title: title, page: page, total: total, done: false, addedDate: todayStr });
+      saveReadingData(data);
+      renderReadingList();
+      if (readingAddForm) readingAddForm.style.display = 'none';
+      document.getElementById('newReadTitle').value = '';
+      document.getElementById('newReadPage').value = '';
+      document.getElementById('newReadTotal').value = '';
+      showToast('已添加「' + title + '」');
+    });
+
+    // ============ 收藏夹模块 ============
+    var FAV_MODULE = 'favorite';
+    var currentFavId = null;
+    var favTypeActive = 'note';
+
+    function getFavRecords() {
+      var out = [];
+      Object.keys(store).forEach(function (id) {
+        var r = store[id];
+        if (r.module === FAV_MODULE && !isEnc(r)) out.push(r);
+      });
+      out.sort(function (a, b) { return (b.updatedAt || 0) - (a.updatedAt || 0); });
+      return out;
+    }
+
+    function renderFavGrid(filterText) {
+      filterText = (filterText || '').toLowerCase().trim();
+      var recs = getFavRecords();
+      if (filterText) recs = recs.filter(function (r) {
+        var t = (r.fields.title || '') + ' ' + (r.fields.tags || '') + ' ' + (r.fields.body || '');
+        return t.toLowerCase().indexOf(filterText) >= 0;
+      });
+      var grid = document.getElementById('favGrid');
+      var hint = document.getElementById('favEmptyHint');
+      var detail = document.getElementById('favDetailCard');
+      if (grid) grid.innerHTML = '';
+      if (detail) detail.classList.add('hidden');
+
+      if (recs.length === 0) {
+        if (hint) hint.style.display = ''; return;
+      }
+      if (hint) hint.style.display = 'none';
+
+      recs.forEach(function (r) {
+        var card = document.createElement('div');
+        card.className = 'fav-card';
+        var typeLabel = r.fields.favType || 'note';
+        var typeMap = { note:'笔记', link:'链接', text:'文字', image:'图片', quote:'摘录' };
+        card.innerHTML =
+          '<div class="fav-card-type">' + escapeHtml(typeMap[typeLabel] || typeLabel) + '</div>' +
+          '<div class="fav-card-title">' + escapeHtml(r.fields.title || '无标题') + '</div>' +
+          (r.fields.body ? '<div class="fav-card-preview">' + escapeHtml(r.fields.body.substring(0, 80)) + '</div>' : '') +
+          (r.fields.tags ? '<div><span class="fav-tag">' + r.fields.tags.split(',').map(function(t){return escapeHtml(t.trim());}).join('</span><span class="fav-tag">') + '</span></div>' : '') +
+          '<div class="fav-card-date">' + (r.updatedAt ? new Date(r.updatedAt).toLocaleDateString('zh-CN') : '') + '</div>';
+        card.addEventListener('click', function () { showFavDetail(r.id); });
+        if (grid) grid.appendChild(card);
+      });
+    }
+
+    function showFavDetail(id) {
+      var r = store[id];
+      if (!r || isEnc(r)) return;
+      currentFavId = id;
+      var detail = document.getElementById('favDetailCard');
+      var grid = document.getElementById('favGrid');
+      var hint = document.getElementById('favEmptyHint');
+      if (grid) grid.classList.add('hidden');
+      if (hint) hint.style.display = 'none';
+      if (detail) detail.classList.remove('hidden');
+
+      var typeMap = { note:'笔记', link:'链接', text:'文字', image:'图片', quote:'摘录' };
+      var dt = document.getElementById('favDTitle');
+      var dm = document.getElementById('favDMeta');
+      var db = document.getElementById('favDBody');
+      var dl = document.getElementById('favDLink');
+      if (dt) dt.textContent = r.fields.title || '无标题';
+      if (dm) dm.textContent = (typeMap[r.fields.favType] || r.fields.favType || '笔记') + (r.fields.tags ? ' · 标签：' + r.fields.tags : '') + (r.addedDate ? ' · 收藏于 ' + r.addedDate : '');
+      if (db) db.textContent = r.fields.body || '(无正文内容)';
+      if (dl) {
+        if (r.fields.url) { dl.href = r.fields.url; dl.textContent = '打开原始链接 →'; dl.classList.remove('hidden'); }
+        else dl.classList.add('hidden');
+      }
+    }
+
+    function hideFavDetail() {
+      currentFavId = null;
+      var detail = document.getElementById('favDetailCard');
+      var grid = document.getElementById('favGrid');
+      if (detail) detail.classList.add('hidden');
+      if (grid) grid.classList.remove('hidden');
+      renderFavGrid(document.getElementById('favSearchInput') ? document.getElementById('favSearchInput').value : '');
+    }
+
+    // 收藏夹事件绑定
+    var favBackBtn = document.getElementById('favBackBtn');
+    if (favBackBtn) favBackBtn.addEventListener('click', hideFavDetail);
+
+    var favDeleteBtn = document.getElementById('favDeleteBtn');
+    if (favDeleteBtn) favDeleteBtn.addEventListener('click', function () {
+      if (!currentFavId) return;
+      if (confirm('确定删除这条收藏吗？')) {
+        dbDelete(currentFavId).then(function () { delete store[currentFavId]; hideFavDetail(); showToast('已删除'); });
+      }
+    });
+
+    var favSearchInput = document.getElementById('favSearchInput');
+    if (favSearchInput) favSearchInput.addEventListener('input', function () { renderFavGrid(this.value); });
+
+    // 类型选择
+    document.querySelectorAll('#favTypeChips .fav-type-chip').forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        document.querySelectorAll('#favTypeChips .fav-type-chip').forEach(function (c) { c.classList.remove('active'); });
+        this.classList.add('active');
+        favTypeActive = this.getAttribute('data-favtype') || 'note';
+        var linkRow = document.getElementById('favLinkRow');
+        if (linkRow) linkRow.style.display = (favTypeActive === 'link') ? '' : 'none';
+      });
+    });
+
+    // 保存收藏
+    var btnFavSave = document.getElementById('btnFavSave');
+    if (btnFavSave) btnFavSave.addEventListener('click', function () {
+      var title = (document.getElementById('favNewTitle').value || '').trim();
+      if (!title) { showToast('请输入标题'); return; }
+      var tags = (document.getElementById('favNewTags').value || '').trim();
+      var url = (document.getElementById('favNewUrl').value || '').trim();
+      var body = (document.getElementById('favNewBody').value || '').trim();
+
+      var fields = {
+        title: title,
+        favType: favTypeActive,
+        tags: tags,
+        body: body,
+        addedDate: ymd(new Date())
+      };
+      if (url) fields.url = url;
+
+      var id = FAV_MODULE + '|' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+      var rec = { id: id, module: FAV_MODULE, fields: fields, updatedAt: Date.now(), addedDate: ymd(new Date()) };
+      dbPut(rec).then(function () { store[id] = rec; })
+        .then(function () {
+          document.getElementById('favNewTitle').value = '';
+          document.getElementById('favNewTags').value = '';
+          document.getElementById('favNewUrl').value = '';
+          document.getElementById('favNewBody').value = '';
+          showToast('收藏成功：' + title);
+          switchModuleTab(FAV_MODULE, 'today');
+          renderFavGrid();
+        });
+    });
+
     loadGoals();
     renderHomepage();
 
@@ -2050,7 +2295,7 @@
           renderCal(); renderDetail(todayStr); renderHomeSummary(); renderReport('week'); renderTrend(7); renderReview('week'); renderStreakBadges(); renderGoalProgress();
           renderInspirationList(); renderTransactions(); renderTodayTx(); renderAssetSummary();
           DAILY_MODS.forEach(renderHistory); renderTodo(); renderStudyMonth(); renderYanghu(); renderYanghuHistory(); renderTcmHistory();
-          ['lingguang', 'todo', 'shiti', 'study', 'xiushen', 'zichan'].forEach(function (m) { updateModuleHeaderDate(m); switchModuleTab(m, 'today'); });
+          ['lingguang', 'todo', 'shiti', 'study', 'xiushen', 'zichan', 'favorite'].forEach(function (m) { updateModuleHeaderDate(m); switchModuleTab(m, 'today'); });
           // 日记类模块：初始加载即回填当天记录到表单，否则滑杆/输入框会停留在 HTML 默认值（刷新后显示“回到 60”）
           DAILY_MODS.forEach(function (mod) {
             const el = document.getElementById(mod);
@@ -2072,6 +2317,8 @@
             } catch (e) {}
           }, 800);
           trimBackups().then(renderBackupList);
+          renderReadingList();
+          renderFavGrid();
           ['input', 'change'].forEach(function (evt) {
             const sleepInput = document.getElementById('sleepTimeInput');
             const wakeInput = document.getElementById('wakeTimeInput');
@@ -2088,7 +2335,7 @@
           console.error(e); renderCal(); renderDetail(todayStr); renderHomeSummary(); renderReport('week'); renderTrend(7); renderReview('week'); renderStreakBadges(); renderGoalProgress();
           renderInspirationList(); renderTransactions(); renderTodayTx(); renderAssetSummary();
           DAILY_MODS.forEach(renderHistory); renderTodo(); renderStudyMonth();
-          ['lingguang', 'todo', 'shiti', 'study', 'xiushen', 'zichan'].forEach(function (m) { updateModuleHeaderDate(m); switchModuleTab(m, 'today'); });
+          ['lingguang', 'todo', 'shiti', 'study', 'xiushen', 'zichan', 'favorite'].forEach(function (m) { updateModuleHeaderDate(m); switchModuleTab(m, 'today'); });
         });
     })();
 

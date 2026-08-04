@@ -53,6 +53,10 @@
           <div class="nav-icon" data-icon="gem"></div>
           <div class="nav-text">理财</div>
         </div>
+        <div class="nav-item" data-module="favorite">
+          <div class="nav-icon" data-icon="star"></div>
+          <div class="nav-text">收藏夹</div>
+        </div>
         <div class="nav-item" data-module="home">
           <div class="nav-icon" data-icon="calendar"></div>
           <div class="nav-text">日历</div>
@@ -480,6 +484,88 @@
           </div>
         </div>
 
+        <!-- 收藏夹 -->
+        <div class="module hidden" id="favorite">
+          <div class="module-header-card" data-module-header="favorite">
+            <div class="mhc-top">
+              <div class="mhc-icon" data-icon="star"></div>
+              <div class="mhc-info">
+                <div class="mhc-title">收藏夹</div>
+                <div class="mhc-sub">个人知识库，收藏一切值得保留的内容</div>
+              </div>
+            </div>
+            <div class="mhc-tabs">
+              <span class="mhc-tab active" data-tab="favorite" data-tab-name="today">我的收藏</span>
+              <span class="mhc-tab" data-tab="favorite" data-tab-name="history">添加收藏</span>
+            </div>
+          </div>
+
+          <!-- 我的收藏（卡片网格） -->
+          <div class="tab-panel today-panel" data-panel="favorite">
+            <div class="card">
+              <input class="field-input" id="favSearchInput" placeholder="搜索收藏…">
+            </div>
+            <div id="favGrid" class="fav-grid"></div>
+            <div id="favEmptyHint" class="fav-empty-hint">还没有收藏内容，切换到「添加收藏」开始记录</div>
+
+            <!-- 收藏详情（点击卡片后显示） -->
+            <div class="card hidden" id="favDetailCard">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <button class="ghost-btn" id="favBackBtn" style="font-size:12px; padding:4px 12px;">← 返回列表</button>
+                <button class="ghost-btn" id="favDeleteBtn" style="font-size:12px; padding:4px 12px; color:#c0392b;">删除</button>
+              </div>
+              <div class="fav-detail">
+                <div class="fav-detail-title" id="favDTitle">--</div>
+                <div class="fav-detail-meta" id="favDMeta">--</div>
+                <div class="fav-detail-body" id="favDBody">--</div>
+                <a class="fav-detail-link hidden" id="favDLink" href="#" target="_blank" rel="noopener">打开原始链接 →</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- 添加收藏表单 -->
+          <div class="tab-panel history-panel" data-panel="favorite">
+            <div class="card">
+              <div class="card-title">新建收藏</div>
+
+              <div class="fav-form-row">
+                <div class="fav-form-label">类型</div>
+                <div class="fav-type-chips" id="favTypeChips">
+                  <span class="fav-type-chip active" data-favtype="note">笔记</span>
+                  <span class="fav-type-chip" data-favtype="link">链接</span>
+                  <span class="fav-type-chip" data-favtype="text">文字</span>
+                  <span class="fav-type-chip" data-favtype="image">图片</span>
+                  <span class="fav-type-chip" data-favtype="quote">摘录</span>
+                </div>
+              </div>
+
+              <div class="fav-form-row">
+                <div class="fav-form-label">标题 *</div>
+                <input class="field-input" id="favNewTitle" placeholder="给这条收藏起个名字">
+              </div>
+
+              <div class="fav-form-row">
+                <div class="fav-form-label">标签（可选，用逗号分隔）</div>
+                <input class="field-input" id="favNewTags" placeholder="例如：中医, 经典, 值得反复读">
+              </div>
+
+              <div class="fav-form-row" id="favLinkRow">
+                <div class="fav-form-label">链接地址</div>
+                <input class="field-input" id="favNewUrl" placeholder="https://...">
+              </div>
+
+              <div class="fav-form-row">
+                <div class="fav-form-label">正文内容</div>
+                <textarea class="field-input" rows="6" id="favNewBody" placeholder="记录你想保存的内容、笔记、心得或摘录……"></textarea>
+              </div>
+
+              <div style="margin-top:8px;">
+                <button class="ghost-btn" id="btnFavSave" style="width:100%;">保存收藏</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 学习 -->
         <div class="module hidden" id="study">
           <div class="module-header-card" data-module-header="study">
@@ -539,22 +625,48 @@
 
             <div class="card">
               <div class="card-title">今日学习</div>
-              <div class="field">
-                <div class="field-label">🏷️ 学习标签</div>
-                <div class="tag-group" data-save="学习科目" style="margin-bottom:4px;">
-                  <span class="tag">中医</span>
-                  <span class="tag">国学经典</span>
-                  <span class="tag">AI科技</span>
-                  <span class="tag">历史文化</span>
-                  <span class="tag">管理学</span>
-                  <span class="tag">其他</span>
+
+              <!-- 正在学习 -->
+              <div style="margin-bottom:14px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                  <div class="field-label" style="margin-bottom:0;">📖 正在学习</div>
+                  <button class="ghost-btn" id="btnAddReading" style="font-size:12px; padding:4px 12px;">+ 添加</button>
+                </div>
+                <div id="readingList" class="reading-list"></div>
+                <div class="reading-empty" id="readingEmpty" style="font-size:13px; color:var(--text-light); padding:10px 0;">暂无正在学习的内容，点击上方「添加」开始记录</div>
+              </div>
+
+              <!-- 已阅读 -->
+              <div>
+                <div class="field-label" style="margin-bottom:6px;">✅ 已阅读</div>
+                <div id="readDoneList" class="reading-list reading-done-list"></div>
+                <div class="reading-empty" id="readDoneEmpty" style="font-size:13px; color:var(--text-light); padding:8px 0;">还没有完成阅读的记录</div>
+              </div>
+
+              <!-- 添加阅读项的弹窗（内联） -->
+              <div id="readingAddForm" style="display:none; margin-top:12px; padding-top:12px; border-top:1px solid var(--border, rgba(0,0,0,.08));">
+                <div class="field">
+                  <div class="field-label">书名 / 内容名称</div>
+                  <input class="field-input" id="newReadTitle" placeholder="例如：《黄帝内经》/《道德经》">
+                </div>
+                <div class="field" style="display:flex; gap:8px;">
+                  <div style="flex:1;">
+                    <div class="field-label">当前页码</div>
+                    <input class="field-input" id="newReadPage" type="number" min="0" placeholder="0">
+                  </div>
+                  <div style="flex:1;">
+                    <div class="field-label">总页数</div>
+                    <input class="field-input" id="newReadTotal" type="number" min="1" placeholder="200">
+                  </div>
+                </div>
+                <div style="display:flex; gap:8px; margin-top:8px;">
+                  <button class="ghost-btn" id="btnSaveReading" style="flex:1;">保存</button>
+                  <button class="ghost-btn" id="btnCancelReading" style="flex:1;">取消</button>
                 </div>
               </div>
-              <div class="field">
-                <div class="field-label">📚 学习内容</div>
-                <input class="field-input" data-save="学习内容" placeholder="例如：背诵 50 个单词 / 读完《……》第 3 章">
-              </div>
-              <div class="field">
+
+              <!-- 学习心得（保留） -->
+              <div class="field" style="margin-top:12px;">
                 <div class="field-label">📝 学习心得 / 笔记</div>
                 <textarea class="field-input" rows="3" data-save="学习心得" placeholder="记录关键知识点、灵感或下一步行动计划……"></textarea>
               </div>
@@ -635,7 +747,7 @@
               <div class="card-title">每日养护打卡 <span class="privacy-badge" id="yanghuProgress">0/10</span></div>
               <div class="yanghu-list" id="yanghuList">
                 <label class="check-item"><input type="checkbox" data-yanghu="0"><span class="check-box"></span><span class="check-text">推腹</span></label>
-                <label class="check-item"><input type="checkbox" data-yanghu="1"><span class="check-box"></span><span class="check-text">按摩头皮 3 分钟</span></label>
+                <label class="check-item"><input type="checkbox" data-yanghu="1"><span class="check-box"></span><span class="check-text">按摩头皮</span></label>
                 <div class="check-fold">
                   <div class="check-head">
                     <label class="check-item"><input type="checkbox" data-yanghu="2"><span class="check-box"></span><span class="check-text">驻颜术</span></label>
@@ -671,12 +783,25 @@
                       <div class="zy-row">第六步 五劳七伤向后瞧</div>
                       <div class="zy-row">第七部 凤凰展翅周身力</div>
                       <div class="zy-row">第八步 两足顿顿饮嗜消</div>
+                      <div class="zy-row">收功式</div>
                       <a class="zy-video" href="https://v.douyin.com/HZVQBkcIQeE/" target="_blank" rel="noopener">▶ 道长亲讲 · 跟练视频（抖音）</a>
                     </div>
                   </div>
                 </div>
-                <label class="check-item"><input type="checkbox" data-yanghu="4"><span class="check-box"></span><span class="check-text">震背 3 分钟</span></label>
-                <label class="check-item"><input type="checkbox" data-yanghu="5"><span class="check-box"></span><span class="check-text">午时午睡 30 分钟</span></label>
+                <div class="check-fold">
+                  <div class="check-head">
+                    <label class="check-item"><input type="checkbox" data-yanghu="10"><span class="check-box"></span><span class="check-text">五脏排毒法</span></label>
+                    <button class="fold-btn" type="button" data-fold="wuzang" aria-label="展开">▾</button>
+                  </div>
+                  <div class="fold-body" id="foldWuzang">
+                    <div class="zhuyan-sub">
+                      <div class="zy-row">倪海厦 · 排五毒（肝心脾肺肾）</div>
+                      <a class="zy-video" href="https://v.douyin.com/JDM2OqlvaiQ/" target="_blank" rel="noopener">▶ 倪师排五毒 · 跟练视频（抖音）</a>
+                    </div>
+                  </div>
+                </div>
+                <label class="check-item"><input type="checkbox" data-yanghu="4"><span class="check-box"></span><span class="check-text">震背</span></label>
+                <label class="check-item"><input type="checkbox" data-yanghu="5"><span class="check-box"></span><span class="check-text">午时午睡</span></label>
                 <div class="check-fold">
                   <div class="check-head">
                     <label class="check-item"><input type="checkbox" data-yanghu="6"><span class="check-box"></span><span class="check-text">经络拉伸操</span></label>
@@ -688,7 +813,7 @@
                     </div>
                   </div>
                 </div>
-                <label class="check-item"><input type="checkbox" data-yanghu="7"><span class="check-box"></span><span class="check-text">泡脚 20 分钟</span></label>
+                <label class="check-item"><input type="checkbox" data-yanghu="7"><span class="check-box"></span><span class="check-text">泡脚</span></label>
                 <label class="check-item"><input type="checkbox" data-yanghu="8"><span class="check-box"></span><span class="check-text">梳理经络/按揉穴位</span></label>
                 <label class="check-item"><input type="checkbox" data-yanghu="9"><span class="check-box"></span><span class="check-text">11 点前睡觉</span></label>
               </div>
@@ -800,10 +925,9 @@
             </div>
           </div>
 
-          <!-- 隐私锁（独立卡片：密码管理 + 两种锁） -->
+          <!-- 隐私锁（独立卡片：密码管理 + 工作台锁） -->
           <div class="card">
             <div class="card-title">隐私锁 <span class="privacy-badge" id="privacyBadge">未启用</span></div>
-            <div class="backup-hint" style="margin-top:4px;">设置密码后，实体感录与理财的记录将以加密形式存储；点击「立即上锁」可锁定整个工作台，需密码才能进入。</div>
 
             <div class="lock-section">
               <div class="lock-section-title">🔑 密码管理</div>
