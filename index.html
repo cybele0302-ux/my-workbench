@@ -121,16 +121,29 @@
               <div class="trend-chart" id="trendStudy"></div>
             </div>
             <div class="trend-section">
-              <div class="trend-section-title">💰 每日支出</div>
-              <div class="trend-chart" id="trendExpense"></div>
-            </div>
-            <div class="trend-section">
               <div class="trend-section-title">🌙 睡眠质量</div>
               <div class="trend-chart" id="trendSleep"></div>
             </div>
             <div class="trend-section">
               <div class="trend-section-title">🚽 排便次数</div>
               <div class="trend-chart" id="trendBowel"></div>
+            </div>
+            <div class="trend-section">
+              <div class="trend-section-title">💰 每日支出</div>
+              <div class="trend-chart" id="trendExpense"></div>
+            </div>
+          </div>
+
+          <div class="card" id="reviewCard">
+            <div class="card-title">本期回顾</div>
+            <div class="review-tabs">
+              <span class="review-tab active" data-review="week">本周回顾</span>
+              <span class="review-tab" data-review="month">本月回顾</span>
+            </div>
+            <div class="review-body" id="reviewBody"></div>
+            <div class="review-actions">
+              <button class="ghost-btn" id="btnGenReview">生成回顾</button>
+              <button class="ghost-btn" id="btnSaveReview">保存感悟</button>
             </div>
           </div>
         </div>
@@ -167,19 +180,6 @@
               <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
             </div>
             <table class="cal-grid" id="calGrid"></table>
-          </div>
-
-          <div class="card" id="reviewCard">
-            <div class="card-title">本期回顾</div>
-            <div class="review-tabs">
-              <span class="review-tab active" data-review="week">本周回顾</span>
-              <span class="review-tab" data-review="month">本月回顾</span>
-            </div>
-            <div class="review-body" id="reviewBody"></div>
-            <div class="review-actions">
-              <button class="ghost-btn" id="btnGenReview">生成回顾</button>
-              <button class="ghost-btn" id="btnSaveReview">保存感悟</button>
-            </div>
           </div>
 
           <div class="card" id="dayDetail">
@@ -385,7 +385,7 @@
 
             <div class="card">
               <div class="card-title">日记随感</div>
-              <textarea class="field-input" rows="6" style="min-height:140px;" data-save="日记" placeholder="记下今天身体和心情的真实感受……"></textarea>
+              <textarea class="field-input" rows="6" style="min-height:140px;" data-save="日记" placeholder="记下心情的真实感受……"></textarea>
             </div>
           </div>
 
@@ -605,7 +605,7 @@
               <div class="mhc-icon" data-icon="lotus"></div>
               <div class="mhc-info">
                 <div class="mhc-title">修身养性</div>
-                <div class="mhc-sub">学习、修行、静心，向内生长</div>
+                <div class="mhc-sub">修行、静心，向内生长</div>
               </div>
             </div>
             <div class="mhc-tabs">
