@@ -1,6 +1,6 @@
 
     
-    const APP_VERSION = 'wobench-v26.15';
+    const APP_VERSION = 'wobench-v26.18';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -159,9 +159,33 @@
       ],
       guiguzi: [
         { title: '捭阖之道', chapter: '捭阖第一', source: '《鬼谷子》', text: '捭阖者，道之大化，说之变也。必豫审其变化。', explain: '捭是开启、是表达，阖是闭合、是缄默。开口与静观，是游说与处世的两种根本力量。懂得在何时言说、何时收束，便能把握人心与事态的流转。于内修而言，也是一种张弛有度的节奏：收放自如，方得从容。' },
-        { title: '反以知古', chapter: '反应第二', source: '《鬼谷子》', text: '反以观往，覆以验来；反以知古，覆以知今。', explain: '回头考察过去，用来验证将来；反思古代，用来理解当下。鬼谷子极重“反复”的功夫——让信息在来回回应中显出真相。修行人亦可借回顾自省，照见自己的成长与盲区。' },
+        { title: '反以知古', chapter: '反应第二', source: '《鬼谷子》', text: '反以观往，覆以验来；反以知古，覆以知今。', explain: '回头考察过去，用来验证将来；反思古代，用来理解当下。鬼谷子极重"反复"的功夫——让信息在来回回应中显出真相。修行人亦可借回顾自省，照见自己的成长与盲区。' },
         { title: '内揵', chapter: '内揵第三', source: '《鬼谷子》', text: '欲说者务隐度，计事者务循顺。', explain: '想说服别人，要先暗中揣度对方心意；谋划事情，要顺着情理自然推进。这是在教我们：真正的智慧不是强求，而是先理解、再顺势。待人接物若能以对方为起点，关系便通畅无碍。' },
-        { title: '揣情', chapter: '揣篇', source: '《鬼谷子》', text: '揣情者，必以其甚喜之时，往而极其欲也；其有欲也，不能隐其情。', explain: '揣摩人心，要在对方最欢喜、欲望最盛时去体会——此时真情难以隐藏。鬼谷子把“识人”变成一门可习的技艺。于修身而言，认识自己亦需在对境起念时观照，方能看清本心的真实取向。' }
+        { title: '揣情', chapter: '揣篇', source: '《鬼谷子》', text: '揣情者，必以其甚喜之时，往而极其欲也；其有欲也，不能隐其情。', explain: '揣摩人心，要在对方最欢喜、欲望最盛时去体会——此时真情难以隐藏。鬼谷子把"识人"变成一门可习的技艺。于修身而言，认识自己亦需在对境起念时观照，方能看清本心的真实取向。' }
+      ],
+      yinfujing: [
+        { title: '观天之道', chapter: '上篇', source: '《阴符经》', text: '观天之道，执天之行，尽矣。', explain: '观察天地自然的运行规律，并按照这个规律去行动，就足够了。这短短十个字，是整部《阴符经》的总纲——天人合一不是空谈，而是切实可行的修行路径。' },
+        { title: '天人合发', chapter: '上篇', source: '《阴符经》', text: '天人合发，万化定基。', explain: '天道与人道相合而发动，万物变化的根基便由此确定。修行人若能将自己的节律与天地同步，便能借天地之力成就自身，此即"盗机"之正用。' },
+        { title: '心生于物', chapter: '中篇', source: '《阴符经》', text: '心生于物，死于物，机在于目。', explain: '心因外物而生起执着，也因外物而陷溺消亡；关键在于你用什么眼光去看它。"机在于目"——觉悟的契机就在你如何看待万物的那一刻。' },
+        { title: '知之修练', chapter: '下篇', source: '《阴符经》', text: '圣人知自然之道不可违，因而制之。', explain: '圣人明白自然规律不可违背，于是顺应它、节制自己。不是征服自然，而是与之和谐共处。修身亦然：不与本性对抗，而是引导它回归正道。' }
+      ],
+      yizhou: [
+        { title: '天行健', chapter: '乾卦·象传', source: '《周易》', text: '天行健，君子以自强不息。', explain: '天的运行刚健有力，君子效法它，自我图强永不停息。这不是外在的拼搏，而是内在生命力的自然流露——如日月运行，不求而自成。' },
+        { title: '地势坤', chapter: '坤卦·象传', source: '《周易》', text: '地势坤，君子以厚德载物。', explain: '大地的气势柔顺厚重，君子效法它，以深厚的德行承载万物。刚柔相济才是完整的修养：有自强之志，亦有包容之量。' },
+        { title: '一阴一阳', chapter: '系辞上传', source: '《周易》', text: '一阴一阳之谓道。继之者善也，成之者性也。', explain: '阴阳的交互运化就是"道"。能够承继道的是善，能够成就道的是性。这句话点出了宇宙的根本法则——二元对立统一，生生不息。' },
+        { title: '穷则变', chapter: '系辞下传', source: '《周易》', text: '穷则变，变则通，通则久。', explain: '路走不通了就要变革，变革了才能通达，通达了才能长久。人生困顿时不必焦虑，因为困境本身就是转机的起点。易学的精髓在于"变"中求通。' }
+      ],
+      zhuangzi: [
+        { title: '逍遥游', chapter: '逍遥游', source: '《庄子》', text: '北冥有鱼，其名为鲲。鲲之大，不知其几千里也。', explain: '庄子开篇即以鲲鹏之喻，打破我们对"大小""长短"的固有执念。真正的自由不是身体的无拘无束，而是心灵不被成见和欲望所束缚。' },
+        { title: '庄周梦蝶', chapter: '齐物论', source: '《庄子》', text: '昔者庄周梦为蝴蝶，栩栩然蝴蝶也……不知周之梦为蝴蝶与？', explain: '庄子通过梦蝶提出终极追问：究竟什么是真实的？人生如梦，梦如人生，与其纠结真假，不如放下分别心，体验当下的自在。' },
+        { title: '无用之用', chapter: '人间世', source: '《庄子》', text: '人皆知有用之用，而莫知无用之用也。', explain: '人人都知道"有用"的好处，却不知道"无用"的大用。歪脖子树因"不成材"而得以终其天年——有时候，不争不抢、看似无用，恰恰是最大的保全与智慧。' },
+        { title: '相濡以沫', chapter: '大宗师', source: '《庄子》', text: '相濡以沫，不如相忘于江湖。', explain: '泉水干涸时鱼儿以唾沫相互润湿，这固然感人，但不如各自在江湖中畅游、彼此遗忘。庄子告诉我们：最高境界的慈悲是不需要互相拖累的各自安好。' }
+      ],
+      taiyi: [
+        { title: '回光守中', chapter: '第一章', source: '《太乙金华宗旨》', text: '回光者，返照也。返照者，返其本有之性也。', explain: '"回光"就是将向外追逐的心光收回，照见自性本有的光明。这部丹经的核心功夫极其简洁：不需要复杂的仪式，只需将意识从外境收回，安住于当下。' },
+        { title: '两眼交光', chapter: '第二章', source: '《太乙金华宗旨》', text: '两目之光，乃元神真意之体。双目谛观鼻端，自得神凝气聚。', explain: '将双眼的目光轻轻凝聚于鼻端（或眉心），是金华功法的入门关键。目光内敛则神不外散，神凝则气自然聚集，久之心光透发，如金华灿烂。' },
+        { title: '守中勿忘', chapter: '第三章', source: '《太乙金华宗旨》', text: '守此一点，勿忘勿助，久之自有光明发现。', explain: '守住这一点灵光，既不忘记它（昏沉），也不刻意去助长它（急躁）。这种"不即不离"的状态正是道家修炼的中道——任其自然生长，不拔苗助长。' },
+        { title: '金华乍现', chapter: '第四章', source: '《太乙金华宗旨》', text: '金华只是这一念，普现无边。才涉有为，便落边际。', explain: '"金华"就是当下一念的清净觉知，它本来遍满一切处。一旦你刻意去追求、去造作，反而落入局限。真正的修行不在作为，而在歇下一切造作后的本然显现。' }
       ]
     };
     let currentJing = 'daodejing';
@@ -485,7 +509,8 @@
     });
 
     // ============ 数据层（IndexedDB + 内存索引） ============
-    const DB_NAME = 'zqdd', DB_VER = 2, STORE = 'records', BAK_STORE = 'backups';
+    const DB_NAME = 'zqdd', DB_VER = 3, STORE = 'records', BAK_STORE = 'backups';
+    const BAK_LS_KEY = 'zqdd:backupMeta'; // 兜底：备份元数据（IDB 不可用时保证列表能显示）
     let _db = null;
     const store = {}; // id -> {id, date, module, fields, updatedAt}
 
@@ -1059,6 +1084,8 @@
       const selfMins = f['自主时长'] ? (parseInt((String(f['自主时长']).match(/\d+/) || [0])[0], 10) || 0) : 0;
       const focusEl = document.getElementById('studyFocusTotal');
       if (focusEl) focusEl.textContent = focusMins + ' 分钟';
+      const selfTotalEl = document.getElementById('studySelfTotal');
+      if (selfTotalEl) selfTotalEl.textContent = selfMins + ' 分钟';
       setSelfMins(selfMins);
     }
     function setSelfMins(v) {
@@ -1071,9 +1098,12 @@
       if (slider) slider.value = v;
       const wrap = document.getElementById('selfStudyPresets');
       if (wrap) wrap.querySelectorAll('.preset-pill').forEach(function (x) { x.classList.toggle('active', parseInt(x.dataset.min, 10) === v); });
+      // 同步更新「学习时长」汇总面板的显示
       const focusEl = document.getElementById('studyFocusTotal');
       let fm = 0;
       if (focusEl) { const m = (focusEl.textContent || '0').match(/\d+/); fm = m ? parseInt(m[0], 10) : 0; }
+      const selfTotalEl = document.getElementById('studySelfTotal');
+      if (selfTotalEl) selfTotalEl.textContent = v + ' 分钟';
       const totalEl = document.getElementById('studyDayTotal');
       if (totalEl) totalEl.textContent = (fm + v) + ' 分钟';
     }
@@ -1258,14 +1288,29 @@
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
       } catch (e) {}
       // 写入应用内轮转存储（保留最近 1 份）
+      let idbOk = false;
       try {
         await backupStorePut({ ts: ts, name: name, encrypted: encrypted, count: arr.length, data: storeData });
+        idbOk = true;
         const all = await backupStoreAll();
         if (all.length > BACKUP_MAX) {
           all.sort(function (x, y) { return x.ts - y.ts; });
           await Promise.all(all.slice(0, all.length - BACKUP_MAX).map(function (e) { return backupStoreDelete(e.ts); }));
         }
-      } catch (e) {}
+      } catch (e) {
+        console.error('[backup] IDB写入失败:', e);
+        showToast('应用内备份写入失败（本地存储不可用或空间不足）；文件已下载到本地，可改从文件恢复');
+      }
+      // localStorage 兜底：确保列表一定能显示最新备份（解决 IDB 升级/权限/阻塞 等静默失败问题）
+      try {
+        var lsRaw = localStorage.getItem(BAK_LS_KEY);
+        var lsList = lsRaw ? JSON.parse(lsRaw) : [];
+        lsList = lsList.filter(function (x) { return x.ts !== ts; }); // 去重
+        lsList.push({ ts: ts, name: name, encrypted: encrypted, count: arr.length });
+        lsList.sort(function (x, y) { return y.ts - x.ts; });
+        if (lsList.length > BACKUP_MAX) lsList = lsList.slice(0, BACKUP_MAX);
+        localStorage.setItem(BAK_LS_KEY, JSON.stringify(lsList));
+      } catch (e2) { /* localStorage 也不可用就彻底无法兜底 */ }
       try { localStorage.setItem('zqdd:lastBackup', String(ts)); } catch (e) {}
       const br = document.getElementById('backupReminder'); if (br) br.classList.add('hidden');
       renderBackupList();
@@ -1332,25 +1377,62 @@
     function renderBackupList() {
       const box = document.getElementById('backupList'); if (!box) return;
       backupStoreAll().then(function (all) {
-        all.sort(function (x, y) { return y.ts - x.ts; });
-        if (!all.length) { box.innerHTML = '<div class="backup-empty">暂无应用内备份</div>'; return; }
-        box.innerHTML = '<div class="backup-sub">应用内备份（最近 ' + BACKUP_MAX + ' 份，加密存于本机）</div>' + all.map(function (e) {
-          return '<div class="backup-row" data-ts="' + e.ts + '">' +
-            '<div class="backup-meta"><div class="backup-name">' + e.name + '</div>' +
-            '<div class="backup-info">' + fmtTs(e.ts) + ' · ' + e.count + ' 条' + (e.encrypted ? ' · 已加密' : ' · 明文') + '</div></div>' +
-            '<div class="backup-row-btns">' +
-            '<button class="ghost-btn sm" data-bk="download" data-ts="' + e.ts + '">下载</button>' +
-            '<button class="ghost-btn sm" data-bk="restore" data-ts="' + e.ts + '">恢复</button>' +
-            '<button class="ghost-btn sm danger" data-bk="delete" data-ts="' + e.ts + '">删除</button>' +
-            '</div></div>';
-        }).join('');
+        // IDB 有数据就直接用（权威源）
+        if (all && all.length) { renderBackupRows(box, all); return; }
+        // IDB 为空时，尝试从 localStorage 兜底读取
+        try {
+          var lsRaw = localStorage.getItem(BAK_LS_KEY);
+          var lsList = lsRaw ? JSON.parse(lsRaw) : [];
+          if (lsList && lsList.length) {
+            renderBackupRows(box, lsList);
+            box.insertAdjacentHTML('afterbegin', '<div class="backup-hint-ls" style="font-size:11px;color:var(--text-light);margin-bottom:6px;">⚠️ 当前显示本地缓存记录，IndexedDB 可能不可用。建议「清除缓存并强制刷新」后重试。</div>');
+            return;
+          }
+        } catch (e) {}
+        box.innerHTML = '<div class="backup-empty">暂无应用内备份</div>';
+      }).catch(function (err) {
+        console.error('[backup] IDB读取失败:', err);
+        // IDB 彻底失败时，完全依赖 localStorage 兜底
+        try {
+          var lsRaw2 = localStorage.getItem(BAK_LS_KEY);
+          var lsList2 = lsRaw2 ? JSON.parse(lsRaw2) : [];
+          if (lsList2 && lsList2.length) {
+            renderBackupRows(box, lsList2);
+            box.insertAdjacentHTML('afterbegin', '<div class="backup-hint-ls" style="font-size:11px;color:#c44569;margin-bottom:6px;">⚠️ IndexedDB 不可用，当前显示本地缓存记录。</div>');
+            return;
+          }
+        } catch (e2) {}
+        box.innerHTML = '<div class="backup-empty">备份读取失败（本地存储不可用）</div>';
       });
+    }
+    function renderBackupRows(box, all) {
+      all.sort(function (x, y) { return y.ts - x.ts; });
+      box.innerHTML = '<div class="backup-sub">应用内备份（最近 ' + BACKUP_MAX + ' 份，加密存于本机）</div>' + all.map(function (e) {
+        return '<div class="backup-row" data-ts="' + e.ts + '">' +
+          '<div class="backup-meta"><div class="backup-name">' + e.name + '</div>' +
+          '<div class="backup-info">' + fmtTs(e.ts) + ' · ' + e.count + ' 条' + (e.encrypted ? ' · 已加密' : ' · 明文') + '</div></div>' +
+          '<div class="backup-row-btns">' +
+          '<button class="ghost-btn sm" data-bk="download" data-ts="' + e.ts + '">下载</button>' +
+          '<button class="ghost-btn sm" data-bk="restore" data-ts="' + e.ts + '">恢复</button>' +
+          '<button class="ghost-btn sm danger" data-bk="delete" data-ts="' + e.ts + '">删除</button>' +
+          '</div></div>';
+      }).join('');
     }
     function trimBackups() {
       return backupStoreAll().then(function (all) {
         if (all.length > BACKUP_MAX) {
           all.sort(function (x, y) { return x.ts - y.ts; });
-          return Promise.all(all.slice(0, all.length - BACKUP_MAX).map(function (e) { return backupStoreDelete(e.ts); }));
+          var removed = all.slice(0, all.length - BACKUP_MAX);
+          return Promise.all(removed.map(function (e) { return backupStoreDelete(e.ts); })).then(function () {
+            // 同步清理 localStorage 兜底
+            try {
+              var lsRaw = localStorage.getItem(BAK_LS_KEY);
+              var lsList = lsRaw ? JSON.parse(lsRaw) : [];
+              var removeTs = removed.map(function (e) { return e.ts; });
+              lsList = lsList.filter(function (x) { return removeTs.indexOf(x.ts) === -1; });
+              localStorage.setItem(BAK_LS_KEY, JSON.stringify(lsList));
+            } catch (e) {}
+          });
         }
       });
     }
@@ -1386,7 +1468,16 @@
       showToast('已恢复到 ' + e.name);
     }
     function deleteBackup(ts) {
-      backupStoreDelete(Number(ts)).then(renderBackupList);
+      backupStoreDelete(Number(ts)).then(function () {
+        // 同步清理 localStorage 兜底
+        try {
+          var lsRaw = localStorage.getItem(BAK_LS_KEY);
+          var lsList = lsRaw ? JSON.parse(lsRaw) : [];
+          lsList = lsList.filter(function (x) { return String(x.ts) !== String(ts); });
+          localStorage.setItem(BAK_LS_KEY, JSON.stringify(lsList));
+        } catch (e) {}
+        renderBackupList();
+      });
     }
     const btnExport = document.getElementById('btnExport');
     const btnImport = document.getElementById('btnImport');
@@ -2393,6 +2484,7 @@
           });
           cloudAutoStart();
           checkBackupReminder();
+          renderBackupList();
           // 自愈检查：存在加密未解密的记录时提示去「数据诊断与修复」
           setTimeout(function () {
             try {

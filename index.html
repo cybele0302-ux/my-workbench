@@ -592,6 +592,7 @@
               <div class="card-title">学习计时</div>
               <div class="study-sub-tabs">
                 <span class="study-sub-tab active" data-stimer="timer">⏱ 专注计时</span>
+                <span class="study-sub-tab" data-stimer="self">✋ 自主计时</span>
                 <span class="study-sub-tab" data-stimer="duration">📊 学习时长</span>
               </div>
 
@@ -607,11 +608,7 @@
                 </div>
               </div>
 
-              <div class="study-sub-panel hidden" data-stimer-panel="duration">
-                <div class="field">
-                  <div class="field-label">🕒 专注计时（自动计入）</div>
-                  <div class="study-focus-total" id="studyFocusTotal">0 分钟</div>
-                </div>
+              <div class="study-sub-panel hidden" data-stimer-panel="self">
                 <div class="field">
                   <div class="field-label">✋ 自主计时 <span class="study-self-readout" id="selfStudyVal">0 分钟</span></div>
                   <input type="range" id="selfStudySlider" class="study-slider" min="0" max="600" step="5" value="0">
@@ -629,6 +626,17 @@
                     </div>
                   </div>
                   <input type="hidden" data-save="自主时长" id="selfStudyInput" value="0">
+                </div>
+              </div>
+
+              <div class="study-sub-panel hidden" data-stimer-panel="duration">
+                <div class="field">
+                  <div class="field-label">🕒 专注计时（自动计入）</div>
+                  <div class="study-focus-total" id="studyFocusTotal">0 分钟</div>
+                </div>
+                <div class="field">
+                  <div class="field-label">✋ 自主计时</div>
+                  <div class="study-focus-total" id="studySelfTotal">0 分钟</div>
                 </div>
                 <div class="study-total-line">当日合计：<b id="studyDayTotal">0 分钟</b></div>
               </div>
@@ -750,6 +758,10 @@
                 <span class="filter-chip" data-jing="neijing">内经</span>
                 <span class="filter-chip" data-jing="zhongyi">中医</span>
                 <span class="filter-chip" data-jing="guiguzi">鬼谷子</span>
+                <span class="filter-chip" data-jing="yinfujing">阴符经</span>
+                <span class="filter-chip" data-jing="yizhou">周易</span>
+                <span class="filter-chip" data-jing="zhuangzi">庄子</span>
+                <span class="filter-chip" data-jing="taiyi">太乙金华</span>
               </div>
               <div id="jingwenBody">
                 <div style="font-size:15px; font-weight:700; color:var(--purple-dark); margin-bottom:4px;" id="jwTitle">--</div>
