@@ -1723,3 +1723,15 @@
   box-shadow: 0 2px 10px rgba(111,79,184,.22);
 }
 .study-reading-panel.hidden { display: none; }
+
+/* ==== 阅读项：编辑 / 回到正在学习 按钮 ==== */
+.reading-edit, .reading-restore {
+  flex-shrink: 0; width: 30px; height: 30px; border: none; background: none;
+  cursor: pointer; border-radius: 7px; display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+}
+.reading-edit { color: var(--purple-deep, #6f4fb8); }
+.reading-edit:hover { background: rgba(111,79,184,.12); }
+.reading-restore { color: #1f8a4c; }
+.reading-restore:hover { background: rgba(31,138,76,.12); }
+.reading-edit svg, .reading-restore svg { width: 14px; height: 14px; fill: currentColor; }

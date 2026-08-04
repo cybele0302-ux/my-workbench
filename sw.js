@@ -1,4 +1,4 @@
-const VERSION = 'wobench-v26.13';
+const VERSION = 'wobench-v26.14';
 const SHELL = ['./', './index.html', './app.js', './style.css', './manifest.json', './icon-192.png', './icon-512.png', './icon-180.png', './sw.js'];
 
 self.addEventListener('install', function (e) {

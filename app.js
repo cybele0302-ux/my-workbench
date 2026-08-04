@@ -1,6 +1,6 @@
 
     
-    const APP_VERSION = 'wobench-v26.13';
+    const APP_VERSION = 'wobench-v26.14';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -2051,8 +2051,15 @@
     function saveReadingData(arr) {
       try { localStorage.setItem(READING_KEY, JSON.stringify(arr)); } catch (e) {}
     }
+    var READING_EDIT_SVG = '<svg viewBox="0 0 24 24" width="14" height="14"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
+    var READING_RESTORE_SVG = '<svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>';
+    var readingEditId = null;
+
     function renderReadingList() {
       var data = getReadingData();
+      var needSave = false;
+      data.forEach(function (r) { if (!r.id) { r.id = 'r' + Date.now() + Math.floor(Math.random() * 1000); needSave = true; } });
+      if (needSave) saveReadingData(data);
       var active = data.filter(function (r) { return !r.done; });
       var done = data.filter(function (r) { return r.done; });
 
@@ -2064,18 +2071,19 @@
       if (rl) rl.innerHTML = '';
       if (dl) dl.innerHTML = '';
 
-      active.forEach(function (item, idx) {
+      active.forEach(function (item) {
         var el = document.createElement('div');
         el.className = 'reading-item';
         el.innerHTML =
-          '<input type="checkbox" class="reading-check" data-ridx="' + data.indexOf(item) + '">' +
+          '<input type="checkbox" class="reading-check" data-rid="' + item.id + '">' +
           '<div class="reading-info">' +
             '<div class="reading-title" title="' + escapeHtml(item.title) + '">' + escapeHtml(item.title) + '</div>' +
             '<div class="reading-progress">' +
-              '<input type="number" class="reading-page-input" data-ridx="' + data.indexOf(item) + '" value="' + (item.page || 0) + '" min="0"> / ' + (item.total || '?') + ' 页' +
+              '<input type="number" class="reading-page-input" data-rid="' + item.id + '" value="' + (item.page || 0) + '" min="0"> / ' + (item.total || '?') + ' 页' +
             '</div>' +
           '</div>' +
-          '<button class="reading-del" data-ridx="' + data.indexOf(item) + '" title="删除">×</button>';
+          '<button class="reading-edit" data-rid="' + item.id + '" title="编辑">' + READING_EDIT_SVG + '</button>' +
+          '<button class="reading-del" data-rid="' + item.id + '" title="删除">×</button>';
         if (rl) rl.appendChild(el);
       });
       if (re) re.style.display = (active.length === 0) ? '' : 'none';
@@ -2088,41 +2096,81 @@
           '<div class="reading-info">' +
             '<div class="reading-title" title="' + escapeHtml(item.title) + '">' + escapeHtml(item.title) + '</div>' +
             '<div class="reading-progress">已完成 · 共 ' + (item.total || '?') + ' 页</div>' +
-          '</div>';
+          '</div>' +
+          '<button class="reading-edit" data-rid="' + item.id + '" title="编辑">' + READING_EDIT_SVG + '</button>' +
+          '<button class="reading-restore" data-rid="' + item.id + '" title="回到正在学习">' + READING_RESTORE_SVG + '</button>';
         if (dl) dl.appendChild(el);
       });
       if (de) de.style.display = (done.length === 0) ? '' : 'none';
 
-      // bind events
+      function findRec(id) { return data.find(function (r) { return r.id === id; }); }
+
       if (rl) rl.querySelectorAll('.reading-check').forEach(function (cb) {
         cb.addEventListener('change', function () {
-          var idx = +this.getAttribute('data-ridx');
-          if (this.checked && data[idx]) { data[idx].done = true; data[idx].doneDate = todayStr; saveReadingData(data); renderReadingList(); showToast('已移入「已学习」'); }
+          var rec = findRec(this.getAttribute('data-rid'));
+          if (this.checked && rec) { rec.done = true; rec.doneDate = todayStr; saveReadingData(data); renderReadingList(); showToast('已移入「已学习」'); }
         });
       });
       if (rl) rl.querySelectorAll('.reading-page-input').forEach(function (inp) {
         inp.addEventListener('change', function () {
-          var idx = +this.getAttribute('data-ridx');
-          if (data[idx]) { data[idx].page = +this.value || 0; saveReadingData(data); }
+          var rec = findRec(this.getAttribute('data-rid'));
+          if (rec) { rec.page = +this.value || 0; saveReadingData(data); }
         });
       });
       if (rl) rl.querySelectorAll('.reading-del').forEach(function (btn) {
         btn.addEventListener('click', function () {
-          var idx = +this.getAttribute('data-ridx');
-          if (confirm('删除「' + (data[idx] ? data[idx].title : '') + '」？')) { data.splice(idx, 1); saveReadingData(data); renderReadingList(); }
+          var rec = findRec(this.getAttribute('data-rid'));
+          if (rec && confirm('删除「' + rec.title + '」？')) { data = data.filter(function (r) { return r.id !== rec.id; }); saveReadingData(data); renderReadingList(); }
+        });
+      });
+      if (rl) rl.querySelectorAll('.reading-edit').forEach(function (btn) {
+        btn.addEventListener('click', function () { openEditForm(findRec(this.getAttribute('data-rid'))); });
+      });
+      if (dl) dl.querySelectorAll('.reading-edit').forEach(function (btn) {
+        btn.addEventListener('click', function () { openEditForm(findRec(this.getAttribute('data-rid'))); });
+      });
+      if (dl) dl.querySelectorAll('.reading-restore').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var rec = findRec(this.getAttribute('data-rid'));
+          if (rec) { rec.done = false; rec.doneDate = null; saveReadingData(data); renderReadingList();
+            var rt = document.querySelector('.study-reading-tab[data-sread="reading"]'); if (rt) rt.click(); showToast('已移回「正在学习」'); }
         });
       });
     }
 
-    // 添加阅读项
+    // 编辑阅读项：打开内联表单并填充
+    function openEditForm(rec) {
+      if (!rec) return;
+      readingEditId = rec.id;
+      var t = document.getElementById('newReadTitle');
+      var p = document.getElementById('newReadPage');
+      var tot = document.getElementById('newReadTotal');
+      var ft = document.getElementById('readingFormTitle');
+      if (t) t.value = rec.title || '';
+      if (p) p.value = rec.page || 0;
+      if (tot) tot.value = rec.total || '';
+      if (ft) ft.textContent = '编辑阅读项';
+      if (readingAddForm) readingAddForm.style.display = '';
+      var rt = document.querySelector('.study-reading-tab[data-sread="reading"]'); if (rt) rt.click();
+      if (t) t.focus();
+    }
+
+    // 添加 / 编辑阅读项
     var btnAddReading = document.getElementById('btnAddReading');
     var readingAddForm = document.getElementById('readingAddForm');
     if (btnAddReading) btnAddReading.addEventListener('click', function () {
+      readingEditId = null;
+      var ft = document.getElementById('readingFormTitle'); if (ft) ft.textContent = '添加阅读项';
+      var t = document.getElementById('newReadTitle'); if (t) t.value = '';
+      var p = document.getElementById('newReadPage'); if (p) p.value = '';
+      var tot = document.getElementById('newReadTotal'); if (tot) tot.value = '';
       if (readingAddForm) readingAddForm.style.display = '';
-      document.getElementById('newReadTitle').focus();
+      var rt = document.querySelector('.study-reading-tab[data-sread="reading"]'); if (rt) rt.click();
+      if (t) t.focus();
     });
     var btnCancelReading = document.getElementById('btnCancelReading');
     if (btnCancelReading) btnCancelReading.addEventListener('click', function () {
+      readingEditId = null;
       if (readingAddForm) readingAddForm.style.display = 'none';
     });
     var btnSaveReading = document.getElementById('btnSaveReading');
@@ -2132,14 +2180,19 @@
       var total = +(document.getElementById('newReadTotal').value || 0);
       if (!title) { showToast('请输入书名或内容名称'); return; }
       var data = getReadingData();
-      data.push({ title: title, page: page, total: total, done: false, addedDate: todayStr });
+      var isEdit = !!readingEditId;
+      if (readingEditId) {
+        var rec = data.find(function (r) { return r.id === readingEditId; });
+        if (rec) { rec.title = title; rec.page = page; rec.total = total; }
+        readingEditId = null;
+      } else {
+        data.push({ id: 'r' + Date.now() + Math.floor(Math.random() * 1000), title: title, page: page, total: total, done: false, addedDate: todayStr });
+      }
       saveReadingData(data);
       renderReadingList();
       if (readingAddForm) readingAddForm.style.display = 'none';
-      document.getElementById('newReadTitle').value = '';
-      document.getElementById('newReadPage').value = '';
-      document.getElementById('newReadTotal').value = '';
-      showToast('已添加「' + title + '」');
+      var ft = document.getElementById('readingFormTitle'); if (ft) ft.textContent = '添加阅读项';
+      showToast(isEdit ? '已保存修改' : '已添加「' + title + '」');
     });
 
     // 今日学习：正在学习 / 已学习 切换 tab
