@@ -1,6 +1,6 @@
 
     
-    const APP_VERSION = 'wobench-v26.12';
+    const APP_VERSION = 'wobench-v26.13';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -2043,7 +2043,7 @@
       }
     });
 
-    // ============ 正在学习 / 已阅读（学习模块） ============
+    // ============ 正在学习 / 已学习（学习模块） ============
     var READING_KEY = 'readingList';  // localStorage key for today's reading list
     function getReadingData() {
       try { return JSON.parse(localStorage.getItem(READING_KEY) || '[]'); } catch (e) { return []; }
@@ -2214,7 +2214,7 @@
       if (hint) hint.style.display = 'none';
       if (detail) detail.classList.remove('hidden');
 
-      var typeMap = { note:'笔记', link:'链接', text:'文字', image:'图片', quote:'摘录' };
+      var typeMap = { note:'笔记', link:'链接', text:'文字', image:'图片' };
       var dt = document.getElementById('favDTitle');
       var dm = document.getElementById('favDMeta');
       var db = document.getElementById('favDBody');
