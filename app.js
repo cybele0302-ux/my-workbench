@@ -1,6 +1,6 @@
 
     
-    const APP_VERSION = 'wobench-v26.14';
+    const APP_VERSION = 'wobench-v26.15';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -156,6 +156,12 @@
         { title: '药食同源', chapter: '食疗篇', source: '中医养生', text: '五谷为养，五果为助，五畜为益，五菜为充。', explain: '谷物是养生的根本，水果是辅助，肉类是补益，蔬菜是充实。饮食多样化、以植物为主，与现代营养学不谋而合。' },
         { title: '子时熟睡', chapter: '子午流注', source: '中医养生', text: '子时一阳生，胆气始旺，宜熟睡以养少阳。', explain: '晚上 11 点至凌晨 1 点是子时，阳气初生，胆经当令。此时熟睡，有助于阳气生发和肝胆排毒，是最经济的养生法。' },
         { title: '恬淡虚无', chapter: '情志养生', source: '中医养生', text: '恬淡虚无，真气从之；精神内守，病安从来。', explain: '心境淡泊宁静，真气自然顺畅；精神内守而不外耗，疾病又从何而生？情绪稳定，是最高级的养生。' }
+      ],
+      guiguzi: [
+        { title: '捭阖之道', chapter: '捭阖第一', source: '《鬼谷子》', text: '捭阖者，道之大化，说之变也。必豫审其变化。', explain: '捭是开启、是表达，阖是闭合、是缄默。开口与静观，是游说与处世的两种根本力量。懂得在何时言说、何时收束，便能把握人心与事态的流转。于内修而言，也是一种张弛有度的节奏：收放自如，方得从容。' },
+        { title: '反以知古', chapter: '反应第二', source: '《鬼谷子》', text: '反以观往，覆以验来；反以知古，覆以知今。', explain: '回头考察过去，用来验证将来；反思古代，用来理解当下。鬼谷子极重“反复”的功夫——让信息在来回回应中显出真相。修行人亦可借回顾自省，照见自己的成长与盲区。' },
+        { title: '内揵', chapter: '内揵第三', source: '《鬼谷子》', text: '欲说者务隐度，计事者务循顺。', explain: '想说服别人，要先暗中揣度对方心意；谋划事情，要顺着情理自然推进。这是在教我们：真正的智慧不是强求，而是先理解、再顺势。待人接物若能以对方为起点，关系便通畅无碍。' },
+        { title: '揣情', chapter: '揣篇', source: '《鬼谷子》', text: '揣情者，必以其甚喜之时，往而极其欲也；其有欲也，不能隐其情。', explain: '揣摩人心，要在对方最欢喜、欲望最盛时去体会——此时真情难以隐藏。鬼谷子把“识人”变成一门可习的技艺。于修身而言，认识自己亦需在对境起念时观照，方能看清本心的真实取向。' }
       ]
     };
     let currentJing = 'daodejing';
@@ -1150,6 +1156,22 @@
         currentJing = j.getAttribute('data-jing');
         document.querySelectorAll('[data-jing]').forEach(function (el) { el.classList.toggle('active', el.getAttribute('data-jing') === currentJing); });
         renderJingwen(currentJing, new Date().getDate() - 1);
+      }
+    });
+
+    // 学习计时：专注计时 / 学习时长 切换 tab
+    document.addEventListener('click', function (e) {
+      const st = e.target.closest('[data-stimer]');
+      if (st) {
+        const key = st.getAttribute('data-stimer');
+        document.querySelectorAll('[data-stimer]').forEach(function (el) { el.classList.toggle('active', el.getAttribute('data-stimer') === key); });
+        document.querySelectorAll('[data-stimer-panel]').forEach(function (p) { p.classList.toggle('hidden', p.getAttribute('data-stimer-panel') !== key); });
+      }
+      const sh = e.target.closest('[data-shiti]');
+      if (sh) {
+        const key = sh.getAttribute('data-shiti');
+        document.querySelectorAll('[data-shiti]').forEach(function (el) { el.classList.toggle('active', el.getAttribute('data-shiti') === key); });
+        document.querySelectorAll('[data-shiti-panel]').forEach(function (p) { p.classList.toggle('hidden', p.getAttribute('data-shiti-panel') !== key); });
       }
     });
 

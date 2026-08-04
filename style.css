@@ -1724,6 +1724,24 @@
 }
 .study-reading-panel.hidden { display: none; }
 
+/* ==== 子模块 Tab（专注计时/学习时长 · 天气/心情）==== */
+.study-sub-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+.study-sub-tab {
+  flex: 1; text-align: center; font-size: 13px; font-weight: 600;
+  padding: 8px 6px; border-radius: 10px; cursor: pointer; user-select: none;
+  color: var(--text-2, #5a5563);
+  background: var(--card-bg, rgba(255,255,255,.5));
+  border: 1px solid var(--border, rgba(0,0,0,.08));
+  transition: all .18s;
+}
+.study-sub-tab.active {
+  color: #fff;
+  background: var(--purple-deep, #6f4fb8);
+  border-color: var(--purple-deep, #6f4fb8);
+  box-shadow: 0 2px 10px rgba(111,79,184,.22);
+}
+.study-sub-panel.hidden { display: none; }
+
 /* ==== 阅读项：编辑 / 回到正在学习 按钮 ==== */
 .reading-edit, .reading-restore {
   flex-shrink: 0; width: 30px; height: 30px; border: none; background: none;
