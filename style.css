@@ -1294,11 +1294,12 @@
     .filter-chip { font-size:12px; padding:5px 8px; border-radius:999px; background:rgba(168,133,238,0.1); color:var(--text-sub); cursor:pointer; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .filter-chip:nth-child(9) { grid-column: span 2; }
     .filter-chip.active { background:var(--purple-main); color:#fff; }
-    .insp-item { padding:12px; border-radius:14px; background:rgba(255,255,255,0.6); border:1px solid rgba(168,133,238,0.16); margin-bottom:8px; }
-    .insp-tags { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:6px; }
-    .insp-tag { font-size:11px; padding:2px 9px; border-radius:999px; background:rgba(168,133,238,0.16); color:var(--purple-deep); }
-    .insp-content { font-size:13px; line-height:1.6; color:var(--text-main); word-break:break-word; }
-    .insp-foot { display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-size:11px; color:var(--text-light); }
+    .insp-item { padding:9px 12px; border-radius:14px; background:rgba(255,255,255,0.6); border:1px solid rgba(168,133,238,0.16); margin-bottom:6px; }
+    .insp-tags { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:5px; }
+    .insp-tags:empty { display:none; }
+    .insp-tag { font-size:11px; padding:1px 8px; border-radius:999px; background:rgba(168,133,238,0.16); color:var(--purple-deep); }
+    .insp-content { font-size:13px; line-height:1.5; color:var(--text-main); word-break:break-word; }
+    .insp-foot { display:flex; justify-content:space-between; align-items:center; margin-top:5px; font-size:11px; color:var(--text-light); }
     .insp-foot .hi-del { font-size:12px; }
     .tx-item { padding:10px 12px; border-radius:12px; background:rgba(168,133,238,0.07); border:1px solid rgba(168,133,238,0.12); margin-bottom:6px; }
     .tx-row { display:flex; align-items:center; gap:8px; }
