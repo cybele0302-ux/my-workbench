@@ -1750,9 +1750,10 @@
     .ai-input-wrap { display: block; }
     .ai-input-box { position: relative; }
     .ai-textarea { width: 100%; box-sizing: border-box; min-height: 40px; resize: vertical; line-height: 1.6; font-size: 14px; font-family: inherit; padding-bottom: 42px; }
-    .ai-clear-btn { float: right; font-size: 12px; line-height: 1; color: var(--purple-deep); cursor: pointer; font-weight: 500; padding: 4px 10px; border-radius: 11px; background: rgba(var(--accent-rgb), 0.12); user-select: none; }
+    .ai-clear-row { position: relative; display: flex; justify-content: flex-end; margin: 8px 2px 0; }
+    .ai-clear-btn { font-size: 12px; line-height: 1; color: var(--purple-deep); cursor: pointer; font-weight: 500; padding: 4px 10px; border-radius: 11px; background: rgba(var(--accent-rgb), 0.12); user-select: none; }
     .ai-clear-btn:active { background: rgba(var(--accent-rgb), 0.25); }
-    .ai-clear-menu { position: absolute; top: 50px; right: 14px; z-index: 40; background: var(--card-bg, #fff); border: 1px solid var(--card-border); border-radius: 12px; box-shadow: 0 8px 24px rgba(40, 20, 70, 0.18); overflow: hidden; min-width: 142px; }
+    .ai-clear-menu { position: absolute; top: calc(100% + 4px); right: 0; z-index: 40; background: var(--card-bg, #fff); border: 1px solid var(--card-border); border-radius: 12px; box-shadow: 0 8px 24px rgba(40, 20, 70, 0.18); overflow: hidden; min-width: 142px; }
     .ai-clear-item { padding: 11px 14px; font-size: 13px; color: var(--text-main); cursor: pointer; border-bottom: 1px solid var(--border, rgba(0,0,0,.06)); white-space: nowrap; }
     .ai-clear-item:last-child { border-bottom: none; }
     .ai-clear-item:hover { background: rgba(var(--accent-rgb), 0.1); }
