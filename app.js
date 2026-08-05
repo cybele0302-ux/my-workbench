@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v27.12';
+const APP_VERSION = 'wobench-v27.13';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -1789,7 +1789,6 @@ const APP_VERSION = 'wobench-v27.12';
         setCloudStatus('已同步', true);
         if (cloudTimer) clearInterval(cloudTimer);
         startCloudTimer();
-        renderRecoveryCard();
       } catch (e) {
         console.error('cloudConnect 失败:', e);
         var msg = e && e.message ? e.message : String(e);
@@ -1809,7 +1808,6 @@ const APP_VERSION = 'wobench-v27.12';
       localStorage.removeItem(CLOUD_CFG_KEY);
       setCloudStatus('未连接', false);
       showToast('已断开云端同步');
-      renderRecoveryCard();
     }
     async function cloudAutoStart() {
       const cfg = loadCloudCfg();
@@ -1824,7 +1822,6 @@ const APP_VERSION = 'wobench-v27.12';
         setCloudStatus('已同步', true);
         if (cloudTimer) clearInterval(cloudTimer);
         startCloudTimer();
-        renderRecoveryCard();
       } catch (e) {
         console.error('cloudAutoStart 失败:', e);
         var m = e && e.message ? e.message : '';
@@ -2203,7 +2200,7 @@ const APP_VERSION = 'wobench-v27.12';
       }
     });
 
-    // ============ 正在学习 / 已学习（学习模块） ============
+    // ============ 正在阅读 / 已阅读（学习模块） ============
     var READING_KEY = 'readingList';  // localStorage key for today's reading list
     function getReadingData() {
       try { return JSON.parse(localStorage.getItem(READING_KEY) || '[]'); } catch (e) { return []; }
@@ -2258,7 +2255,7 @@ const APP_VERSION = 'wobench-v27.12';
             '<div class="reading-progress">已完成 · 共 ' + (item.total || '?') + ' 页</div>' +
           '</div>' +
           '<button class="reading-edit" data-rid="' + item.id + '" title="编辑">' + READING_EDIT_SVG + '</button>' +
-          '<button class="reading-restore" data-rid="' + item.id + '" title="回到正在学习">' + READING_RESTORE_SVG + '</button>';
+          '<button class="reading-restore" data-rid="' + item.id + '" title="回到正在阅读">' + READING_RESTORE_SVG + '</button>';
         if (dl) dl.appendChild(el);
       });
       if (de) de.style.display = (done.length === 0) ? '' : 'none';
@@ -2268,7 +2265,7 @@ const APP_VERSION = 'wobench-v27.12';
       if (rl) rl.querySelectorAll('.reading-check').forEach(function (cb) {
         cb.addEventListener('change', function () {
           var rec = findRec(this.getAttribute('data-rid'));
-          if (this.checked && rec) { rec.done = true; rec.doneDate = todayStr; saveReadingData(data); renderReadingList(); showToast('已移入「已学习」'); }
+          if (this.checked && rec) { rec.done = true; rec.doneDate = todayStr; saveReadingData(data); renderReadingList(); showToast('已移入「已阅读」'); }
         });
       });
       if (rl) rl.querySelectorAll('.reading-page-input').forEach(function (inp) {
@@ -2293,7 +2290,7 @@ const APP_VERSION = 'wobench-v27.12';
         btn.addEventListener('click', function () {
           var rec = findRec(this.getAttribute('data-rid'));
           if (rec) { rec.done = false; rec.doneDate = null; saveReadingData(data); renderReadingList();
-            var rt = document.querySelector('.study-reading-tab[data-sread="reading"]'); if (rt) rt.click(); showToast('已移回「正在学习」'); }
+            var rt = document.querySelector('.study-reading-tab[data-sread="reading"]'); if (rt) rt.click(); showToast('已移回「正在阅读」'); }
         });
       });
     }
@@ -2355,7 +2352,7 @@ const APP_VERSION = 'wobench-v27.12';
       showToast(isEdit ? '已保存修改' : '已添加「' + title + '」');
     });
 
-    // 今日学习：正在学习 / 已学习 切换 tab
+    // 今日学习：正在阅读 / 已阅读 切换 tab
     document.querySelectorAll('.study-reading-tab').forEach(function (t) {
       t.addEventListener('click', function () {
         document.querySelectorAll('.study-reading-tab').forEach(function (x) { x.classList.remove('active'); });
@@ -3593,8 +3590,8 @@ const APP_VERSION = 'wobench-v27.12';
         { label: '专注计时', field: '专注计时' },
         { label: '自主计时', field: '自主时长' },
         { label: '学习时长(合计)', field: '__duration__' },
-        { label: '正在学习', field: '正在学习' },
-        { label: '已学习', field: '已学习' }
+        { label: '正在阅读', field: '正在阅读' },
+        { label: '已阅读', field: '已阅读' }
       ],
       xiushen: [{ label: '每日经文', field: '每日经文' }, { label: '冥想', field: '冥想' }],
       zichan: [{ label: '收支记录', field: '__all__' }],

@@ -695,17 +695,17 @@
               <div class="card-title">阅读记录</div>
 
               <div class="study-reading-tabs">
-                <span class="study-reading-tab active" data-sread="reading">📖 正在学习</span>
-                <span class="study-reading-tab" data-sread="done">✅ 已学习</span>
+                <span class="study-reading-tab active" data-sread="reading">📖 正在阅读</span>
+                <span class="study-reading-tab" data-sread="done">✅ 已阅读</span>
               </div>
 
-              <!-- 正在学习 panel -->
+              <!-- 正在阅读 panel -->
               <div class="study-reading-panel" data-sread-panel="reading">
                 <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
                   <button class="ghost-btn" id="btnAddReading" style="font-size:12px; padding:4px 12px;">+ 添加</button>
                 </div>
                 <div id="readingList" class="reading-list"></div>
-                <div class="reading-empty" id="readingEmpty" style="font-size:13px; color:var(--text-light); padding:10px 0;">暂无正在学习的内容，点击右上角「添加」开始记录</div>
+                <div class="reading-empty" id="readingEmpty" style="font-size:13px; color:var(--text-light); padding:10px 0;">暂无正在阅读的内容，点击右上角「添加」开始记录</div>
 
                 <!-- 添加阅读项的弹窗（内联） -->
                 <div id="readingAddForm" style="display:none; margin-top:12px; padding-top:12px; border-top:1px solid var(--border, rgba(0,0,0,.08));">
@@ -731,7 +731,7 @@
                 </div>
               </div>
 
-              <!-- 已学习 panel -->
+              <!-- 已阅读 panel -->
               <div class="study-reading-panel hidden" data-sread-panel="done">
                 <div id="readDoneList" class="reading-list reading-done-list"></div>
                 <div class="reading-empty" id="readDoneEmpty" style="font-size:13px; color:var(--text-light); padding:8px 0;">还没有完成学习的内容</div>
