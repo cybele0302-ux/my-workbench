@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v27.14';
+const APP_VERSION = 'wobench-v27.15';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -2035,6 +2035,16 @@ const APP_VERSION = 'wobench-v27.14';
         });
         var pct2 = Math.min(100, Math.round(tcmDays / goals.tcm * 100));
         updateGoalBadge('tcm', pct2, tcmDays + '天/' + goals.tcm + '天');
+      }
+      // 养护打卡日目标（今天完成的打卡项数）
+      if (goals.yanghu) {
+        var ygRec = store[todayStr + '|yanghu'];
+        var ygDone = 0;
+        if (ygRec && ygRec.fields) {
+          Object.keys(ygRec.fields).forEach(function (k) { if (ygRec.fields[k] === true) ygDone++; });
+        }
+        var pctY = Math.min(100, Math.round(ygDone / goals.yanghu * 100));
+        updateGoalBadge('yanghu', pctY, ygDone + '项/' + goals.yanghu + '项', pctY >= 100);
       }
       // 理财月支出上限
       if (goals.budget) {
