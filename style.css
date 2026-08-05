@@ -975,6 +975,7 @@
 
     .greeting-row {
       padding: 4px 2px 10px;
+      text-align: center;
     }
     .greeting-main {
       font-size: 26px;
@@ -1719,6 +1720,8 @@
     .news-empty { font-size: 13px; color: var(--text-light); text-align: center; padding: 26px 12px; line-height: 1.8; }
 
     /* ===== 学习时长卡片 ===== */
+    .study-duration-grid { display: flex; gap: 12px; }
+    .study-duration-grid .field { flex: 1 1 0; min-width: 0; margin: 0; }
     .study-focus-total { font-size: 20px; font-weight: 700; color: var(--purple-deep); }
     .study-self-readout { float: right; font-size: 16px; font-weight: 800; color: var(--purple-deep); }
     .study-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 8px; margin: 10px 0 12px; border-radius: 999px; background: linear-gradient(90deg, var(--purple-soft), var(--purple-main)); outline: none; cursor: pointer; box-shadow: inset 0 1px 2px rgba(0,0,0,0.12); }
@@ -1735,6 +1738,24 @@
     .stepper-btn:active { transform: scale(0.92); }
     .study-total-line { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--card-border); font-size: 14px; color: var(--text-sub); }
     .study-total-line b { color: var(--purple-deep); font-size: 16px; }
+
+    /* ===== AI 小助手 ===== */
+    .ai-scope-bar { display: flex; gap: 8px; margin: 10px 0; }
+    .ai-scope-bar .field-input { padding: 8px 10px; font-size: 13px; }
+    .ai-chat { max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 4px 2px; margin-bottom: 10px; }
+    .ai-msg { max-width: 88%; padding: 10px 13px; border-radius: 14px; font-size: 13.5px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+    .ai-ai { align-self: flex-start; background: rgba(var(--accent-rgb), 0.08); border: 1px solid var(--card-border); color: var(--text-main); border-bottom-left-radius: 4px; }
+    .ai-ai.ai-welcome { align-self: flex-start; max-width: 100%; text-align: left; font-size: 12px; line-height: 1.55; padding: 9px 12px; }
+    .ai-user { align-self: flex-end; background: linear-gradient(135deg, var(--purple-main), var(--purple-deep)); color: #fff; border-bottom-right-radius: 4px; }
+    .ai-input-wrap { display: block; }
+    .ai-input-box { position: relative; }
+    .ai-textarea { width: 100%; box-sizing: border-box; min-height: 64px; resize: vertical; line-height: 1.6; font-size: 14px; font-family: inherit; padding-bottom: 42px; }
+    .ai-input-box .ghost-btn { position: absolute; right: 10px; bottom: 10px; width: auto; margin: 0; padding: 7px 18px; white-space: nowrap; font-size: 13px; box-shadow: 0 2px 6px rgba(111,79,184,.25); }
+    .ai-cfg-status { margin-top: 10px; font-size: 12.5px; line-height: 1.6; }
+    .ai-cfg-status.ok { color: #2e9e5b; }
+    .ai-cfg-status.err { color: #c0392b; }
+    [data-theme="zichen"] .ai-cfg-status.ok { color: #7FD8A0; }
+    [data-theme="zichen"] .ai-cfg-status.err { color: #FF9A8B; }
 
     /* ===== 中医打卡笔记（与项目同行右侧） ===== */
     #tcmList { display: flex; flex-direction: column; gap: 10px; }
@@ -1830,6 +1851,7 @@
 .fav-card-title { font-size:13px; font-weight:600; color:var(--text-1, #2f2b36); line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .fav-card-preview { font-size:11px; color:var(--text-sub, #999); margin-top:4px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .fav-card-date { font-size:10px; color:var(--text-light, #bbb); margin-top:6px; }
+.fav-card-file { font-size:11px; color:var(--purple-deep, #6f4fb8); margin-top:4px; word-break:break-all; }
 .fav-tag { display:inline-block; font-size:10px; padding:1px 7px; border-radius:8px; background:rgba(111,79,184,.1); color:var(--purple-deep, #6f4fb8); margin-right:4px; margin-top:4px; }
 .fav-detail { max-width:700px; margin:0 auto; }
 .fav-detail-title { font-size:18px; font-weight:700; color:var(--text-1, #2f2b36); margin-bottom:4px; }
@@ -1880,6 +1902,7 @@
 .fav-card-title { font-size:13px; font-weight:600; color:var(--text-1, #2f2b36); line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .fav-card-preview { font-size:11px; color:var(--text-sub, #999); margin-top:4px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .fav-card-date { font-size:10px; color:var(--text-light, #bbb); margin-top:6px; }
+.fav-card-file { font-size:11px; color:var(--purple-deep, #6f4fb8); margin-top:4px; word-break:break-all; }
 .fav-tag { display:inline-block; font-size:10px; padding:1px 7px; border-radius:8px; background:rgba(111,79,184,.1); color:var(--purple-deep, #6f4fb8); margin-right:4px; margin-top:4px; }
 .fav-detail { max-width:700px; margin:0 auto; }
 .fav-detail-title { font-size:18px; font-weight:700; color:var(--text-1, #2f2b36); margin-bottom:4px; }

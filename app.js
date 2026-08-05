@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v26.26';
+const APP_VERSION = 'wobench-v27.7';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -434,6 +434,9 @@ const APP_VERSION = 'wobench-v26.26';
       '修身如执玉，种德如耕田。'
     ];
 
+    // 首页问候里显示的称呼（想改直接改这里）
+    var USER_NICKNAME = 'na';
+
     var GREETING_SUBS = [
       '愿你稳步向理想的自己靠近',
       '今天也是充满可能性的一天',
@@ -459,7 +462,7 @@ const APP_VERSION = 'wobench-v26.26';
       var gEl = document.getElementById('greetingText');
       if (gEl) {
         var sub = GREETING_SUBS[sum % GREETING_SUBS.length];
-        gEl.innerHTML = '<div class="greeting-main">' + g + ' ' + icon + '</div><div class="greeting-sub">' + sub + '</div>';
+        gEl.innerHTML = '<div class="greeting-main">' + USER_NICKNAME + '，' + g + ' ' + icon + '</div><div class="greeting-sub">' + sub + '</div>';
       }
 
       var q = DAILY_QUOTES[sum % DAILY_QUOTES.length];
@@ -857,7 +860,7 @@ const APP_VERSION = 'wobench-v26.26';
     // ---- 灵光闪现：多条记录 + 标签筛选 + 搜索 ----
     let inspFilterTag = '全部';
     let inspSearch = '';
-    const INSP_TAGS = ['全部', '创作', '工作', '生活', '人际关系', '健康', '学习'];
+    const INSP_TAGS = ['全部', '创作', '工作', '生活', '赚钱', '健康', '学习'];
     function renderInspirationList() {
       const fb = document.getElementById('inspFilter');
       if (fb) fb.innerHTML = INSP_TAGS.map(function (t) { return '<span class="filter-chip' + (t === inspFilterTag ? ' active' : '') + '" data-ftag="' + t + '">' + t + '</span>'; }).join('');
@@ -1642,8 +1645,20 @@ const APP_VERSION = 'wobench-v26.26';
       if (el) { el.textContent = s; el.style.color = ok ? '#1d9e75' : (s === '未连接' ? 'var(--purple-main)' : '#c44569'); }
     }
     function cloudBuildPayload() {
+      // 文件/图片二进制体积大，不走云端（Supabase 单次请求有大小上限），仅本地保留，避免同步失败
+      var recs = Object.keys(store).map(function (k) {
+        var r = store[k];
+        if (!r || !r.fields) return r;
+        if (r.fields.file || r.fields.image) {
+          var c = JSON.parse(JSON.stringify(r));
+          if (c.fields.file) c.fields.file = { name: c.fields.file.name, mime: c.fields.file.mime, size: c.fields.file.size, _localOnly: true };
+          if (c.fields.image) c.fields.image = null;
+          return c;
+        }
+        return r;
+      });
       return {
-        records: Object.keys(store).map(function (k) { return store[k]; }),
+        records: recs,
         todo: loadTodo(),
         salt: localStorage.getItem(SALT_KEY),
         verifier: localStorage.getItem(VERIFIER_KEY),
@@ -1809,25 +1824,16 @@ const APP_VERSION = 'wobench-v26.26';
         startCloudTimer();
         renderRecoveryCard();
       } catch (e) {
-        setCloudStatus('连接失败', false);
+        console.error('cloudAutoStart 失败:', e);
+        var m = e && e.message ? e.message : '';
+        var msg = m ? ('同步失败: ' + m) : '连接失败';
+        // 413=请求体过大（通常是收藏的文件/图片太大）；401/403=权限/RLS；网络错=项目可能已被暂停
+        if (/413/.test(m)) msg = '同步失败：收藏的文件/图片过大，已改为仅本地保存';
+        else if (/40[13]/.test(m)) msg = '同步失败：权限被拒，请检查 Supabase RLS 策略';
+        else if (/Failed to fetch|NetworkError|timeout/i.test(m)) msg = '同步失败：无法连接 Supabase（项目可能已暂停或网络问题）';
+        setCloudStatus(msg, false);
       }
     }
-
-    // ============ 换设备恢复指南 ============
-    const REC_HINT_KEY = 'zqdd:recHint';
-    function renderRecoveryCard() {
-      var hintEl = document.getElementById('recHint');
-      if (hintEl && !hintEl.value) {
-        try { hintEl.value = localStorage.getItem(REC_HINT_KEY) || ''; } catch (e) {}
-      }
-    }
-    var btnSaveHint = document.getElementById('btnSaveHint');
-    if (btnSaveHint) btnSaveHint.addEventListener('click', function () {
-      var v = (document.getElementById('recHint').value || '').trim();
-      try { localStorage.setItem(REC_HINT_KEY, v); } catch (e) {}
-      showToast(v ? '提示已保存' : '提示已清空');
-    });
-    renderRecoveryCard();
 
     // ============ 全局搜索（跨模块） ============
     const SEARCH_MODS = [['lingguang', '灵光闪现'], ['todo', '待办事项'], ['shiti', '实体感录'], ['study', '学习'], ['xiushen', '修身养性'], ['zichan', '理财']];
@@ -2363,6 +2369,66 @@ const APP_VERSION = 'wobench-v26.26';
     var FAV_MODULE = 'favorite';
     var currentFavId = null;
     var favTypeActive = 'note';
+    var favNewImageData = '';   // 添加收藏时选中的图片 base64
+    var favEditImageData = '';  // 编辑时新选中的图片 base64
+    var favNewFileData = null;  // 添加收藏时选中的文件 {name,mime,size,data}
+    var favEditFileData = null; // 编辑时新选中的文件
+    var favCurrentBlobUrl = null; // 详情页当前打开文件的 blob URL（切换时释放）
+
+    // 读取图片文件为 base64 dataURL（用于收藏夹图片类型）
+    function readImageFile(input, onLoaded) {
+      if (!input || !input.files || !input.files[0]) { onLoaded(''); return; }
+      var fr = new FileReader();
+      fr.onload = function () { onLoaded(fr.result); };
+      fr.onerror = function () { onLoaded(''); };
+      fr.readAsDataURL(input.files[0]);
+    }
+
+    // 读取任意文件为 base64 dataURL（用于收藏夹文件类型）
+    function readFileData(input, onLoaded) {
+      if (!input || !input.files || !input.files[0]) { onLoaded(null); return; }
+      var f = input.files[0];
+      var fr = new FileReader();
+      fr.onload = function () {
+        onLoaded({ name: f.name, mime: f.type || 'application/octet-stream', size: f.size, data: fr.result });
+      };
+      fr.onerror = function () { onLoaded(null); };
+      fr.readAsDataURL(f);
+    }
+
+    function fmtFileSize(bytes) {
+      if (!bytes && bytes !== 0) return '';
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      if (bytes < 1024 * 1024 * 1024) return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+      return (bytes / 1024 / 1024 / 1024).toFixed(2) + ' GB';
+    }
+
+    // 把 base64 dataURL 转成 Blob（用于可靠地打开/预览文件，尤其是 PDF）
+    function dataUrlToBlob(dataUrl) {
+      try {
+        var arr = ('' + dataUrl).split(',');
+        var mimeMatch = arr[0].match(/:(.*?);/);
+        var mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+        var bstr = atob(arr[1]);
+        var n = bstr.length;
+        var u8 = new Uint8Array(n);
+        while (n--) u8[n] = bstr.charCodeAt(n);
+        return new Blob([u8], { type: mime });
+      } catch (e) { return null; }
+    }
+
+    // 直接打开收藏的文件（新标签页预览；大文件用 Blob URL 比 dataURL 更可靠）
+    function openFavFile(fileObj) {
+      if (!fileObj || !fileObj.data) { showToast('文件数据丢失，无法打开'); return; }
+      var blob = dataUrlToBlob(fileObj.data);
+      if (!blob) { showToast('文件解析失败，无法打开'); return; }
+      var url = URL.createObjectURL(blob);
+      var w = window.open(url, '_blank');
+      if (!w) showToast('浏览器拦截了弹窗，请允许后重试');
+      // 新标签页加载完成后释放（延迟释放，避免预览中失效）
+      setTimeout(function () { try { URL.revokeObjectURL(url); } catch (e) {} }, 60000);
+    }
 
     function getFavRecords() {
       var out = [];
@@ -2396,14 +2462,20 @@ const APP_VERSION = 'wobench-v26.26';
         var card = document.createElement('div');
         card.className = 'fav-card';
         var typeLabel = r.fields.favType || 'note';
-        var typeMap = { note:'笔记', link:'链接', text:'文字', image:'图片' };
+        var typeMap = { note:'摘抄', link:'链接', text:'记录', image:'图片', file:'文件' };
         card.innerHTML =
           '<div class="fav-card-type">' + escapeHtml(typeMap[typeLabel] || typeLabel) + '</div>' +
+          (r.fields.image ? '<img class="fav-card-thumb" src="' + r.fields.image + '" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;margin:2px 0 6px;display:block;">' : '') +
           '<div class="fav-card-title">' + escapeHtml(r.fields.title || '无标题') + '</div>' +
           (r.fields.body ? '<div class="fav-card-preview">' + escapeHtml(r.fields.body.substring(0, 80)) + '</div>' : '') +
+          (r.fields.file ? '<div class="fav-card-file" data-open-file="1" style="cursor:pointer;">📎 ' + escapeHtml(r.fields.file.name) + ' · ' + fmtFileSize(r.fields.file.size) + '</div>' : '') +
           (r.fields.tags ? '<div><span class="fav-tag">' + r.fields.tags.split(',').map(function(t){return escapeHtml(t.trim());}).join('</span><span class="fav-tag">') + '</span></div>' : '') +
           '<div class="fav-card-date">' + (r.updatedAt ? new Date(r.updatedAt).toLocaleDateString('zh-CN') : '') + '</div>';
         card.addEventListener('click', function () { showFavDetail(r.id); });
+        if (r.fields.file) {
+          var fchip = card.querySelector('[data-open-file]');
+          if (fchip) fchip.addEventListener('click', function (e) { e.stopPropagation(); openFavFile(r.fields.file); });
+        }
         if (grid) grid.appendChild(card);
       });
     }
@@ -2428,17 +2500,35 @@ const APP_VERSION = 'wobench-v26.26';
       var actionBar = document.getElementById('favEditActionBar');
       if (actionBar) actionBar.remove();
 
-      var typeMap = { note:'笔记', link:'链接', text:'文字', image:'图片' };
+      var typeMap = { note:'摘抄', link:'链接', text:'记录', image:'图片', file:'文件' };
       var dt = document.getElementById('favDTitle');
       var dm = document.getElementById('favDMeta');
       var db = document.getElementById('favDBody');
       var dl = document.getElementById('favDLink');
+      var df = document.getElementById('favDFile');
       if (dt) dt.textContent = r.fields.title || '无标题';
-      if (dm) dm.textContent = (typeMap[r.fields.favType] || r.fields.favType || '笔记') + (r.fields.tags ? ' · 标签：' + r.fields.tags : '') + (r.addedDate ? ' · 收藏于 ' + r.addedDate : '');
+      if (dm) dm.textContent = (typeMap[r.fields.favType] || r.fields.favType || '摘抄') + (r.fields.tags ? ' · 标签：' + r.fields.tags : '') + (r.addedDate ? ' · 收藏于 ' + r.addedDate : '');
       if (db) db.textContent = r.fields.body || '(无正文内容)';
+      var dImg = document.getElementById('favDImage');
+      if (dImg) dImg.innerHTML = r.fields.image ? '<img src="' + r.fields.image + '" style="max-width:100%;border-radius:10px;display:block;">' : '';
       if (dl) {
         if (r.fields.url) { dl.href = r.fields.url; dl.textContent = '打开原始链接 →'; dl.classList.remove('hidden'); }
         else dl.classList.add('hidden');
+      }
+      if (df) {
+        if (r.fields.file && r.fields.file.data) {
+          var blob = dataUrlToBlob(r.fields.file.data);
+          if (blob) {
+            if (favCurrentBlobUrl) { try { URL.revokeObjectURL(favCurrentBlobUrl); } catch (e) {} }
+            favCurrentBlobUrl = URL.createObjectURL(blob);
+            df.href = favCurrentBlobUrl;
+          } else {
+            df.href = r.fields.file.data;
+          }
+          df.removeAttribute('download');
+          df.textContent = '📎 打开文件：' + (r.fields.file.name || '未命名文件') + (r.fields.file.size ? ' · ' + fmtFileSize(r.fields.file.size) : '') + ' →';
+          df.classList.remove('hidden');
+        } else df.classList.add('hidden');
       }
     }
 
@@ -2473,19 +2563,22 @@ const APP_VERSION = 'wobench-v26.26';
       if (delBtn) delBtn.classList.add('hidden');
 
       // 构建编辑表单（内联替换只读内容）
-      var typeMapInv = { '笔记':'note', '链接':'link', '文字':'text', '图片':'image' };
+      var typeMapInv = { '摘抄':'note', '链接':'link', '记录':'text', '图片':'image', '文件':'file' };
       var fType = r.fields.favType || 'note';
 
       dt.innerHTML = '<input class="field-input" id="favEditTitle" style="font-size:16px;font-weight:600;width:100%;box-sizing:border-box;" value="' + escapeHtml(r.fields.title || '') + '" placeholder="标题">';
       dm.innerHTML = '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">'
         + '<div class="fav-type-chips" id="favEditTypeChips" style="flex:1;">'
-        + '<span class="fav-type-chip' + (fType==='note'?' active':'') + '" data-favtype="note">笔记</span>'
+        + '<span class="fav-type-chip' + (fType==='note'?' active':'') + '" data-favtype="note">摘抄</span>'
         + '<span class="fav-type-chip' + (fType==='link'?' active':'') + '" data-favtype="link">链接</span>'
-        + '<span class="fav-type-chip' + (fType==='text'?' active':'') + '" data-favtype="text">文字</span>'
+        + '<span class="fav-type-chip' + (fType==='text'?' active':'') + '" data-favtype="text">记录</span>'
         + '<span class="fav-type-chip' + (fType==='image'?' active':'') + '" data-favtype="image">图片</span>'
+        + '<span class="fav-type-chip' + (fType==='file'?' active':'') + '" data-favtype="file">文件</span>'
         + '</div></div>'
         + '<div class="fav-form-row" style="margin-top:6px;"><div class="fav-form-label" style="font-size:11px;">标签</div><input class="field-input" id="favEditTags" value="' + escapeHtml(r.fields.tags || '') + '" placeholder="用逗号分隔"></div>'
-        + '<div class="fav-form-row" id="favEditLinkRow" style="margin-top:6px;' + (fType!=='link'?'display:none;':'') + '"><div class="fav-form-label" style="font-size:11px;">链接地址</div><input class="field-input" id="favEditUrl" value="' + escapeHtml(r.fields.url || '') + '" placeholder="https://..."></div>';
+        + '<div class="fav-form-row" id="favEditLinkRow" style="margin-top:6px;' + (fType!=='link'?'display:none;':'') + '"><div class="fav-form-label" style="font-size:11px;">链接地址</div><input class="field-input" id="favEditUrl" value="' + escapeHtml(r.fields.url || '') + '" placeholder="https://..."></div>'
+        + '<div class="fav-form-row" id="favEditImageRow" style="margin-top:6px;' + (fType!=='image'?'display:none;':'') + '"><div class="fav-form-label" style="font-size:11px;">图片</div><input type="file" accept="image/*" id="favEditImage" class="field-input" style="padding:6px;"><div id="favEditImagePreview" style="margin-top:6px;">' + (r.fields.image ? '<img src="' + r.fields.image + '" style="max-width:140px;border-radius:8px;display:block;">' : '') + '</div></div>'
+        + '<div class="fav-form-row" id="favEditFileRow" style="margin-top:6px;' + (fType!=='file'?'display:none;':'') + '"><div class="fav-form-label" style="font-size:11px;">文件</div><input type="file" id="favEditFile" class="field-input" style="padding:6px;"><div id="favEditFilePreview" style="margin-top:6px;color:var(--text-sub,#888);font-size:12px;">' + (r.fields.file ? ('当前：' + escapeHtml(r.fields.file.name) + ' · ' + fmtFileSize(r.fields.file.size)) : '') + '</div></div>';
 
       db.innerHTML = '<textarea class="field-input" id="favEditBody" rows="8" style="width:100%;box-sizing:border-box;font-size:14px;line-height:1.6;" placeholder="正文内容">' + escapeHtml(r.fields.body || '') + '</textarea>';
 
@@ -2499,13 +2592,40 @@ const APP_VERSION = 'wobench-v26.26';
         + '<button class="ghost-btn" id="favCancelEditBtn" style="flex:1;font-size:13px;padding:6px;">取消</button>';
       detail.querySelector('.fav-detail').appendChild(actionBar);
 
+      // 编辑模式：图片选择（重置为新图，保存时若未重选则保留原图）
+      favEditImageData = '';
+      var feImg = document.getElementById('favEditImage');
+      if (feImg) feImg.addEventListener('change', function () {
+        readImageFile(feImg, function (data) {
+          favEditImageData = data;
+          var pv = document.getElementById('favEditImagePreview');
+          if (pv) pv.innerHTML = data ? '<img src="' + data + '" style="max-width:140px;border-radius:8px;display:block;">' : '';
+        });
+      });
+
+      // 编辑模式：文件选择（重置为新文件，保存时若未重选则保留原文件）
+      favEditFileData = null;
+      var feFile = document.getElementById('favEditFile');
+      if (feFile) feFile.addEventListener('change', function () {
+        readFileData(feFile, function (f) {
+          favEditFileData = f;
+          var pv = document.getElementById('favEditFilePreview');
+          if (pv) pv.innerHTML = f ? ('已选择：' + escapeHtml(f.name) + ' · ' + fmtFileSize(f.size)) : '';
+        });
+      });
+
       // 绑定类型 chip 切换
       document.querySelectorAll('#favEditTypeChips .fav-type-chip').forEach(function (chip) {
         chip.addEventListener('click', function () {
           document.querySelectorAll('#favEditTypeChips .fav-type-chip').forEach(function (c) { c.classList.remove('active'); });
           this.classList.add('active');
+          var t = this.getAttribute('data-favtype');
           var linkRow = document.getElementById('favEditLinkRow');
-          if (linkRow) linkRow.style.display = this.getAttribute('data-favtype') === 'link' ? '' : 'none';
+          if (linkRow) linkRow.style.display = t === 'link' ? '' : 'none';
+          var imgRow = document.getElementById('favEditImageRow');
+          if (imgRow) imgRow.style.display = t === 'image' ? '' : 'none';
+          var fileRow = document.getElementById('favEditFileRow');
+          if (fileRow) fileRow.style.display = t === 'file' ? '' : 'none';
         });
       });
 
@@ -2533,8 +2653,12 @@ const APP_VERSION = 'wobench-v26.26';
       r.fields.body = body;
       r.updatedAt = Date.now();
       if (url) r.fields.url = url; else delete r.fields.url;
+      if (favEditImageData) r.fields.image = favEditImageData;
+      else if (favType !== 'image') delete r.fields.image;
+      if (favEditFileData) r.fields.file = favEditFileData;
+      else if (favType !== 'file') delete r.fields.file;
 
-      dbPut(r).then(function () { favEditing = false; showFavDetail(currentFavId); showToast('已更新'); renderFavGrid(); });
+      dbPut(r).then(function () { favEditing = false; favEditImageData = ''; favEditFileData = null; showFavDetail(currentFavId); showToast('已更新'); renderFavGrid(); });
     }
 
     function cancelFavEdit() {
@@ -2574,6 +2698,30 @@ const APP_VERSION = 'wobench-v26.26';
         favTypeActive = this.getAttribute('data-favtype') || 'note';
         var linkRow = document.getElementById('favLinkRow');
         if (linkRow) linkRow.style.display = (favTypeActive === 'link') ? '' : 'none';
+        var imgRow = document.getElementById('favImageRow');
+        if (imgRow) imgRow.style.display = (favTypeActive === 'image') ? '' : 'none';
+        var fileRow = document.getElementById('favFileRow');
+        if (fileRow) fileRow.style.display = (favTypeActive === 'file') ? '' : 'none';
+      });
+    });
+
+    // 添加收藏：图片类型插入图片
+    var favNewImage = document.getElementById('favNewImage');
+    if (favNewImage) favNewImage.addEventListener('change', function () {
+      readImageFile(favNewImage, function (data) {
+        favNewImageData = data;
+        var pv = document.getElementById('favImagePreview');
+        if (pv) pv.innerHTML = data ? '<img src="' + data + '" style="max-width:140px;border-radius:8px;display:block;">' : '';
+      });
+    });
+
+    // 添加收藏：文件类型插入文件
+    var favNewFile = document.getElementById('favNewFile');
+    if (favNewFile) favNewFile.addEventListener('change', function () {
+      readFileData(favNewFile, function (f) {
+        favNewFileData = f;
+        var pv = document.getElementById('favFilePreview');
+        if (pv) pv.innerHTML = f ? ('已选择：' + escapeHtml(f.name) + ' · ' + fmtFileSize(f.size)) : '';
       });
     });
 
@@ -2594,6 +2742,10 @@ const APP_VERSION = 'wobench-v26.26';
         addedDate: ymd(new Date())
       };
       if (url) fields.url = url;
+      if (favTypeActive === 'image') { if (favNewImageData) fields.image = favNewImageData; }
+      else delete fields.image;
+      if (favTypeActive === 'file') { if (favNewFileData) fields.file = favNewFileData; }
+      else delete fields.file;
 
       var id = FAV_MODULE + '|' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
       var rec = { id: id, module: FAV_MODULE, fields: fields, updatedAt: Date.now(), addedDate: ymd(new Date()) };
@@ -2603,6 +2755,12 @@ const APP_VERSION = 'wobench-v26.26';
           document.getElementById('favNewTags').value = '';
           document.getElementById('favNewUrl').value = '';
           document.getElementById('favNewBody').value = '';
+          favNewImageData = '';
+          favNewFileData = null;
+          var fi = document.getElementById('favNewImage'); if (fi) fi.value = '';
+          var pf = document.getElementById('favNewFile'); if (pf) pf.value = '';
+          var pv = document.getElementById('favImagePreview'); if (pv) pv.innerHTML = '';
+          var fpv = document.getElementById('favFilePreview'); if (fpv) fpv.innerHTML = '';
           showToast('收藏成功：' + title);
           switchModuleTab(FAV_MODULE, 'today');
           renderFavGrid();
@@ -3246,9 +3404,17 @@ const APP_VERSION = 'wobench-v26.26';
     }
     function saveTodo(arr) { localStorage.setItem('zqdd:todo', JSON.stringify(arr)); }
     var editingTodoId = null;
+    var editingTodoTag = '';
     function todoRow(t) {
       if (editingTodoId === t.id) {
-        return '<div class="history-item"><div class="hi-main" style="flex:1;"><input class="field-input" id="todoEditInput" value="' + escapeAttr(t.text) + '" style="flex:1;"></div><div class="hi-actions"><span class="hi-edit" data-todo-save="' + t.id + '">保存</span><span class="hi-del" data-todo-cancel="' + t.id + '">取消</span></div></div>';
+        var editTags = ['', '生活', '工作', '学习'].map(function (tg) {
+          var label = tg || '无';
+          var active = (editingTodoTag || '') === tg ? ' active' : '';
+          return '<span class="todo-tag' + active + '" data-todo-edittag="' + tg + '">' + label + '</span>';
+        }).join('');
+        return '<div class="history-item" style="flex-wrap:wrap;"><div class="hi-main" style="flex:1 1 100%;"><input class="field-input" id="todoEditInput" value="' + escapeAttr(t.text) + '" style="width:100%;"></div>'
+          + '<div class="todo-tag-row" id="todoEditTagRow" style="flex:1 1 100%; margin-top:8px;">' + editTags + '</div>'
+          + '<div class="hi-actions" style="flex:1 1 100%; justify-content:flex-end; margin-top:8px;"><span class="hi-edit" data-todo-save="' + t.id + '">保存</span><span class="hi-del" data-todo-cancel="' + t.id + '">取消</span></div></div>';
       }
       var tagChip = (t.tag) ? '<span class="todo-tag-chip">' + escapeHtml(t.tag) + '</span>' : '';
       var done = t.done ? ' style="opacity:0.5; text-decoration:line-through;"' : '';
@@ -3315,9 +3481,18 @@ const APP_VERSION = 'wobench-v26.26';
       var ed = e.target.closest('[data-todo-edit]');
       if (ed) {
         editingTodoId = ed.getAttribute('data-todo-edit');
+        var arrX = loadTodo();
+        var itX = arrX.filter(function (t) { return t.id === editingTodoId; })[0];
+        editingTodoTag = itX ? (itX.tag || '') : '';
         renderTodo();
         var inp = document.getElementById('todoEditInput');
         if (inp) inp.focus();
+        return;
+      }
+      var etg = e.target.closest('[data-todo-edittag]');
+      if (etg) {
+        editingTodoTag = etg.getAttribute('data-todo-edittag') || '';
+        renderTodo();
         return;
       }
       var sv = e.target.closest('[data-todo-save]');
@@ -3328,13 +3503,13 @@ const APP_VERSION = 'wobench-v26.26';
         if (!v) { showToast('内容不能为空'); return; }
         var arr2 = loadTodo();
         var it2 = arr2.filter(function (t) { return t.id === sid; })[0];
-        if (it2) it2.text = v;
+        if (it2) { it2.text = v; it2.tag = editingTodoTag; }
         saveTodo(arr2);
-        editingTodoId = null; renderTodo();
+        editingTodoId = null; editingTodoTag = ''; renderTodo();
         return;
       }
       var cx = e.target.closest('[data-todo-cancel]');
-      if (cx) { editingTodoId = null; renderTodo(); return; }
+      if (cx) { editingTodoId = null; editingTodoTag = ''; renderTodo(); return; }
       var td = e.target.closest('[data-todo-del]');
       if (td) {
         var did = td.getAttribute('data-todo-del');
@@ -3384,3 +3559,277 @@ const APP_VERSION = 'wobench-v26.26';
         undoFn();
       });
     }
+
+    /* ================= AI 小助手 ================= */
+    var AI_PROVIDERS = {
+      deepseek: { base: 'https://api.deepseek.com/v1', model: 'deepseek-chat' },
+      openai: { base: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
+      qwen: { base: 'https://dashscope.aliyuncs.com/compatible-mode/v1', model: 'qwen-plus' },
+      glm: { base: 'https://open.bigmodel.cn/api/paas/v4', model: 'glm-4-flash' },
+      custom: { base: '', model: '' }
+    };
+    var AI_MODULES = [
+      { key: 'lingguang', name: '灵光闪现' },
+      { key: 'todo', name: '待办事项' },
+      { key: 'shiti', name: '实体感录' },
+      { key: 'study', name: '学习' },
+      { key: 'xiushen', name: '修身养性' },
+      { key: 'zichan', name: '理财' },
+      { key: 'yanghu', name: '每日养护' },
+      { key: 'tcm', name: '中医打卡' },
+      { key: 'fav', name: '收藏夹' }
+    ];
+    var AI_CARDS = {
+      lingguang: [{ label: '灵感内容', field: '灵感内容' }],
+      todo: [{ label: '全部待办', field: '__all__' }],
+      shiti: [
+        { label: '日记随感', field: '日记随感' },
+        { label: '天气·心情', field: '__weather_mood__' },
+        { label: '身体变化', field: '身体变化' }
+      ],
+      study: [
+        { label: '专注计时', field: '专注计时' },
+        { label: '自主计时', field: '自主时长' },
+        { label: '学习时长(合计)', field: '__duration__' },
+        { label: '正在学习', field: '正在学习' },
+        { label: '已学习', field: '已学习' }
+      ],
+      xiushen: [{ label: '每日经文', field: '每日经文' }, { label: '冥想', field: '冥想' }],
+      zichan: [{ label: '收支记录', field: '__all__' }],
+      yanghu: [{ label: '打卡项', field: '__all__' }],
+      tcm: [{ label: '打卡项', field: '__all__' }, { label: '笔记', field: '笔记' }],
+      fav: [{ label: '全部收藏', field: '__all__' }]
+    };
+
+    function loadAiCfg() {
+      try { return JSON.parse(localStorage.getItem('zqdd:ai_cfg') || 'null'); } catch (e) { return null; }
+    }
+    function saveAiCfg(cfg) { localStorage.setItem('zqdd:ai_cfg', JSON.stringify(cfg)); }
+
+    function aiFormatVal(v) {
+      if (v === null || v === undefined) return '';
+      if (Array.isArray(v)) {
+        return v.map(function (it) {
+          if (it && typeof it === 'object') return Object.keys(it).map(function (k) { return k + '=' + it[k]; }).join('/');
+          return String(it);
+        }).join('、');
+      }
+      if (typeof v === 'object') return Object.keys(v).map(function (k) { return k + '=' + v[k]; }).join('/');
+      return String(v);
+    }
+    function aiSerializeRecord(r, cardField) {
+      if (cardField && cardField !== '__all__') {
+        if (cardField === '__weather_mood__') {
+          var wm = [];
+          if (r.fields && r.fields['天气']) wm.push('天气:' + r.fields['天气']);
+          if (r.fields && r.fields['今日心情']) wm.push('心情:' + r.fields['今日心情']);
+          return wm.length ? wm.join('；') : '(无)';
+        }
+        if (cardField === '__duration__') {
+          var f = Number((r.fields && r.fields['专注计时']) || 0), s = Number((r.fields && r.fields['自主时长']) || 0);
+          return '专注 ' + f + ' 分 + 自主 ' + s + ' 分 = ' + (f + s) + ' 分';
+        }
+        var v = r.fields ? r.fields[cardField] : undefined;
+        if (v === undefined || v === '') return '(无)';
+        return aiFormatVal(v);
+      }
+      var parts = [];
+      var flds = r.fields || {};
+      Object.keys(flds).forEach(function (k) { if (flds[k] !== '' && flds[k] !== undefined) parts.push(k + ':' + aiFormatVal(flds[k])); });
+      return parts.length ? parts.join('；') : '(空)';
+    }
+    function aiModName(key) { var m = AI_MODULES.filter(function (x) { return x.key === key; })[0]; return m ? m.name : key; }
+
+    function buildAnalysisContext() {
+      var scopeType = document.getElementById('aiScopeType').value;
+      var scopeVal = document.getElementById('aiScopeVal').value;
+      var days = parseInt(document.getElementById('aiDays').value, 10) || 0;
+      var cutoff = days > 0 ? ymd(new Date(Date.now() - days * 86400000)) : '';
+      var recs = [];
+      var scopeLabel = '';
+      var cardField = '__all__';
+
+      if (scopeType === 'all') {
+        recs = Object.keys(store).map(function (k) { return store[k]; }).filter(function (r) { return !isEnc(r); });
+        scopeLabel = '全部工作台';
+      } else if (scopeType === 'module') {
+        recs = recordsForModule(scopeVal).filter(function (r) { return !isEnc(r); });
+        scopeLabel = '模块：' + aiModName(scopeVal);
+      } else if (scopeType === 'card') {
+        var parts = (scopeVal || '').split('::');
+        var mod = parts[0], field = parts[1] || '__all__';
+        cardField = field;
+        recs = recordsForModule(mod).filter(function (r) { return !isEnc(r); });
+        var cardLabel = field;
+        if (AI_CARDS[mod]) { var c = AI_CARDS[mod].filter(function (x) { return x.field === field; })[0]; if (c) cardLabel = c.label; }
+        scopeLabel = '卡片：' + aiModName(mod) + ' · ' + cardLabel;
+      }
+
+      if (cutoff) recs = recs.filter(function (r) { return r.date >= cutoff; });
+      recs.sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+
+      var wantTodo = scopeType === 'all' || (scopeType === 'module' && scopeVal === 'todo') || (scopeType === 'card' && (scopeVal || '').indexOf('todo::') === 0);
+      if (wantTodo) {
+        try {
+          var todos = JSON.parse(localStorage.getItem('zqdd:todo') || '[]');
+          todos.forEach(function (t) {
+            recs.push({ date: '(待办)', module: 'todo', fields: { 内容: t.text, 标签: t.tag || '无', 状态: t.done ? '已完成' : '未完成' } });
+          });
+        } catch (e) {}
+      }
+
+      if (!recs.length) return { label: scopeLabel, empty: true, text: '' };
+
+      var lines = recs.map(function (r) {
+        var body = aiSerializeRecord(r, cardField);
+        var modName = (r.module === 'todo') ? '' : (' · ' + aiModName(r.module));
+        return '【' + r.date + modName + '】' + body;
+      });
+      return { label: scopeLabel, empty: false, text: lines.join('\n') };
+    }
+
+    function aiAppendMsg(role, text) {
+      var chat = document.getElementById('aiChat');
+      if (!chat) return;
+      var div = document.createElement('div');
+      div.className = 'ai-msg ' + (role === 'user' ? 'ai-user' : 'ai-ai');
+      div.textContent = text;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+      return div;
+    }
+
+    function aiCall(userMsg, ctx, doneCb) {
+      var cfg = loadAiCfg();
+      if (!cfg || !cfg.key) {
+        doneCb('⚠️ 还没配置 API Key。请去「设置 → AI 小助手配置」选服务商并填入 Key（如 DeepSeek）后再试。');
+        return;
+      }
+      var sysPrompt = '你是"我的工作台"这款个人自律记录 App 的 AI 小助手。用户的 App 记录了他/她的学习、待办、实体感录（日记/天气/心情/身体）、修身养性（每日经文/冥想）、理财收支、每日养护打卡、中医打卡、灵感收藏等。'
+        + '当用户让你"分析记录"时，会附上【分析范围】和【用户记录数据】（每行一条，格式【日期 · 模块】字段:值）。请你：'
+        + '1) 基于真实数据给出客观总结（趋势、频率、完成度）；2) 发现亮点与可改进的短板；3) 给出 2-4 条具体、可执行的建议；4) 语气温柔鼓励、像懂他的朋友。'
+        + '如果用户只是闲聊或问问题，自然回答即可。回答用中文，条理清晰，可用简短分点。';
+      var userContent = (ctx && !ctx.empty ? ('【分析范围】' + ctx.label + '\n【用户记录数据】\n' + ctx.text + '\n\n') : '') + userMsg;
+
+      fetch(cfg.base.replace(/\/$/, '') + '/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfg.key },
+        body: JSON.stringify({
+          model: cfg.model,
+          messages: [
+            { role: 'system', content: sysPrompt },
+            { role: 'user', content: userContent }
+          ],
+          temperature: 0.7
+        })
+      }).then(function (res) {
+        if (!res.ok) return res.text().then(function (t) { throw new Error('HTTP ' + res.status + '：' + t.slice(0, 200)); });
+        return res.json();
+      }).then(function (data) {
+        var txt = data.choices && data.choices[0] && data.choices[0].message ? data.choices[0].message.content : '(无返回)';
+        doneCb(txt);
+      }).catch(function (err) {
+        doneCb('❌ 调用失败：' + err.message + '\n\n请检查：① API Key 是否正确；② Base URL 是否完整（需含 /v1）；③ 当前网络能否访问该服务。');
+      });
+    }
+
+    function aiPopulateScopeVal() {
+      var type = document.getElementById('aiScopeType').value;
+      var sel = document.getElementById('aiScopeVal');
+      if (!sel) return;
+      sel.innerHTML = '';
+      if (type === 'module') {
+        AI_MODULES.forEach(function (m) {
+          var o = document.createElement('option'); o.value = m.key; o.textContent = m.name; sel.appendChild(o);
+        });
+        sel.style.display = '';
+      } else if (type === 'card') {
+        AI_MODULES.forEach(function (m) {
+          var cards = AI_CARDS[m.key] || [{ label: '全部', field: '__all__' }];
+          cards.forEach(function (c) {
+            var o = document.createElement('option'); o.value = m.key + '::' + c.field; o.textContent = m.name + ' · ' + c.label; sel.appendChild(o);
+          });
+        });
+        sel.style.display = '';
+      } else {
+        sel.style.display = 'none';
+      }
+    }
+
+    function aiInit() {
+      var scopeType = document.getElementById('aiScopeType');
+      var aiSend = document.getElementById('aiSend');
+      var aiInput = document.getElementById('aiInput');
+      if (scopeType) { aiPopulateScopeVal(); scopeType.addEventListener('change', aiPopulateScopeVal); }
+      function doSend() {
+        var msg = aiInput ? aiInput.value.trim() : '';
+        if (!msg) { showToast('请输入问题'); return; }
+        aiAppendMsg('user', msg);
+        if (aiInput) aiInput.value = '';
+        var loading = aiAppendMsg('ai', '思考中…');
+        var ctx = buildAnalysisContext();
+        if (ctx.empty) ctx = null;
+        aiCall(msg, ctx, function (resp) { if (loading) loading.textContent = resp; });
+      }
+      if (aiSend) aiSend.addEventListener('click', doSend);
+      if (aiInput) aiInput.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doSend(); } });
+
+      var provider = document.getElementById('aiProvider');
+      var baseUrl = document.getElementById('aiBaseUrl');
+      var model = document.getElementById('aiModel');
+      var apiKey = document.getElementById('aiApiKey');
+      var saveCfg = document.getElementById('aiSaveCfg');
+      var testCfg = document.getElementById('aiTestCfg');
+      var cfgStatus = document.getElementById('aiCfgStatus');
+      var saved = loadAiCfg();
+      if (saved) {
+        if (provider && saved.provider) provider.value = saved.provider;
+        if (baseUrl && saved.base) baseUrl.value = saved.base;
+        if (model && saved.model) model.value = saved.model;
+        if (apiKey && saved.key) apiKey.value = saved.key;
+      } else if (provider) {
+        provider.value = 'deepseek';
+        if (baseUrl) baseUrl.value = AI_PROVIDERS.deepseek.base;
+        if (model) model.value = AI_PROVIDERS.deepseek.model;
+      }
+      if (provider) provider.addEventListener('change', function () {
+        var p = AI_PROVIDERS[provider.value];
+        if (p && p.base) { if (baseUrl) baseUrl.value = p.base; if (model) model.value = p.model; }
+      });
+      if (saveCfg) saveCfg.addEventListener('click', function () {
+        var cfg = {
+          provider: provider ? provider.value : 'deepseek',
+          base: baseUrl ? baseUrl.value.trim() : '',
+          model: model ? model.value.trim() : '',
+          key: apiKey ? apiKey.value.trim() : ''
+        };
+        if (!cfg.key) { if (cfgStatus) { cfgStatus.className = 'ai-cfg-status err'; cfgStatus.textContent = '请填写 API Key'; } return; }
+        if (!cfg.base) { if (cfgStatus) { cfgStatus.className = 'ai-cfg-status err'; cfgStatus.textContent = '请填写接口地址 Base URL'; } return; }
+        saveAiCfg(cfg);
+        if (cfgStatus) { cfgStatus.className = 'ai-cfg-status ok'; cfgStatus.textContent = '✅ 已保存（仅存本机）'; }
+        showToast('AI 配置已保存');
+      });
+      if (testCfg) testCfg.addEventListener('click', function () {
+        var cfg = {
+          provider: provider ? provider.value : 'deepseek',
+          base: baseUrl ? baseUrl.value.trim() : '',
+          model: model ? model.value.trim() : '',
+          key: apiKey ? apiKey.value.trim() : ''
+        };
+        if (!cfg.key || !cfg.base) { if (cfgStatus) { cfgStatus.className = 'ai-cfg-status err'; cfgStatus.textContent = '请先填 Key 和 Base URL'; } return; }
+        if (cfgStatus) { cfgStatus.className = 'ai-cfg-status'; cfgStatus.textContent = '连接测试中…'; }
+        fetch(cfg.base.replace(/\/$/, '') + '/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfg.key },
+          body: JSON.stringify({ model: cfg.model, messages: [{ role: 'user', content: 'ping' }], temperature: 0.5 })
+        }).then(function (res) {
+          if (!res.ok) return res.text().then(function (t) { throw new Error('HTTP ' + res.status + '：' + t.slice(0, 160)); });
+          return res.json();
+        }).then(function () {
+          if (cfgStatus) { cfgStatus.className = 'ai-cfg-status ok'; cfgStatus.textContent = '✅ 连接成功，可以开始使用了'; }
+        }).catch(function (err) {
+          if (cfgStatus) { cfgStatus.className = 'ai-cfg-status err'; cfgStatus.textContent = '❌ 测试失败：' + err.message; }
+        });
+      });
+    }
+    aiInit();
