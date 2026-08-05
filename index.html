@@ -80,16 +80,13 @@
             <div id="dailyQuote" style="font-size:14px; line-height:1.75;">--</div>
           </div>
 
-          <div class="card" id="aiCard">
-            <div class="card-title">🤖 AI 小助手</div>
-            <div class="ai-clear-row">
-              <span class="ai-clear-btn" id="aiClearBtn">清除</span>
+            <div class="card" id="aiCard">
+              <div class="card-title">🤖 AI 小助手<span class="ai-clear-btn" id="aiClearBtn">清除</span></div>
               <div class="ai-clear-menu hidden" id="aiClearMenu">
                 <div class="ai-clear-item" id="aiClearOpts">清除选项</div>
                 <div class="ai-clear-item" id="aiClearChat">清除对话</div>
               </div>
-            </div>
-            <div class="ai-scope-bar">
+              <div class="ai-scope-bar">
               <select class="field-input" id="aiScopeType">
                 <option value="all">全部工作台</option>
                 <option value="module">单个模块</option>
@@ -695,7 +692,7 @@
             </div>
 
             <div class="card">
-              <div class="card-title">今日学习</div>
+              <div class="card-title">阅读记录</div>
 
               <div class="study-reading-tabs">
                 <span class="study-reading-tab active" data-sread="reading">📖 正在学习</span>
@@ -739,9 +736,26 @@
                 <div id="readDoneList" class="reading-list reading-done-list"></div>
                 <div class="reading-empty" id="readDoneEmpty" style="font-size:13px; color:var(--text-light); padding:8px 0;">还没有完成学习的内容</div>
               </div>
+            </div>
 
-              <!-- 学习心得（保留） -->
-              <div class="field" style="margin-top:12px;">
+            <div class="card">
+              <div class="card-title">今日学习</div>
+              <div class="field">
+                <div class="field-label">🏷️ 学习标签</div>
+                <div class="tag-group" data-save="学习科目" style="margin-bottom:4px;">
+                  <span class="tag">中医</span>
+                  <span class="tag">国学经典</span>
+                  <span class="tag">AI科技</span>
+                  <span class="tag">历史文化</span>
+                  <span class="tag">管理学</span>
+                  <span class="tag">其他</span>
+                </div>
+              </div>
+              <div class="field">
+                <div class="field-label">📚 学习内容</div>
+                <input class="field-input" data-save="学习内容" placeholder="例如：背诵 50 个单词 / 读完《……》第 3 章">
+              </div>
+              <div class="field">
                 <div class="field-label">📝 学习心得 / 笔记</div>
                 <textarea class="field-input" rows="3" data-save="学习心得" placeholder="记录关键知识点、灵感或下一步行动计划……"></textarea>
               </div>
