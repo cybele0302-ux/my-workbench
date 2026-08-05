@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v27.7';
+const APP_VERSION = 'wobench-v27.9';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -3756,6 +3756,21 @@ const APP_VERSION = 'wobench-v27.7';
       }
     }
 
+    function aiResetOptions() {
+      var st = document.getElementById('aiScopeType');
+      var sv = document.getElementById('aiScopeVal');
+      var days = document.getElementById('aiDays');
+      if (st) st.value = 'all';
+      if (sv) { sv.innerHTML = ''; sv.style.display = 'none'; }
+      if (days) days.value = '7';
+      showToast('已清除选项，恢复默认状态');
+    }
+    function aiResetChat() {
+      var chat = document.getElementById('aiChat');
+      if (chat) chat.innerHTML = '<div class="ai-msg ai-ai ai-welcome">你好，我是你的 AI 小助手 👋 可以直接问我问题，或选好「范围 + 时段」后让我分析你的记录并给建议。</div>';
+      showToast('已清除对话，恢复默认状态');
+    }
+
     function aiInit() {
       var scopeType = document.getElementById('aiScopeType');
       var aiSend = document.getElementById('aiSend');
@@ -3773,6 +3788,24 @@ const APP_VERSION = 'wobench-v27.7';
       }
       if (aiSend) aiSend.addEventListener('click', doSend);
       if (aiInput) aiInput.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doSend(); } });
+
+      var aiClearBtn = document.getElementById('aiClearBtn');
+      var aiClearMenu = document.getElementById('aiClearMenu');
+      if (aiClearBtn && aiClearMenu) {
+        aiClearBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          aiClearMenu.classList.toggle('hidden');
+        });
+        var aiClearOpts = document.getElementById('aiClearOpts');
+        var aiClearChat = document.getElementById('aiClearChat');
+        if (aiClearOpts) aiClearOpts.addEventListener('click', function () { aiClearMenu.classList.add('hidden'); aiResetOptions(); });
+        if (aiClearChat) aiClearChat.addEventListener('click', function () { aiClearMenu.classList.add('hidden'); aiResetChat(); });
+        document.addEventListener('click', function (e) {
+          if (!aiClearMenu.classList.contains('hidden') && !aiClearMenu.contains(e.target) && e.target !== aiClearBtn) {
+            aiClearMenu.classList.add('hidden');
+          }
+        });
+      }
 
       var provider = document.getElementById('aiProvider');
       var baseUrl = document.getElementById('aiBaseUrl');
