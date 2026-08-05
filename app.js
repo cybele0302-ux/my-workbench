@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v26.25';
+const APP_VERSION = 'wobench-v26.26';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -870,7 +870,7 @@ const APP_VERSION = 'wobench-v26.25';
       c.innerHTML = recs.map(function (r) {
         const tags = (r.fields['灵感标签'] || '').split('、').filter(Boolean).map(function (t) { return '<span class="insp-tag">' + escapeHtml(t) + '</span>'; }).join('');
         const lm = lunarCn(r.date).replace(/^.+?年/, '');
-        return '<div class="insp-item"><div class="insp-tags">' + tags + '</div><div class="insp-content">' + escapeHtml(r.fields['灵感内容'] || '') + '</div><div class="insp-foot"><span>' + r.date.slice(5) + ' · ' + lm + '</span><span class="hi-del" data-del="' + r.id + '">删除</span></div></div>';
+        return '<div class="insp-item" data-insp-id="' + r.id + '"><div class="insp-tags">' + tags + '</div><div class="insp-content">' + escapeHtml(r.fields['灵感内容'] || '') + '</div><div class="insp-foot"><span>' + r.date.slice(5) + ' · ' + lm + '</span><span class="hi-del" data-del="' + r.id + '">删除</span><span class="hi-edit" data-insp-edit="' + r.id + '">编辑</span></div></div>';
       }).join('');
     }
     function addInspiration() {
@@ -882,6 +882,36 @@ const APP_VERSION = 'wobench-v26.25';
       const id = 'lingguang|' + ds + '|' + Date.now();
       store[id] = { id: id, date: ds, module: 'lingguang', fields: fields, updatedAt: Date.now() };
       dbPut(store[id]).then(function () { clearForm(el); renderInspirationList(); renderCal(); renderDetail(ds); renderStreakBadges(); renderGoalProgress(); showToast('灵感已记录'); });
+    }
+
+    // ---- 灵感编辑模式 ----
+    function enterInspEdit(id) {
+      var r = store[id];
+      if (!r || isEnc(r)) return;
+      var item = document.querySelector('[data-insp-id="' + id + '"]');
+      if (!item) return;
+      var content = r.fields['灵感内容'] || '';
+      var tags = r.fields['灵感标签'] || '';
+      item.innerHTML = '<div class="insp-edit-form">'
+        + '<div class="insp-edit-row"><label style="font-size:11px;color:var(--text-sub,#8f82ad);">灵感内容</label><textarea class="field-input" id="inspEditContent" rows="4" style="width:100%;box-sizing:border-box;font-size:14px;">' + escapeHtml(content) + '</textarea></div>'
+        + '<div class="insp-edit-row"><label style="font-size:11px;color:var(--text-sub,#8f82ad);">标签（用顿号分隔）</label><input class="field-input" id="inspEditTags" value="' + escapeHtml(tags) + '" placeholder="例如：中医、经典"></div>'
+        + '<div class="insp-edit-actions"><button class="ghost-btn" data-insp-save="' + id + '" style="flex:1;font-size:13px;padding:6px;background:linear-gradient(135deg,#8B6FE0,#D8B25E);color:#fff;border:none;border-radius:8px;">保存</button>'
+        + '<button class="ghost-btn" data-insp-cancel="' + id + '" style="flex:1;font-size:13px;padding:6px;margin-left:6px;">取消</button></div></div>';
+    }
+    function saveInspEdit(id) {
+      var r = store[id];
+      if (!r) return;
+      var content = (document.getElementById('inspEditContent').value || '').trim();
+      var tags = (document.getElementById('inspEditTags').value || '').trim();
+      if (!content) { showToast('灵感内容不能为空'); return; }
+      r.fields['灵感内容'] = content;
+      r.fields['灵感标签'] = tags;
+      r.updatedAt = Date.now();
+      dbPut(r).then(function () {
+        store[id] = r;
+        renderInspirationList();
+        showToast('已更新');
+      });
     }
 
     // ---- 理财：交易流水 + 概览（日/周/月/年）+ 分类图表 ----
@@ -1157,6 +1187,12 @@ const APP_VERSION = 'wobench-v26.25';
         });
         return;
       }
+      const inspEd = e.target.closest('[data-insp-edit]');
+      if (inspEd) { enterInspEdit(inspEd.getAttribute('data-insp-edit')); return; }
+      const inspSave = e.target.closest('[data-insp-save]');
+      if (inspSave) { saveInspEdit(inspSave.getAttribute('data-insp-save')); return; }
+      const inspCancel = e.target.closest('[data-insp-cancel]');
+      if (inspCancel) { renderInspirationList(); return; }
       const ed = e.target.closest('[data-edit-id]');
       if (ed) { enterEdit(ed.getAttribute('data-edit-mod') || ed.getAttribute('data-edit-id').split('|')[0], ed.getAttribute('data-edit-id')); return; }
       const ex = e.target.closest('.exit-edit');
@@ -2020,8 +2056,11 @@ const APP_VERSION = 'wobench-v26.25';
       bar.querySelector('.goal-bar-fill').style.background = over ? 'linear-gradient(90deg,#ff8fa3,#ff4d67)' : 'linear-gradient(90deg,#ffe27a,#ff9f1c)';
       bar.querySelector('.goal-bar-label').textContent = label;
     }
-    var btnSaveGoals = document.getElementById('btnSaveGoals');
-    if (btnSaveGoals) btnSaveGoals.addEventListener('click', saveGoals);
+    // 目标输入框即时自动保存（blur / 回车触发）
+    document.querySelectorAll('.goal-input').forEach(function (inp) {
+      inp.addEventListener('blur', saveGoals);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); saveGoals(); } });
+    });
 
     // ============ 习惯连击（streak） ============
     function calcStreak(mod) {
@@ -3216,8 +3255,18 @@ const APP_VERSION = 'wobench-v26.25';
       return '<div class="history-item"' + done + '><div class="hi-main" data-todo-toggle="' + t.id + '" style="cursor:pointer; flex:1;"><div class="hi-sum">' + tagChip + escapeHtml(t.text) + '</div></div><div class="hi-actions"><span class="hi-edit" data-todo-edit="' + t.id + '">编辑</span><span class="hi-del" data-todo-del="' + t.id + '">×</span></div></div>';
     }
     function renderTodo() {
-      var pending = loadTodo().filter(function (t) { return !t.done; });
-      var done = loadTodo().filter(function (t) { return t.done; });
+      // 渲染筛选 Tab
+      var fb = document.getElementById('todoFilterBar');
+      if (fb) {
+        fb.innerHTML = TODO_FILTER_TAGS.map(function (t) {
+          return '<span class="filter-chip' + (t === todoFilterTag ? ' active' : '') + '" data-todo-filter="' + t + '">' + t + '</span>';
+        }).join('');
+      }
+      var allPending = loadTodo().filter(function (t) { return !t.done; });
+      var allDone = loadTodo().filter(function (t) { return t.done; });
+      // 按标签筛选
+      var pending = todoFilterTag === '全部' ? allPending : allPending.filter(function (t) { return (t.tag || '') === todoFilterTag || (todoFilterTag === '无' && !t.tag); });
+      var done = todoFilterTag === '全部' ? allDone : allDone.filter(function (t) { return (t.tag || '') === todoFilterTag || (todoFilterTag === '无' && !t.tag); });
       var cp = document.getElementById('todoList');
       var cd = document.getElementById('todoDone');
       if (cp) cp.innerHTML = pending.length ? pending.map(todoRow).join('') : '<div class="history-empty">暂无待办，去添加一条吧</div>';
@@ -3228,6 +3277,8 @@ const APP_VERSION = 'wobench-v26.25';
     var todoAdd = document.getElementById('todoAdd');
     var todoInput = document.getElementById('todoInput');
     var selectedTodoTag = '';
+    var todoFilterTag = '全部';
+    var TODO_FILTER_TAGS = ['全部', '生活', '工作', '学习', '无'];
     var todoTagRow = document.getElementById('todoTagRow');
     if (todoAdd) todoAdd.addEventListener('click', function () {
       var v = todoInput.value.trim();
@@ -3296,6 +3347,8 @@ const APP_VERSION = 'wobench-v26.25';
           if (!cur.some(function (t) { return t.id === did; })) { cur.push(item); saveTodo(cur); renderTodo(); showToast('已恢复'); }
         });
       }
+      var tf = e.target.closest('[data-todo-filter]');
+      if (tf) { todoFilterTag = tf.getAttribute('data-todo-filter'); renderTodo(); return; }
     });
 
     document.addEventListener('keydown', function (e) {
