@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v27.10';
+const APP_VERSION = 'wobench-v27.11';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -1662,7 +1662,8 @@ const APP_VERSION = 'wobench-v27.10';
         todo: loadTodo(),
         salt: localStorage.getItem(SALT_KEY),
         verifier: localStorage.getItem(VERIFIER_KEY),
-        goals: localStorage.getItem(GOAL_KEY)
+        goals: localStorage.getItem(GOAL_KEY),
+        aiCfg: localStorage.getItem('zqdd:ai_cfg')
       };
     }
     function renderAllCloud() {
@@ -1747,6 +1748,7 @@ const APP_VERSION = 'wobench-v27.10';
       if (data.salt != null) localStorage.setItem(SALT_KEY, data.salt);
       if (data.verifier != null) localStorage.setItem(VERIFIER_KEY, data.verifier);
       if (data.goals != null) localStorage.setItem(GOAL_KEY, data.goals);
+      if (data.aiCfg != null) { localStorage.setItem('zqdd:ai_cfg', data.aiCfg); window.dispatchEvent(new CustomEvent('zqdd:aiCfgSynced')); }
       loadGoals();
       if (localWins) schedulePush(); // 仅当存在本地更新记录时统一回传一次
     }
@@ -3829,6 +3831,15 @@ const APP_VERSION = 'wobench-v27.10';
         var p = AI_PROVIDERS[provider.value];
         if (p && p.base) { if (baseUrl) baseUrl.value = p.base; if (model) model.value = p.model; }
       });
+      window.addEventListener('zqdd:aiCfgSynced', function () {
+        var s2 = loadAiCfg();
+        if (s2) {
+          if (provider && s2.provider) provider.value = s2.provider;
+          if (baseUrl && s2.base) baseUrl.value = s2.base;
+          if (model && s2.model) model.value = s2.model;
+          if (apiKey && s2.key) apiKey.value = s2.key;
+        }
+      });
       if (saveCfg) saveCfg.addEventListener('click', function () {
         var cfg = {
           provider: provider ? provider.value : 'deepseek',
@@ -3839,7 +3850,9 @@ const APP_VERSION = 'wobench-v27.10';
         if (!cfg.key) { if (cfgStatus) { cfgStatus.className = 'ai-cfg-status err'; cfgStatus.textContent = '请填写 API Key'; } return; }
         if (!cfg.base) { if (cfgStatus) { cfgStatus.className = 'ai-cfg-status err'; cfgStatus.textContent = '请填写接口地址 Base URL'; } return; }
         saveAiCfg(cfg);
-        if (cfgStatus) { cfgStatus.className = 'ai-cfg-status ok'; cfgStatus.textContent = '✅ 已保存（仅存本机）'; }
+        schedulePush();
+        var synced = !!(cloudCfg && cloudSpaceKey);
+        if (cfgStatus) { cfgStatus.className = 'ai-cfg-status ok'; cfgStatus.textContent = '✅ 已保存' + (synced ? '（已同步云端，其他设备自动可用）' : '（本机，连上云端后自动同步）'); }
         showToast('AI 配置已保存');
       });
       if (testCfg) testCfg.addEventListener('click', function () {
