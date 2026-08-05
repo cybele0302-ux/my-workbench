@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v27.15';
+const APP_VERSION = 'wobench-v27.16';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -465,7 +465,7 @@ const APP_VERSION = 'wobench-v27.15';
         gEl.innerHTML = '<div class="greeting-main">' + USER_NICKNAME + '，' + g + ' ' + icon + '</div><div class="greeting-sub">' + sub + '</div>';
       }
 
-      var q = DAILY_QUOTES[sum % DAILY_QUOTES.length];
+      var q = DAILY_QUOTES[sum % DAILY_QUOTES.length].replace(/\s*——《[^》]*》.*$/, '');
       var qEl = document.getElementById('dailyQuote');
       if (qEl) qEl.textContent = q;
     }
