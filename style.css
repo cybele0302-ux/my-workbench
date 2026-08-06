@@ -1209,7 +1209,8 @@
     /* 每日养护打卡 */
     .yanghu-card .yanghu-list-inner { display: flex; flex-direction: column; gap: 10px; }
     .card-title--foldable { justify-content: space-between; }
-    .card-title .card-fold-btn { width: 30px; height: 28px; border-radius: 9px; font-size: 12px; flex: 0 0 auto; margin-left: auto; }
+    .card-title .card-fold-btn { width: 30px; height: 28px; border-radius: 9px; font-size: 12px; flex: 0 0 auto; margin-left: auto; display: inline-flex; align-items: center; justify-content: center; color: var(--purple-deep); cursor: pointer; font-weight: 500; padding: 0; border: none; background: rgba(var(--accent-rgb), 0.12); user-select: none; transition: background .2s; }
+    .card-title .card-fold-btn:active { background: rgba(var(--accent-rgb), 0.25); }
     .check-item { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-size: 13px; color: var(--text-main); padding: 9px 11px; background: rgba(var(--accent-rgb), 0.05); border-radius: 12px; transition: background .2s; -webkit-tap-highlight-color: transparent; }
     .check-item:active { background: rgba(var(--accent-rgb), 0.12); }
     .check-item input { display: none; }
