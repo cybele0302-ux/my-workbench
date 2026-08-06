@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v28.3';
+const APP_VERSION = 'wobench-v28.4';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -1712,28 +1712,24 @@ const APP_VERSION = 'wobench-v28.3';
       const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b642buf(o.iv) }, key, b642buf(o.ct));
       return JSON.parse(new TextDecoder().decode(pt));
     }
-    // 范围令牌（Route B）：由 Edge Function 签发，含 space_key 声明，供 RLS 隔离
-    let cloudJwt = '', cloudJwtExp = 0;
-    async function ensureCloudJwt(pass) {
-      if (cloudJwt && Date.now() < cloudJwtExp - 60000) return; // 缓存有效，免重复申请
-      try {
-        const res = await fetch(CLOUD_URL + '/functions/v1/auth-mint', {
-          method: 'POST',
-          headers: { 'apikey': CLOUD_ANON, 'Authorization': 'Bearer ' + CLOUD_ANON, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ space_key: cloudSpaceKey, password: pass })
-        });
-        if (!res.ok) throw new Error('mint ' + res.status);
-        const j = await res.json();
-        if (!j.token) throw new Error('no token');
-        cloudJwt = j.token;
-        cloudJwtExp = (j.exp || 0) * 1000;
-      } catch (e) {
-        console.warn('获取范围令牌失败，回退 anon：', e);
-        cloudJwt = ''; // 函数未部署/异常时回退到 anon key（过渡期可用）
-      }
+    // ===== 方案 C：云端读写经 Edge Function 中转（服务端 service_role + space_key 隔离）=====
+    // 客户端只发 auth_proof（口令的哈希），服务端据此校验空间归属；数据密钥不出本机，云端仍是密文。
+    // 若代理出现异常，把 CLOUD_PROXY 改为 false 即可秒回退到 anon 直连 REST。
+    const CLOUD_PROXY = true;
+    async function cloudProxyCall(op, extra) {
+      const proof = await sha256Hex('zqdd-auth|' + cloudPass);
+      const res = await fetch(CLOUD_URL + '/functions/v1/sync-proxy', {
+        method: 'POST',
+        headers: { 'apikey': CLOUD_ANON, 'Authorization': 'Bearer ' + CLOUD_ANON, 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.assign({ op: op, space_key: cloudSpaceKey, auth_proof: proof }, extra || {}))
+      });
+      let j = null;
+      try { j = await res.json(); } catch (e) { j = null; }
+      if (!res.ok) throw new Error('proxy ' + op + ' ' + res.status + (j && j.error ? ' ' + j.error : ''));
+      return j || {};
     }
     function cloudHeaders() {
-      // 临时回退：纯 anon 基线（恢复同步功能）。隔离方案 C（函数代理）稍后上线。
+      // 直连 REST 用的请求头（CLOUD_PROXY=false 时的回退路径）
       return {
         'apikey': cloudCfg.appKey,
         'Authorization': 'Bearer ' + cloudCfg.appKey,
@@ -1762,6 +1758,10 @@ const APP_VERSION = 'wobench-v28.3';
       return cloudPass;
     }
     async function cloudFind() {
+      if (CLOUD_PROXY) {
+        const j = await cloudProxyCall('get');
+        return (j && j.row) || null;
+      }
       const url = cloudCfg.api + '/rest/v1/sync?space_key=eq.' + encodeURIComponent(cloudSpaceKey);
       const r = await fetch(url, { headers: cloudHeaders() });
       if (!r.ok) throw new Error('find ' + r.status);
@@ -1769,6 +1769,11 @@ const APP_VERSION = 'wobench-v28.3';
       return (Array.isArray(j) && j[0]) || null;
     }
     async function cloudUpsert(payloadObj, pushedAt, rowId) {
+      if (CLOUD_PROXY) {
+        // 代理内部自行判断 insert / update，客户端无需传 rowId
+        await cloudProxyCall('put', { payload: payloadObj, pushed_at: pushedAt });
+        return;
+      }
       // 已存在同 space_key 行 → PATCH（避免 REST POST 反复新增重复行）
       if (rowId) {
         const body = JSON.stringify({ payload: payloadObj, pushed_at: pushedAt });
@@ -1960,7 +1965,9 @@ const APP_VERSION = 'wobench-v28.3';
         console.error('cloudConnect 失败:', e);
         var msg = e && e.message ? e.message : String(e);
         var hint = '连接失败';
-        if (msg.indexOf('find ') === 0) hint = '查询失败(' + msg + ')';
+        if (msg.indexOf('proxy get') === 0) hint = /401/.test(msg) ? '口令与该空间不匹配' : '读取云端失败(' + msg + ')';
+        else if (msg.indexOf('proxy put') === 0) hint = /401/.test(msg) ? '口令与该空间不匹配' : '上传云端失败(' + msg + ')';
+        else if (msg.indexOf('find ') === 0) hint = '查询失败(' + msg + ')';
         else if (msg.indexOf('upsert ') === 0) hint = '上传失败(' + msg + ')';
         else if (msg.indexOf('Failed to fetch') >= 0 || msg.indexOf('NetworkError') >= 0) hint = '网络无法连接Supabase';
         else hint = '连接失败: ' + msg;
