@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v27.25';
+const APP_VERSION = 'wobench-v28.0';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -589,6 +589,15 @@ const APP_VERSION = 'wobench-v27.25';
 
     // ---- 工具 ----
     function escapeHtml(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+    // 仅允许安全协议的 URL，阻断 javascript:/data:text/html 等注入（收藏链接/图片）
+    function safeUrl(u) {
+      if (!u || typeof u !== 'string') return '';
+      try {
+        var p = new URL(u, location.href);
+        if (['http:', 'https:', 'mailto:', 'tel:'].indexOf(p.protocol) >= 0) return p.href;
+      } catch (e) {}
+      return '';
+    }
     function escapeAttr(s) { return escapeHtml(s).replace(/"/g, '&quot;'); }
     // 实体感录：每天只保留最新一条（兼容旧数据中同一天多条的情况）
     function dedupeShiti() {
@@ -713,6 +722,19 @@ const APP_VERSION = 'wobench-v27.25';
         html += '<div class="report-section"><div class="report-section-title">💰 收支 ¥' + Math.round(inc - exp).toLocaleString() + '</div>';
         html += '<div class="report-row"><div class="report-row-name">支出</div><div class="report-row-bar"><div class="report-row-fill" style="width:' + Math.min(100, (exp / Math.max(exp, inc) * 100 || 0)) + '%; background:linear-gradient(90deg,#ff8fa3,#c44569)"></div></div><div class="report-row-value">¥' + Math.round(exp).toLocaleString() + '</div></div>';
         html += '<div class="report-row"><div class="report-row-name">收入</div><div class="report-row-bar"><div class="report-row-fill" style="width:' + Math.min(100, (inc / Math.max(exp, inc) * 100 || 0)) + '%; background:linear-gradient(90deg,#7fdcb3,#1d9e75)"></div></div><div class="report-row-value">¥' + Math.round(inc).toLocaleString() + '</div></div></div>';
+      }
+
+      // 语义小结：根据数据给出一句可读结论，而非冷冰冰的数字
+      if (recs.length) {
+        var tips = [];
+        if (totalDays >= 1) tips.push('坚持记录了 ' + totalDays + ' 天');
+        if (studyMins >= 60) tips.push('学习 ' + (studyMins >= 60 ? (Math.round(studyMins / 60 * 10) / 10) + ' 小时' : studyMins + ' 分钟'));
+        if (exp > inc && (exp + inc) > 0) tips.push('本月支出已高于收入 ' + '¥' + Math.round(exp - inc).toLocaleString() + '，注意控支');
+        else if (inc > 0 && exp >= 0) tips.push('收支结余 ' + '¥' + Math.round(inc - exp).toLocaleString());
+        if (avgSleep != null && avgSleep < 60) tips.push('睡眠均值仅 ' + avgSleep + ' 分，建议早点休息');
+        if (!studyMins && !counts.lingguang && !counts.shiti && counts.zichan === 0) tips.push('这个周期内容偏少，试着随手记一条');
+        var insight = tips.length ? tips.join(' · ') : '一切平稳，继续保持 👍';
+        html += '<div class="report-section"><div class="report-insight">💡 ' + insight + '</div></div>';
       }
 
       if (!recs.length) html = '<div class="report-empty">该时段暂无记录，开始记录后就能在这里看到分析啦</div>';
@@ -1002,19 +1024,53 @@ const APP_VERSION = 'wobench-v27.25';
       setText('expThisMonth', '¥' + Math.round(exp).toLocaleString());
       setText('incThisMonth', '¥' + Math.round(inc).toLocaleString());
       setText('balThisMonth', '¥' + Math.round(inc - exp).toLocaleString());
+      // 月度预算目标（目标设置 goal=budget）：以自然月支出衡量，超支高亮
+      var budgetBar = document.getElementById('budgetBar');
+      if (budgetBar) {
+        var goals = loadGoals();
+        var budget = parseFloat(goals && goals.budget) || 0;
+        if (budget > 0) {
+          var monthExp = 0;
+          recs.forEach(function (r) {
+            if (inPeriod(r.date, 'month') && (r.fields['交易类型'] || '支出') !== '收入') monthExp += parseFloat(r.fields['金额']) || 0;
+          });
+          var usedPct = Math.min(100, Math.round(monthExp / budget * 100));
+          var over = monthExp > budget;
+          budgetBar.innerHTML = '<div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">'
+            + '<span style="color:var(--text-sub);">本月预算</span>'
+            + '<span style="color:' + (over ? '#c44569' : 'var(--text-main)') + ';">¥' + Math.round(monthExp).toLocaleString() + ' / ¥' + Math.round(budget).toLocaleString() + (over ? '（超 ' + Math.round(monthExp - budget).toLocaleString() + '）' : '') + '</span></div>'
+            + '<div style="height:10px; background:rgba(var(--accent-rgb),0.12); border-radius:999px; overflow:hidden;"><div style="height:100%; width:' + usedPct + '%; background:' + (over ? 'linear-gradient(90deg,#ff8fa3,#c44569)' : 'linear-gradient(90deg,var(--purple-main),var(--purple-deep))') + '; border-radius:999px; transition:width .3s;"></div></div>';
+        } else budgetBar.innerHTML = '';
+      }
       const chart = document.getElementById('catChart');
       if (chart) {
         const entries = Object.keys(cats).map(function (k) { return [k, cats[k]]; }).sort(function (a, b) { return b[1] - a[1]; });
         if (!entries.length) { chart.innerHTML = '<div class="history-empty">' + cfg.label + '暂无支出</div>'; }
         else {
-          const max = entries[0][1] || 1;
-          chart.innerHTML = entries.map(function (e) {
-            const w = Math.round(e[1] / max * 100);
-            return '<div style="display:flex; align-items:center; gap:8px; margin:7px 0; font-size:12px;">'
-              + '<div style="width:44px; color:var(--text-sub); flex:none;">' + e[0] + '</div>'
-              + '<div style="flex:1; height:10px; background:rgba(var(--accent-rgb),0.12); border-radius:999px; overflow:hidden;"><div style="height:100%; width:' + w + '%; background:linear-gradient(90deg,var(--purple-main),var(--purple-deep)); border-radius:999px;"></div></div>'
-              + '<div style="width:64px; text-align:right; color:var(--text-main); flex:none;">' + '¥' + Math.round(e[1]).toLocaleString() + '</div></div>';
-          }).join('');
+          const total = entries.reduce(function (s, e) { return s + e[1]; }, 0) || 1;
+          const COLORS = ['#8b6fe0', '#5ec8c8', '#f6a86b', '#ef8aa6', '#7bcf9b', '#6b8fd0', '#d6a25e', '#c98fd6', '#9aa0e0', '#e08f8f'];
+          const R = 42, C = 2 * Math.PI * R, cx = 54, cy = 54;
+          let acc = 0, segs = '';
+          entries.forEach(function (e, i) {
+            const len = (e[1] / total) * C;
+            segs += '<circle cx="' + cx + '" cy="' + cy + '" r="' + R + '" fill="none" stroke="' + COLORS[i % COLORS.length] + '" stroke-width="16" stroke-dasharray="' + len + ' ' + (C - len) + '" stroke-dashoffset="' + (-acc) + '" transform="rotate(-90 ' + cx + ' ' + cy + ')"></circle>';
+            acc += len;
+          });
+          const donut = '<svg viewBox="0 0 108 108" width="108" height="108" style="flex:none;">'
+            + '<circle cx="' + cx + '" cy="' + cy + '" r="' + R + '" fill="none" stroke="rgba(var(--accent-rgb),0.10)" stroke-width="16"></circle>'
+            + segs
+            + '<text x="' + cx + '" y="' + (cy - 1) + '" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text-main)">¥' + Math.round(total).toLocaleString() + '</text>'
+            + '<text x="' + cx + '" y="' + (cy + 12) + '" text-anchor="middle" font-size="9" fill="var(--text-sub)">总支出</text></svg>';
+          const legend = '<div style="flex:1; display:flex; flex-direction:column; gap:5px; font-size:12px; min-width:0;">'
+            + entries.map(function (e, i) {
+              const pct = Math.round(e[1] / total * 100);
+              return '<div style="display:flex; align-items:center; gap:6px; min-width:0;">'
+                + '<span style="width:9px; height:9px; border-radius:3px; flex:none; background:' + COLORS[i % COLORS.length] + ';"></span>'
+                + '<span style="color:var(--text-sub); flex:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:60px;">' + escapeHtml(e[0]) + '</span>'
+                + '<span style="margin-left:auto; color:var(--text-main); flex:none;">¥' + Math.round(e[1]).toLocaleString() + ' · ' + pct + '%</span></div>';
+            }).join('')
+            + '</div>';
+          chart.innerHTML = '<div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">' + donut + legend + '</div>';
         }
       }
     }
@@ -1691,10 +1747,17 @@ const APP_VERSION = 'wobench-v27.25';
       const j = await r.json();
       return (Array.isArray(j) && j[0]) || null;
     }
-    async function cloudUpsert(payloadObj, pushedAt) {
-      const body = JSON.stringify({ space_key: cloudSpaceKey, payload: payloadObj, pushed_at: pushedAt });
-      const r = await fetch(cloudCfg.api + '/rest/v1/sync', { method: 'POST', headers: cloudHeaders(), body: body });
-      if (!r.ok) throw new Error('upsert ' + r.status);
+    async function cloudUpsert(payloadObj, pushedAt, rowId) {
+      // 已存在同 space_key 行 → PATCH（避免 REST POST 反复新增重复行）
+      if (rowId) {
+        const body = JSON.stringify({ payload: payloadObj, pushed_at: pushedAt });
+        const r = await fetch(cloudCfg.api + '/rest/v1/sync?id=eq.' + encodeURIComponent(rowId), { method: 'PATCH', headers: cloudHeaders(), body: body });
+        if (!r.ok) throw new Error('patch ' + r.status);
+      } else {
+        const body = JSON.stringify({ space_key: cloudSpaceKey, payload: payloadObj, pushed_at: pushedAt });
+        const r = await fetch(cloudCfg.api + '/rest/v1/sync', { method: 'POST', headers: cloudHeaders(), body: body });
+        if (!r.ok) throw new Error('upsert ' + r.status);
+      }
     }
     function setCloudStatus(s, ok) {
       const el = document.getElementById('cloudStatus');
@@ -1723,10 +1786,17 @@ const APP_VERSION = 'wobench-v27.25';
         deleted: deletedIds
       };
     }
+    var _renderAllScheduled = false;
     function renderAllCloud() {
-      renderCal(); renderDetail(todayStr); renderHomeSummary(); renderReport('month'); renderTrend(7); renderReview('week'); renderStreakBadges(); renderGoalProgress();
-      renderInspirationList(); renderTransactions(); renderTodayTx(); renderAssetSummary();
-      DAILY_MODS.forEach(renderHistory); renderTodo(); renderStudyMonth();
+      // 节流：合并同一动画帧内的多次调用（云端合并/解锁后常连续触发），避免重复整体重绘
+      if (_renderAllScheduled) return;
+      _renderAllScheduled = true;
+      requestAnimationFrame(function () {
+        _renderAllScheduled = false;
+        renderCal(); renderDetail(todayStr); renderHomeSummary(); renderReport('month'); renderTrend(7); renderReview('week'); renderStreakBadges(); renderGoalProgress();
+        renderInspirationList(); renderTransactions(); renderTodayTx(); renderAssetSummary();
+        DAILY_MODS.forEach(renderHistory); renderTodo(); renderStudyMonth();
+      });
     }
     async function cloudPush() {
       if (!cloudCfg || !cloudSpaceKey) return;
@@ -1744,7 +1814,7 @@ const APP_VERSION = 'wobench-v27.25';
         const pushedAt = Date.now();
         let obj = null;
         try { obj = await cloudFind(); } catch (e) { obj = null; }
-        await cloudUpsert(payload, pushedAt);
+        await cloudUpsert(payload, pushedAt, obj ? obj.id : null);
         lastKnownCloudAt = pushedAt;
       } catch (e) {
         console.error('cloudPush 失败', e);
@@ -1794,7 +1864,11 @@ const APP_VERSION = 'wobench-v27.25';
             localWins = true; delete cloudById[id]; return;
           }
           if ((c.updatedAt || 0) > (local.updatedAt || 0)) store[id] = c; // 云端更新，采用云端
-          else localWins = true; // 本地更新，保留本地（稍后回传云端）
+          else if ((c.updatedAt || 0) < (local.updatedAt || 0)) localWins = true; // 本地更新，保留本地
+          else {
+            // 同毫秒时间戳：用 id 字典序做确定性裁决，避免两端反复翻转（同毫秒 id 兜底）
+            if (String(c.id) > String(local.id)) store[id] = c; else localWins = true;
+          }
           delete cloudById[id];
         }
       });
@@ -1819,7 +1893,7 @@ const APP_VERSION = 'wobench-v27.25';
       if (data.salt != null) localStorage.setItem(SALT_KEY, data.salt);
       if (data.verifier != null) localStorage.setItem(VERIFIER_KEY, data.verifier);
       if (data.goals != null) localStorage.setItem(GOAL_KEY, data.goals);
-      if (data.aiCfg != null) { localStorage.setItem('zqdd:ai_cfg', data.aiCfg); window.dispatchEvent(new CustomEvent('zqdd:aiCfgSynced')); }
+      if (data.aiCfg != null) { localStorage.setItem('zqdd:ai_cfg', data.aiCfg); refreshAiCfgCache(); }
       loadGoals();
       // 存在本地更新或墓碑变更时统一回传一次，使云端 blob 与本地一致（彻底清除幽灵记录）
       if (localWins || resurrected > 0 || deletedIds.length) schedulePush();
@@ -2554,7 +2628,7 @@ const APP_VERSION = 'wobench-v27.25';
         var typeMap = { note:'摘抄', link:'链接', text:'记录', image:'图片', file:'文件' };
         card.innerHTML =
           '<div class="fav-card-type">' + escapeHtml(typeMap[typeLabel] || typeLabel) + '</div>' +
-          (r.fields.image ? '<img class="fav-card-thumb" src="' + r.fields.image + '" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;margin:2px 0 6px;display:block;">' : '') +
+          (r.fields.image ? '<img class="fav-card-thumb" src="' + (safeUrl(r.fields.image) || r.fields.image) + '" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;margin:2px 0 6px;display:block;">' : '') +
           '<div class="fav-card-title">' + escapeHtml(r.fields.title || '无标题') + '</div>' +
           (r.fields.body ? '<div class="fav-card-preview">' + escapeHtml(r.fields.body.substring(0, 80)) + '</div>' : '') +
           (r.fields.file ? '<div class="fav-card-file" data-open-file="1" style="cursor:pointer;">📎 ' + escapeHtml(r.fields.file.name) + ' · ' + fmtFileSize(r.fields.file.size) + '</div>' : '') +
@@ -2599,9 +2673,23 @@ const APP_VERSION = 'wobench-v27.25';
       if (dm) dm.textContent = (typeMap[r.fields.favType] || r.fields.favType || '摘抄') + (r.fields.tags ? ' · 标签：' + r.fields.tags : '') + (r.addedDate ? ' · 收藏于 ' + r.addedDate : '');
       if (db) db.textContent = r.fields.body || '(无正文内容)';
       var dImg = document.getElementById('favDImage');
-      if (dImg) dImg.innerHTML = r.fields.image ? '<img src="' + r.fields.image + '" style="max-width:100%;border-radius:10px;display:block;">' : '';
+      if (dImg) {
+        dImg.innerHTML = '';
+        if (r.fields.image) {
+          var im = document.createElement('img');
+          var safeSrc = safeUrl(r.fields.image);
+          im.src = safeSrc || r.fields.image; // 已是 http(s)/data 图片直链
+          im.alt = r.fields.title || '收藏图片';
+          im.style.maxWidth = '100%';
+          im.style.borderRadius = '10px';
+          im.style.display = 'block';
+          im.onerror = function () { dImg.textContent = '（图片无法加载）'; };
+          dImg.appendChild(im);
+        }
+      }
       if (dl) {
-        if (r.fields.url) { dl.href = r.fields.url; dl.textContent = '打开原始链接 →'; dl.classList.remove('hidden'); }
+        var u = safeUrl(r.fields.url);
+        if (u) { dl.href = u; dl.textContent = '打开原始链接 →'; dl.setAttribute('target', '_blank'); dl.setAttribute('rel', 'noopener noreferrer'); dl.classList.remove('hidden'); }
         else dl.classList.add('hidden');
       }
       if (df) {
@@ -2666,7 +2754,7 @@ const APP_VERSION = 'wobench-v27.25';
         + '</div></div>'
         + '<div class="fav-form-row" style="margin-top:6px;"><div class="fav-form-label" style="font-size:11px;">标签</div><input class="field-input" id="favEditTags" value="' + escapeHtml(r.fields.tags || '') + '" placeholder="用逗号分隔"></div>'
         + '<div class="fav-form-row" id="favEditLinkRow" style="margin-top:6px;' + (fType!=='link'?'display:none;':'') + '"><div class="fav-form-label" style="font-size:11px;">链接地址</div><input class="field-input" id="favEditUrl" value="' + escapeHtml(r.fields.url || '') + '" placeholder="https://..."></div>'
-        + '<div class="fav-form-row" id="favEditImageRow" style="margin-top:6px;' + (fType!=='image'?'display:none;':'') + '"><div class="fav-form-label" style="font-size:11px;">图片</div><input type="file" accept="image/*" id="favEditImage" class="field-input" style="padding:6px;"><div id="favEditImagePreview" style="margin-top:6px;">' + (r.fields.image ? '<img src="' + r.fields.image + '" style="max-width:140px;border-radius:8px;display:block;">' : '') + '</div></div>'
+        + '<div class="fav-form-row" id="favEditImageRow" style="margin-top:6px;' + (fType!=='image'?'display:none;':'') + '"><div class="fav-form-label" style="font-size:11px;">图片</div><input type="file" accept="image/*" id="favEditImage" class="field-input" style="padding:6px;"><div id="favEditImagePreview" style="margin-top:6px;">' + (r.fields.image ? '<img src="' + (safeUrl(r.fields.image) || r.fields.image) + '" style="max-width:140px;border-radius:8px;display:block;">' : '') + '</div></div>'
         + '<div class="fav-form-row" id="favEditFileRow" style="margin-top:6px;' + (fType!=='file'?'display:none;':'') + '"><div class="fav-form-label" style="font-size:11px;">文件</div><input type="file" id="favEditFile" class="field-input" style="padding:6px;"><div id="favEditFilePreview" style="margin-top:6px;color:var(--text-sub,#888);font-size:12px;">' + (r.fields.file ? ('当前：' + escapeHtml(r.fields.file.name) + ' · ' + fmtFileSize(r.fields.file.size)) : '') + '</div></div>';
 
       db.innerHTML = '<textarea class="field-input" id="favEditBody" rows="8" style="width:100%;box-sizing:border-box;font-size:14px;line-height:1.6;" placeholder="正文内容">' + escapeHtml(r.fields.body || '') + '</textarea>';
@@ -2974,6 +3062,8 @@ const APP_VERSION = 'wobench-v27.25';
     // ============ 隐私加密（Web Crypto: PBKDF2 + AES-GCM） ============
     const ENC_MODS = ['shiti', 'zichan']; // 需要加密的敏感模块
     const SALT_KEY = 'zqdd:salt', VERIFIER_KEY = 'zqdd:verifier';
+    const LOCK_ATT_KEY = 'zqdd:lockAtt', LOCK_UNTIL_KEY = 'zqdd:lockUntil';
+    const LOCK_MAX_ATT = 5;
     let cryptoKey = null;       // 解锁后持有
     let isLocked = false;
     // 未被「自动加密」包装过的原始写库函数（在下方包装 dbPut 时赋值）。
@@ -3098,6 +3188,13 @@ const APP_VERSION = 'wobench-v27.25';
     function doUnlock() {
       var pwd = document.getElementById('pwdUnlock').value;
       if (!pwd) { lockErr.textContent = '请输入密码'; return; }
+      // 试密码限流：连续失败累计次数，超阈值后按指数退避锁一段时间
+      var att = parseInt(localStorage.getItem(LOCK_ATT_KEY) || '0', 10) || 0;
+      var lockUntil = parseInt(localStorage.getItem(LOCK_UNTIL_KEY) || '0', 10) || 0;
+      if (lockUntil > Date.now()) {
+        lockErr.textContent = '尝试过于频繁，请 ' + Math.ceil((lockUntil - Date.now()) / 1000) + ' 秒后再试';
+        return;
+      }
       var vf = loadVerifier();
       deriveKey(pwd, getSalt(), vf.iter).then(function (key) {
         return decryptFields(vf.enc, key).then(function (dec) {
@@ -3106,12 +3203,24 @@ const APP_VERSION = 'wobench-v27.25';
           return decryptAllFromStore(cryptoKey);
         });
       }).then(function () {
+        localStorage.setItem(LOCK_ATT_KEY, '0'); localStorage.removeItem(LOCK_UNTIL_KEY);
         isLocked = false; hideLock();
         renderTransactions(); renderTodayTx(); renderHistory('shiti');
+        refreshAiCfgCache();
         markDirty();
         showToast('已解锁');
         loadCloudPass().then(function () { cloudAutoStart(); }).catch(function () {});
-      }).catch(function () { lockErr.textContent = '密码错误'; });
+      }).catch(function () {
+        att++;
+        localStorage.setItem(LOCK_ATT_KEY, String(att));
+        if (att >= LOCK_MAX_ATT) {
+          var wait = Math.min(300, Math.pow(2, att - LOCK_MAX_ATT) * 30); // 30,60,120,240,300 秒
+          localStorage.setItem(LOCK_UNTIL_KEY, String(Date.now() + wait * 1000));
+          lockErr.textContent = '密码错误次数过多，请 ' + wait + ' 秒后再试';
+        } else {
+          lockErr.textContent = '密码错误，还可尝试 ' + (LOCK_MAX_ATT - att) + ' 次';
+        }
+      });
     }
     function doRemove() {
       var pwd = document.getElementById('pwdOld').value;
@@ -3140,6 +3249,8 @@ const APP_VERSION = 'wobench-v27.25';
           localStorage.setItem(CLOUD_PASS_KEY, cloudPass);
         } else { cloudPass = raw; }
         cryptoKey = null; isLocked = false; hideLock(); updatePrivacyBadge();
+        // 移除锁屏后，AI Key 还原为明文保存（curl 加密形态已无意义）
+        if (aiCfgCache) localStorage.setItem('zqdd:ai_cfg', JSON.stringify(aiCfgCache));
         renderTransactions(); renderTodayTx(); renderHistory('shiti');
         markDirty();
         showToast('加密已移除');
@@ -3690,10 +3801,42 @@ const APP_VERSION = 'wobench-v27.25';
       fav: [{ label: '全部收藏', field: '__all__' }]
     };
 
+    var aiCfgCache = null;
     function loadAiCfg() {
-      try { return JSON.parse(localStorage.getItem('zqdd:ai_cfg') || 'null'); } catch (e) { return null; }
+      try {
+        if (aiCfgCache) return aiCfgCache;
+        var raw = localStorage.getItem('zqdd:ai_cfg') || 'null';
+        if (raw.indexOf('enc:') === 0) return null; // 密文需解锁后 refreshAiCfgCache 异步填充
+        aiCfgCache = JSON.parse(raw);
+        return aiCfgCache;
+      } catch (e) { return null; }
     }
-    function saveAiCfg(cfg) { localStorage.setItem('zqdd:ai_cfg', JSON.stringify(cfg)); }
+    // 异步读取并解密 AI 配置到内存缓存（解锁 / 云端合并后调用）
+    async function refreshAiCfgCache() {
+      var raw = localStorage.getItem('zqdd:ai_cfg');
+      if (!raw) { aiCfgCache = null; return; }
+      if (raw.indexOf('enc:') === 0) {
+        if (!cryptoKey) { aiCfgCache = null; return; }
+        try { var dec = await decryptFields(JSON.parse(raw.slice(4)), cryptoKey); aiCfgCache = (dec && dec._cfg) ? dec._cfg : null; }
+        catch (e) { aiCfgCache = null; }
+      } else {
+        try { aiCfgCache = JSON.parse(raw); } catch (e) { aiCfgCache = null; }
+      }
+      window.dispatchEvent(new CustomEvent('zqdd:aiCfgSynced'));
+    }
+    // 当有隐私锁时，API Key 以 cryptoKey 加密落盘，避免明文泄露；无锁则保持明文（与现有隐私模型一致）
+    function saveAiCfg(cfg) {
+      aiCfgCache = cfg;
+      if (cryptoKey) {
+        encryptFields({ _cfg: cfg }, cryptoKey).then(function (enc) {
+          localStorage.setItem('zqdd:ai_cfg', 'enc:' + JSON.stringify(enc));
+          schedulePush();
+        });
+      } else {
+        localStorage.setItem('zqdd:ai_cfg', JSON.stringify(cfg));
+        schedulePush();
+      }
+    }
 
     function aiFormatVal(v) {
       if (v === null || v === undefined) return '';
@@ -3877,6 +4020,16 @@ const APP_VERSION = 'wobench-v27.25';
       }
       if (aiSend) aiSend.addEventListener('click', doSend);
       if (aiInput) aiInput.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doSend(); } });
+
+      var aiFoldBtn = document.getElementById('aiFoldBtn');
+      var aiCardEl = document.getElementById('aiCard');
+      if (aiFoldBtn && aiCardEl) {
+        aiFoldBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var collapsed = aiCardEl.classList.toggle('ai-collapsed');
+          aiFoldBtn.textContent = collapsed ? '▸' : '▾';
+        });
+      }
 
       var aiClearBtn = document.getElementById('aiClearBtn');
       var aiClearMenu = document.getElementById('aiClearMenu');

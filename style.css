@@ -172,7 +172,12 @@
       padding: 14px 8px;
       gap: 6px;
       overflow-y: auto;
+      scrollbar-width: thin;
+      -webkit-overflow-scrolling: touch;
     }
+    .sidebar::-webkit-scrollbar { width: 4px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(var(--accent-rgb), 0.25); border-radius: 4px; }
+    .nav-text { white-space: nowrap; }
 
     .nav-item {
       display: flex;
@@ -581,6 +586,15 @@
       font-size: 12px;
       text-align: center;
       padding: 18px 0;
+    }
+    .report-insight {
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--text-main);
+      background: rgba(var(--accent-rgb), 0.07);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 11px 14px;
     }
 
     .card-title {
@@ -1758,6 +1772,12 @@
     #aiCard .card-title { justify-content: space-between; }
     .ai-clear-btn { font-size: 12px; line-height: 1; color: var(--purple-deep); cursor: pointer; font-weight: 500; padding: 5px 12px; border-radius: 11px; background: rgba(var(--accent-rgb), 0.12); user-select: none; }
     .ai-clear-btn:active { background: rgba(var(--accent-rgb), 0.25); }
+    /* AI 卡片折叠 */
+    #aiCard.ai-collapsed .ai-scope-bar,
+    #aiCard.ai-collapsed .ai-chat,
+    #aiCard.ai-collapsed .ai-input-wrap,
+    #aiCard.ai-collapsed .ai-clear-menu { display: none; }
+    #aiCard.ai-collapsed { padding-bottom: 14px; }
     .ai-clear-menu { position: absolute; top: 46px; right: 14px; z-index: 40; background: var(--card-bg, #fff); border: 1px solid var(--card-border); border-radius: 12px; box-shadow: 0 8px 24px rgba(40, 20, 70, 0.2); padding: 5px; min-width: 150px; }
     .ai-clear-item { padding: 10px 14px; font-size: 13px; color: #fff; text-align: center; cursor: pointer; border-radius: 8px; margin: 3px; background: linear-gradient(135deg, #8B6FE0, #D8B25E); white-space: nowrap; user-select: none; }
     .ai-clear-item:active { opacity: 0.85; }
