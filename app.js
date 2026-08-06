@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v27.24';
+const APP_VERSION = 'wobench-v27.25';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -43,7 +43,7 @@ const APP_VERSION = 'wobench-v27.24';
         updateModuleHeaderDate(target);
         switchModuleTab(target, 'today');
         if (target === 'home') { renderCal(); renderDetail(todayStr); renderHomeSummary(); renderReview('week'); renderStreakBadges(); }
-        else if (target === 'homepage') { renderHomepage(); renderReport('week'); renderTrend(7); }
+        else if (target === 'homepage') { renderHomepage(); renderReport('month'); renderTrend(7); }
         else if (target === 'lingguang') renderInspirationList();
         else if (target === 'zichan') { renderTransactions(); renderTodayTx(); renderAssetSummary(); }
         else if (DAILY_MODS.indexOf(target) >= 0) {
@@ -542,6 +542,13 @@ const APP_VERSION = 'wobench-v27.24';
     const BAK_LS_KEY = 'zqdd:backupMeta'; // 兜底：备份元数据（IDB 不可用时保证列表能显示）
     let _db = null;
     const store = {}; // id -> {id, date, module, fields, updatedAt}
+    // 墓碑删除：已删除记录 id 持久化并随云端同步，确保合并时永不复活
+    const DELETED_KEY = 'zqdd:deleted';
+    let deletedIds = [];
+    try { deletedIds = JSON.parse(localStorage.getItem(DELETED_KEY) || '[]'); if (!Array.isArray(deletedIds)) deletedIds = []; } catch (e) { deletedIds = []; }
+    function isDeleted(id) { return deletedIds.indexOf(id) >= 0; }
+    function markDeleted(id) { if (deletedIds.indexOf(id) < 0) { deletedIds.push(id); localStorage.setItem(DELETED_KEY, JSON.stringify(deletedIds)); } }
+    function unmarkDeleted(id) { deletedIds = deletedIds.filter(function (x) { return x !== id; }); localStorage.setItem(DELETED_KEY, JSON.stringify(deletedIds)); }
 
     function openDB() {
       return new Promise(function (res, rej) {
@@ -628,7 +635,7 @@ const APP_VERSION = 'wobench-v27.24';
     });
 
     // ---- 数据分析（日/周/月/年） ----
-    let currentReport = 'week';
+    let currentReport = 'month';
     function renderReport(period) {
       currentReport = period;
       const body = document.getElementById('reportBody');
@@ -960,7 +967,7 @@ const APP_VERSION = 'wobench-v27.24';
 
     // ---- 理财：交易流水 + 概览（日/周/月/年）+ 分类图表 ----
     let financePeriod = 'month';
-    let txHistPeriod = 'all';
+    let txHistPeriod = 'month';
     const FINANCE_PERIODS = {
       day: { label: '今日', dayKey: function () { return ymd(new Date()); } },
       week: { label: '本周', dayKey: function () { const d = new Date(); d.setDate(d.getDate() - 6); return ymd(d); } },
@@ -1213,15 +1220,17 @@ const APP_VERSION = 'wobench-v27.24';
         const mod = id.split('|')[0];
         const rec = store[id];
         delete store[id];
+        markDeleted(id); // 墓碑：记录已删，合并云端时跳过，永不复活
         dbDelete(id).then(function () {
           if (mod === 'lingguang') renderInspirationList();
           else if (mod === 'zichan') { renderTransactions(); renderTodayTx(); renderAssetSummary(); }
           else renderHistory(mod);
           renderCal(); renderDetail(ymd(new Date())); renderStreakBadges(); renderGoalProgress();
           renderReport(currentReport || 'week'); renderTrend(trendDays || 7); renderReview(reviewPeriod || 'week');
-          schedulePush(); // 立即推云端，防止 cloudPull 把已删除记录拉回
+          schedulePush(); // 立即推云端，清除 blob 中的幽灵记录
         });
         if (rec) showUndoToast('已删除', function () {
+          unmarkDeleted(id); // 撤销：取消墓碑
           store[id] = rec;
           dbPut(rec).then(function () {
             if (mod === 'lingguang') renderInspirationList();
@@ -1449,7 +1458,7 @@ const APP_VERSION = 'wobench-v27.24';
       task.then(dbGetAll).then(function (all) {
         Object.keys(store).forEach(function (k) { delete store[k]; });
         all.forEach(function (r) { if (r && r.id) store[r.id] = r; });
-        renderCal(); renderDetail(todayStr); renderHomeSummary(); renderReport('week'); renderTrend(7); renderReview('week'); renderStreakBadges(); renderGoalProgress();
+        renderCal(); renderDetail(todayStr); renderHomeSummary(); renderReport('month'); renderTrend(7); renderReview('week'); renderStreakBadges(); renderGoalProgress();
         renderInspirationList(); renderTransactions(); renderTodayTx(); renderAssetSummary();
         DAILY_MODS.forEach(renderHistory); renderTodo(); renderStudyMonth();
         renderBackupList();
@@ -1548,7 +1557,7 @@ const APP_VERSION = 'wobench-v27.24';
       const all = await dbGetAll();
       Object.keys(store).forEach(function (k) { delete store[k]; });
       all.forEach(function (r) { if (r && r.id) store[r.id] = r; });
-      renderCal(); renderDetail(todayStr); renderHomeSummary(); renderReport('week'); renderTrend(7); renderReview('week'); renderStreakBadges(); renderGoalProgress();
+      renderCal(); renderDetail(todayStr); renderHomeSummary(); renderReport('month'); renderTrend(7); renderReview('week'); renderStreakBadges(); renderGoalProgress();
       renderInspirationList(); renderTransactions(); renderTodayTx(); renderAssetSummary();
       DAILY_MODS.forEach(renderHistory); renderTodo(); renderStudyMonth();
       showToast('已恢复到 ' + e.name);
@@ -1710,11 +1719,12 @@ const APP_VERSION = 'wobench-v27.24';
         salt: localStorage.getItem(SALT_KEY),
         verifier: localStorage.getItem(VERIFIER_KEY),
         goals: localStorage.getItem(GOAL_KEY),
-        aiCfg: localStorage.getItem('zqdd:ai_cfg')
+        aiCfg: localStorage.getItem('zqdd:ai_cfg'),
+        deleted: deletedIds
       };
     }
     function renderAllCloud() {
-      renderCal(); renderDetail(todayStr); renderHomeSummary(); renderReport('week'); renderTrend(7); renderReview('week'); renderStreakBadges(); renderGoalProgress();
+      renderCal(); renderDetail(todayStr); renderHomeSummary(); renderReport('month'); renderTrend(7); renderReview('week'); renderStreakBadges(); renderGoalProgress();
       renderInspirationList(); renderTransactions(); renderTodayTx(); renderAssetSummary();
       DAILY_MODS.forEach(renderHistory); renderTodo(); renderStudyMonth();
     }
@@ -1764,6 +1774,11 @@ const APP_VERSION = 'wobench-v27.24';
     }
     async function mergeCloudData(data) {
       // 逐条合并：以 id + updatedAt 为准，云端更新采用云端，本地更新保留本地，本地独有记录不丢
+      // 墓碑：合并对端已删除标记，确保被删记录不会从云端复活
+      if (Array.isArray(data.deleted)) {
+        data.deleted.forEach(function (d) { if (deletedIds.indexOf(d) < 0) deletedIds.push(d); });
+        localStorage.setItem(DELETED_KEY, JSON.stringify(deletedIds));
+      }
       const cloudRecs = (data.records || []).filter(function (r) { return r && r.id; });
       const cloudById = {};
       cloudRecs.forEach(function (r) { cloudById[r.id] = r; });
@@ -1783,7 +1798,16 @@ const APP_VERSION = 'wobench-v27.24';
           delete cloudById[id];
         }
       });
-      Object.keys(cloudById).forEach(function (id) { store[id] = cloudById[id]; }); // 云端独有，新增
+      // 云端独有记录：跳过墓碑（已删除的永不复活）
+      var resurrected = 0;
+      Object.keys(cloudById).forEach(function (id) {
+        if (deletedIds.indexOf(id) >= 0) { resurrected++; return; }
+        store[id] = cloudById[id];
+      });
+      // 清理本地 store 中可能残留的已删记录（脏数据）
+      deletedIds.forEach(function (id) {
+        if (store[id]) { delete store[id]; dbDelete(id); }
+      });
       // 持久化合并后的 store（抑制逐条 markDirty，避免拉取后冗余上传）
       suppressDirty = true;
       try {
@@ -1797,7 +1821,8 @@ const APP_VERSION = 'wobench-v27.24';
       if (data.goals != null) localStorage.setItem(GOAL_KEY, data.goals);
       if (data.aiCfg != null) { localStorage.setItem('zqdd:ai_cfg', data.aiCfg); window.dispatchEvent(new CustomEvent('zqdd:aiCfgSynced')); }
       loadGoals();
-      if (localWins) schedulePush(); // 仅当存在本地更新记录时统一回传一次
+      // 存在本地更新或墓碑变更时统一回传一次，使云端 blob 与本地一致（彻底清除幽灵记录）
+      if (localWins || resurrected > 0 || deletedIds.length) schedulePush();
     }
     function schedulePush() {
       if (!cloudCfg || !cloudSpaceKey) return;
@@ -2083,24 +2108,23 @@ const APP_VERSION = 'wobench-v27.24';
         var pct2 = Math.min(100, Math.round(tcmDays / goals.tcm * 100));
         updateGoalBadge('tcm', pct2, tcmDays + '天/' + goals.tcm + '天');
       }
-      // 修身养性周进度（本周打卡天数，默认目标7天，无需用户设置）
-      var xsDays = 0;
-      Object.keys(store).forEach(function (id) {
-        var r = store[id];
-        if (r.module === 'xiushen' && !isEnc(r) && r.date >= weekStartStr && Object.keys(r.fields).length) xsDays++;
-      });
-      var xsTarget = (goals.xiushen && goals.xiushen > 0) ? goals.xiushen : 7;
-      var pctX = Math.min(100, Math.round(xsDays / xsTarget * 100));
-      updateGoalBadge('xiushen', pctX, xsDays + '天/' + xsTarget + '天', pctX >= 100);
-      // 养护打卡日目标（今天完成的打卡项数）
+      // 修身养性 / 养护打卡 共用：今日打卡几项（养护打卡勾选项物理上位于修身养性模块内）
+      var ygRec = store[todayStr + '|yanghu'];
+      var ygDone = 0;
+      if (ygRec && ygRec.fields) {
+        Object.keys(ygRec.fields).forEach(function (k) { if (ygRec.fields[k] === true) ygDone++; });
+      }
+      // 养护打卡目标进度（今日打卡几项 / 养护打卡目标几项）
       if (goals.yanghu) {
-        var ygRec = store[todayStr + '|yanghu'];
-        var ygDone = 0;
-        if (ygRec && ygRec.fields) {
-          Object.keys(ygRec.fields).forEach(function (k) { if (ygRec.fields[k] === true) ygDone++; });
-        }
         var pctY = Math.min(100, Math.round(ygDone / goals.yanghu * 100));
         updateGoalBadge('yanghu', pctY, ygDone + '项/' + goals.yanghu + '项', pctY >= 100);
+      }
+      // 修身养性进度条：与养护打卡同逻辑（今日打卡几项 / 养护打卡目标几项）
+      if (goals.yanghu) {
+        var pctX = Math.min(100, Math.round(ygDone / goals.yanghu * 100));
+        updateGoalBadge('xiushen', pctX, ygDone + '项/' + goals.yanghu + '项', pctX >= 100);
+      } else {
+        updateGoalBadge('xiushen', 0, ygDone + '项', false);
       }
       // 理财月支出上限
       if (goals.budget) {
@@ -2842,7 +2866,7 @@ const APP_VERSION = 'wobench-v27.24';
         .then(dbGetAll)
         .then(function (all) { all.forEach(function (r) { store[r.id] = r; }); dedupeShiti(); })
         .then(function () {
-          renderCal(); renderDetail(todayStr); renderHomeSummary(); renderReport('week'); renderTrend(7); renderReview('week'); renderStreakBadges(); renderGoalProgress();
+          renderCal(); renderDetail(todayStr); renderHomeSummary(); renderReport('month'); renderTrend(7); renderReview('week'); renderStreakBadges(); renderGoalProgress();
           renderInspirationList(); renderTransactions(); renderTodayTx(); renderAssetSummary();
           DAILY_MODS.forEach(renderHistory); renderTodo(); renderStudyMonth(); renderYanghu(); renderYanghuHistory(); renderTcmHistory();
           ['lingguang', 'todo', 'shiti', 'study', 'xiushen', 'zichan', 'favorite'].forEach(function (m) { updateModuleHeaderDate(m); switchModuleTab(m, 'today'); });
@@ -2883,7 +2907,7 @@ const APP_VERSION = 'wobench-v27.24';
           updateSleepUI();
         })
         .catch(function (e) {
-          console.error(e); renderCal(); renderDetail(todayStr); renderHomeSummary(); renderReport('week'); renderTrend(7); renderReview('week'); renderStreakBadges(); renderGoalProgress();
+          console.error(e); renderCal(); renderDetail(todayStr); renderHomeSummary(); renderReport('month'); renderTrend(7); renderReview('week'); renderStreakBadges(); renderGoalProgress();
           renderInspirationList(); renderTransactions(); renderTodayTx(); renderAssetSummary();
           DAILY_MODS.forEach(renderHistory); renderTodo(); renderStudyMonth();
           ['lingguang', 'todo', 'shiti', 'study', 'xiushen', 'zichan', 'favorite'].forEach(function (m) { updateModuleHeaderDate(m); switchModuleTab(m, 'today'); });
