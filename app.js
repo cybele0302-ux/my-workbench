@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v28.5';
+const APP_VERSION = 'wobench-v28.6';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -1193,9 +1193,31 @@ const APP_VERSION = 'wobench-v28.5';
       const myh = document.getElementById('manageYanghuBtn'); if (myh) myh.addEventListener('click', openManageYanghu);
     })();
     function openManageTxCats() {
-      openManageList('管理理财分类（可新增 / 删除 / 改名）', getTxCats(), false, function (list) {
+      const oldCats = getTxCats();
+      openManageList('管理理财分类（可新增 / 删除 / 改名）', oldCats, false, function (list) {
         if (!list.length) { showToast('至少保留一个分类'); return; }
+        // 分类改名时，同步更新已有交易记录里存储的分类字段，否则饼图/明细仍显示旧名
+        const removed = oldCats.filter(function (x) { return list.indexOf(x) === -1; });
+        const added = list.filter(function (x) { return oldCats.indexOf(x) === -1; });
+        const renames = {};
+        const rn = Math.min(removed.length, added.length);
+        for (let i = 0; i < rn; i++) renames[removed[i]] = added[i];
+        if (Object.keys(renames).length) {
+          Object.keys(store).forEach(function (k) {
+            const r = store[k];
+            if (r && r.module === 'zichan' && r.fields && !r.fields._enc) {
+              const c = r.fields['分类'];
+              if (c != null && renames.hasOwnProperty(c)) {
+                r.fields['分类'] = renames[c];
+                r.updatedAt = Date.now();
+                dbPut(r);
+              }
+            }
+          });
+        }
         setTxCats(list); renderTxCatChoices();
+        renderTransactions(); renderTodayTx(); renderAssetSummary(); renderCal(); renderDetail(ymd(new Date())); renderStreakBadges(); renderGoalProgress();
+        showToast(Object.keys(renames).length ? '已同步交易分类' : '分类已更新');
       });
     }
     function openManageYanghu() {

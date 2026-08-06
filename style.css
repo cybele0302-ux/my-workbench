@@ -15,6 +15,7 @@
       --card-bg: rgba(255, 255, 255, 0.6);
       --card-border: rgba(255, 255, 255, 0.75);
       --card-line2: rgba(255, 255, 255, 0.45);
+      --modal-bg: #ffffff; --modal-border: rgba(var(--accent-rgb), 0.28);
       --grain: 0.05;
       /* 古典纹理 · 祥云暗纹（回纹单元，默认黑纹；各主题覆盖为主题色） */
       --cloud-tex: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='46' height='46' viewBox='0 0 46 46'%3E%3Cpath d='M6 40 V18 H26 V34 H16 V24 H20' fill='none' stroke='%23000' stroke-width='1.2' opacity='0.06'/%3E%3C/svg%3E");
@@ -1216,7 +1217,7 @@
     .manage-trigger.sm { width: auto; height: auto; margin-left: 6px; padding: 3px 10px; font-size: 12px; border-radius: 8px; }
     .manage-mask { position: fixed; inset: 0; background: rgba(28, 20, 46, 0.42); backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 20px; }
     .manage-mask.hidden { display: none; }
-    .manage-box { width: 100%; max-width: 384px; max-height: 82vh; overflow: auto; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 18px; box-shadow: 0 18px 50px rgba(60, 38, 110, 0.28); padding: 20px; }
+    .manage-box { width: 100%; max-width: 384px; max-height: 82vh; overflow: auto; background: var(--modal-bg); border: 1px solid var(--modal-border); border-radius: 18px; box-shadow: 0 18px 50px rgba(60, 38, 110, 0.28); padding: 20px; }
     .manage-title { font-size: 15px; font-weight: 700; color: var(--text-main); margin-bottom: 14px; line-height: 1.4; }
     .manage-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
     .mg-item { display: flex; align-items: center; gap: 6px; }
@@ -1357,6 +1358,7 @@
       --text-main: #F1ECF8; --text-sub: #D0C4E8; --text-light: #A99CCB;
       --text-1: #EDE8F5; --text-2: #C0B4D8;
       --card-bg: rgba(255, 255, 255, 0.06); --card-border: rgba(216, 178, 94, 0.18);
+      --modal-bg: #241a38; --modal-border: rgba(139, 111, 224, 0.42);
       --border: rgba(216, 178, 94, 0.22);
       --bg-1: #1a1028; --bg-2: #241a38;
       --purple-light: #CBB8F6; --purple-soft: #A98FE0; --purple-main: #8B6FE0; --purple-deep: #6B4FD0; --purple-dark: #4A30A0;
@@ -1450,6 +1452,7 @@
       --text-main: #3A3147; --text-sub: #7D6B96; --text-light: #B0A0C8;
       --text-1: #2f2b36; --text-2: #5a5563;
       --card-bg: rgba(255, 255, 255, 0.72); --card-border: rgba(164, 139, 212, 0.25);
+      --modal-bg: #fbf8ff; --modal-border: rgba(164, 139, 212, 0.4);
       --bg-1: #F4EFFB; --bg-2: #EFE8F7;
       --purple-light: #EDE4FF; --purple-soft: #D4C4F0; --purple-main: #A48BD4; --purple-deep: #8A6FC4; --purple-dark: #6B50A8;
       --gold: #C2A36A;
@@ -1495,6 +1498,7 @@
       --text-main: #2D332A; --text-sub: #6B7365; --text-light: #A09E90;
       --text-1: #2f2b36; --text-2: #5a5563;
       --card-bg: rgba(255, 255, 255, 0.68); --card-border: rgba(184, 145, 90, 0.18);
+      --modal-bg: #fbf9f5; --modal-border: rgba(184, 145, 90, 0.32);
       --border: rgba(184, 145, 90, 0.20);
       --bg-1: #F4EFE4; --bg-2: #EDE6D9;
       --purple-light: #D8E8DC; --purple-soft: #A8C4B4; --purple-main: #4F8597; --purple-deep: #3A6B7A; --purple-dark: #2A4E5A;
@@ -1541,6 +1545,7 @@
       --text-main: #5A3A48; --text-sub: #9A7A86; --text-light: #C9B0B8;
       --text-1: #4a3038; --text-2: #7a5a66;
       --card-bg: rgba(255, 255, 255, 0.74); --card-border: rgba(224, 155, 188, 0.30);
+      --modal-bg: #fdf7fb; --modal-border: rgba(224, 155, 188, 0.45);
       --card-line2: rgba(224, 155, 188, 0.45);
       --border: rgba(224, 155, 188, 0.25);
       --bg-1: #FDF2F6; --bg-2: #FBE9F0;
@@ -1587,6 +1592,7 @@
       --text-main: #4a3d63; --text-sub: #8f7fb0; --text-light: #c3b6dc;
       --text-1: #4a3d63; --text-2: #8f7fb0;
       --card-bg: rgba(255, 253, 250, 0.72); --card-border: rgba(191, 161, 240, 0.3);
+      --modal-bg: #faf6ff; --modal-border: rgba(191, 161, 240, 0.45);
       --border: rgba(191, 161, 240, 0.22);
       --card-line2: rgba(191, 161, 240, 0.18);
       --cloud-tex: repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(191,161,240,0.06) 8px, rgba(191,161,240,0.06) 9px),
