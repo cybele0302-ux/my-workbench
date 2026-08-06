@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v28.6';
+const APP_VERSION = 'wobench-v28.7';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -1217,6 +1217,7 @@ const APP_VERSION = 'wobench-v28.6';
         }
         setTxCats(list); renderTxCatChoices();
         renderTransactions(); renderTodayTx(); renderAssetSummary(); renderCal(); renderDetail(ymd(new Date())); renderStreakBadges(); renderGoalProgress();
+        schedulePush(); // 改名后的记录已落库，立即同步云端，避免旧 blob 在拉取时把分类覆盖回旧名
         showToast(Object.keys(renames).length ? '已同步交易分类' : '分类已更新');
       });
     }
@@ -1411,14 +1412,13 @@ const APP_VERSION = 'wobench-v28.6';
         const rec = store[id];
         delete store[id];
         markDeleted(id); // 墓碑：记录已删，合并云端时跳过，永不复活
-        dbDelete(id).then(function () {
-          if (mod === 'lingguang') renderInspirationList();
-          else if (mod === 'zichan') { renderTransactions(); renderTodayTx(); renderAssetSummary(); }
-          else renderHistory(mod);
-          renderCal(); renderDetail(ymd(new Date())); renderStreakBadges(); renderGoalProgress();
-          renderReport(currentReport || 'week'); renderTrend(trendDays || 7); renderReview(reviewPeriod || 'week');
-          schedulePush(); // 立即推云端，清除 blob 中的幽灵记录
-        });
+        // 乐观重绘：删除后立即刷新界面（含理财饼图/明细/今日收支），不等待 IndexedDB 回写，保证实时
+        if (mod === 'lingguang') renderInspirationList();
+        else if (mod === 'zichan') { renderTransactions(); renderTodayTx(); renderAssetSummary(); }
+        else renderHistory(mod);
+        renderCal(); renderDetail(ymd(new Date())); renderStreakBadges(); renderGoalProgress();
+        renderReport(currentReport || 'week'); renderTrend(trendDays || 7); renderReview(reviewPeriod || 'week');
+        dbDelete(id).then(function () { schedulePush(); }); // 落库后推云端，清除 blob 中的幽灵记录
         if (rec) showUndoToast('已删除', function () {
           unmarkDeleted(id); // 撤销：取消墓碑
           store[id] = rec;
