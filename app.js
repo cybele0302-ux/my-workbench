@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v28.4';
+const APP_VERSION = 'wobench-v28.5';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -222,7 +222,37 @@ const APP_VERSION = 'wobench-v28.4';
     }
 
     // ============ 每日养护打卡（独立数据 · 即勾即存）============
-    const YANGHU_KEYS = ['推腹', '按摩头皮', '驻颜术', '练习金刚功', '震背', '午时午睡', '经络拉伸操', '泡脚', '梳理经络/按揉穴位', '11点前睡觉', '五脏排毒法', '站桩', '打坐冥想'];
+    const YANGHU_KEYS_DEFAULT = ['推腹', '按摩头皮', '驻颜术', '练习金刚功', '震背', '午时午睡', '经络拉伸操', '泡脚', '梳理经络/按揉穴位', '11点前睡觉', '五脏排毒法', '站桩', '打坐冥想'];
+    // 部分打卡项自带展开说明（如跟练视频），按名称匹配；自定义项无说明
+    const YANGHU_SUB = {
+      '驻颜术': '<div class="zy-row">开天门 9×4 组</div><div class="zy-row">推坎宫 9×4 组</div><div class="zy-row">通任脉 9×4 组</div><div class="zy-row">揉太阳 顺时针 36 次 · 逆时针 36 次</div><div class="zy-row">顶颧髎巨髎 9×4 组</div><div class="zy-row">提升下颌线 9×4 组</div><div class="zy-row">震眼轮 9×4 组</div><div class="zy-row">拉耳垂 9×4 组</div><a class="zy-video" href="https://v.douyin.com/KcIV-NvFAms/" target="_blank" rel="noopener">▶ 跟练视频（抖音）</a>',
+      '练习金刚功': '<div class="zy-row">预备式</div><div class="zy-row">第一部 双手插顶利三焦</div><div class="zy-row">第二部 手足前后固肾腰</div><div class="zy-row">第三部 调理脾胃需单举</div><div class="zy-row">第四部 左肝右肺如射雕</div><div class="zy-row">第五部 回头望足去心疾</div><div class="zy-row">第六步 五劳七伤向后瞧</div><div class="zy-row">第七部 凤凰展翅周身力</div><div class="zy-row">第八步 两足顿顿饮嗜消</div><div class="zy-row">收功式</div><a class="zy-video" href="https://v.douyin.com/HZVQBkcIQeE/" target="_blank" rel="noopener">▶ 道长亲讲 · 跟练视频（抖音）</a>',
+      '站桩': '<a class="zy-video" href="https://v.douyin.com/Je2Nbs7wh74/" target="_blank" rel="noopener">▶ 体弱乏力没精神？试试站桩（抖音）</a><a class="zy-video" href="https://v.douyin.com/3vGMDQAaaaA/" target="_blank" rel="noopener">▶ 站桩教学 · 跟练视频（抖音）</a>',
+      '五脏排毒法': '<div class="zy-row">倪海厦 · 排五毒（肝心脾肺肾）</div><a class="zy-video" href="https://v.douyin.com/JDM2OqlvaiQ/" target="_blank" rel="noopener">▶ 倪师排五毒 · 跟练视频（抖音）</a>',
+      '经络拉伸操': '<a class="zy-video" href="https://v.douyin.com/V9YWdk2fSNc/" target="_blank" rel="noopener">▶ 八大经络拉伸 · 跟练视频（抖音）</a>'
+    };
+    function getYanghuKeys() {
+      try { const v = JSON.parse(localStorage.getItem('zqdd:yanghu_keys')); if (Array.isArray(v) && v.length) return v; } catch (e) {}
+      return YANGHU_KEYS_DEFAULT.slice();
+    }
+    function setYanghuKeys(arr) { localStorage.setItem('zqdd:yanghu_keys', JSON.stringify(arr)); YANGHU_KEYS = arr; }
+    let YANGHU_KEYS = getYanghuKeys();
+    // 动态渲染养护打卡清单（顺序即存储顺序，含自带说明项的折叠子内容）
+    function renderYanghuList() {
+      const list = document.getElementById('yanghuList');
+      if (!list) return;
+      list.innerHTML = YANGHU_KEYS.map(function (name, i) {
+        const sub = YANGHU_SUB[name];
+        const cb = '<label class="check-item"><input type="checkbox" data-yanghu="' + i + '"><span class="check-box"></span><span class="check-text">' + escapeHtml(name) + '</span></label>';
+        if (sub) {
+          return '<div class="check-fold"><div class="check-head">' + cb +
+            '<button class="fold-btn" type="button" data-fold="yhsub_' + i + '" aria-label="展开">▾</button></div>' +
+            '<div class="fold-body" id="yhsub_' + i + '"><div class="zhuyan-sub">' + sub + '</div></div></div>';
+        }
+        return cb;
+      }).join('');
+      renderYanghu();
+    }
     function yanghuActiveDs() { return editingDate || todayStr; }
     function loadYanghu(ds) {
       const r = store[ds + '|yanghu'];
@@ -272,15 +302,19 @@ const APP_VERSION = 'wobench-v28.4';
         return '<div class="history-item"><div class="hi-main"><div class="hi-date">' + r.date.slice(5) + ' · ' + lm + ' · 完成 ' + done + '/' + total + '</div><div class="hi-sum">' + escapeHtml(names) + '</div></div></div>';
       }).join('');
     }
-    document.querySelectorAll('#yanghuList input[data-yanghu]').forEach(function (b) { b.addEventListener('change', saveYanghu); });
+    // 勾选改为事件委托，兼容动态生成的养护打卡项
+    document.getElementById('yanghuList').addEventListener('change', function (e) { if (e.target && e.target.matches('input[data-yanghu]')) saveYanghu(); });
     const FOLD_MAP = { zhuyan: 'foldZhuyan', jingong: 'foldJingong', lashen: 'foldLashen', wuzang: 'foldWuzang', zhanzhuang: 'foldZhanzhuang', yanghu: 'foldYanghu' };
-    document.querySelectorAll('.fold-btn').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        const body = document.getElementById(FOLD_MAP[btn.getAttribute('data-fold')]);
-        if (!body) return;
-        const open = body.classList.toggle('open');
-        btn.textContent = open ? '▾' : '▸';
-      });
+    // 折叠按钮改为事件委托，兼容动态生成的养护打卡子项
+    document.addEventListener('click', function (e) {
+      const btn = e.target.closest('.fold-btn');
+      if (!btn) return;
+      const key = btn.getAttribute('data-fold');
+      if (!key) return;
+      const body = document.getElementById(key) || (FOLD_MAP[key] ? document.getElementById(FOLD_MAP[key]) : null);
+      if (!body) return;
+      const open = body.classList.toggle('open');
+      btn.textContent = open ? '▾' : '▸';
     });
 
     // ============ 中医学习打卡（独立数据 · 即勾即存）============
@@ -1091,7 +1125,85 @@ const APP_VERSION = 'wobench-v28.4';
       const sum = '<div style="display:flex; gap:14px; margin-bottom:10px; font-size:12px; padding:4px 0;"><span style="color:#c44569;">支出 ' + '¥' + Math.round(exp).toLocaleString() + '</span><span style="color:#1d9e75;">收入 ' + '¥' + Math.round(inc).toLocaleString() + '</span><span style="color:var(--text-main); font-weight:600;">结余 ' + '¥' + Math.round(inc - exp).toLocaleString() + '</span></div>';
       c.innerHTML = sum + recs.map(function (r) { return txItemHtml(r, true); }).join('');
     }
-    const TX_CATS = ['餐饮', '交通', '购物', '居住', '医疗', '娱乐', '其他', '车'];
+    const TX_CATS_DEFAULT = ['餐饮', '交通', '购物', '居住', '医疗', '娱乐', '其他', '车'];
+    function getTxCats() {
+      try { const v = JSON.parse(localStorage.getItem('zqdd:tx_cats')); if (Array.isArray(v) && v.length) return v; } catch (e) {}
+      return TX_CATS_DEFAULT.slice();
+    }
+    function setTxCats(arr) { localStorage.setItem('zqdd:tx_cats', JSON.stringify(arr)); }
+    function renderTxCatChoices() {
+      const row = document.getElementById('txCatChoices');
+      if (!row) return;
+      const cats = getTxCats();
+      row.innerHTML = cats.map(function (c, i) { return '<span class="choice' + (i === 0 ? ' active' : '') + '" data-value="' + escapeHtml(c) + '">' + escapeHtml(c) + '</span>'; }).join('');
+    }
+
+    // ---- 通用「自定义列表」管理弹窗（理财分类 / 养护打卡项）----
+    let manageState = null;
+    function openManageList(title, list, reorder, onChange) {
+      manageState = { list: list.slice(), reorder: reorder, onChange: onChange };
+      const t = document.getElementById('manageTitle'); if (t) t.textContent = title;
+      const inp = document.getElementById('manageNewInput'); if (inp) inp.value = '';
+      renderManageList();
+      const mask = document.getElementById('manageMask'); if (mask) mask.classList.remove('hidden');
+    }
+    function renderManageList() {
+      const c = document.getElementById('manageList');
+      if (!c || !manageState) return;
+      c.innerHTML = manageState.list.map(function (name, i) {
+        const up = manageState.reorder && i > 0 ? '<button type="button" class="mg-btn" data-mg="up" data-i="' + i + '">↑</button>' : '';
+        const down = manageState.reorder && i < manageState.list.length - 1 ? '<button type="button" class="mg-btn" data-mg="down" data-i="' + i + '">↓</button>' : '';
+        return '<div class="mg-item"><input class="field-input mg-input" data-i="' + i + '" value="' + escapeHtml(name) + '">' + up + down + '<button type="button" class="mg-btn mg-del" data-mg="del" data-i="' + i + '">×</button></div>';
+      }).join('');
+    }
+    function closeManageList() { const m = document.getElementById('manageMask'); if (m) m.classList.add('hidden'); manageState = null; }
+    (function wireManageList() {
+      const mask = document.getElementById('manageMask');
+      if (!mask) return;
+      mask.addEventListener('click', function (e) {
+        if (e.target === mask) { closeManageList(); return; }
+        const btn = e.target.closest('[data-mg]');
+        if (!btn) return;
+        const act = btn.getAttribute('data-mg'); const i = parseInt(btn.getAttribute('data-i'), 10);
+        if (act === 'del') { manageState.list.splice(i, 1); }
+        else if (act === 'up' && i > 0) { const t = manageState.list[i - 1]; manageState.list[i - 1] = manageState.list[i]; manageState.list[i] = t; }
+        else if (act === 'down' && i < manageState.list.length - 1) { const t = manageState.list[i + 1]; manageState.list[i + 1] = manageState.list[i]; manageState.list[i] = t; }
+        renderManageList();
+      });
+      const addBtn = document.getElementById('manageAddBtn');
+      if (addBtn) addBtn.addEventListener('click', function () {
+        const inp = document.getElementById('manageNewInput');
+        const v = inp ? inp.value.trim() : '';
+        if (!v) return;
+        manageState.list.push(v); if (inp) inp.value = ''; renderManageList();
+      });
+      const newInp = document.getElementById('manageNewInput');
+      if (newInp) newInp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); const b = document.getElementById('manageAddBtn'); if (b) b.click(); } });
+      const cancel = document.getElementById('manageCancel');
+      if (cancel) cancel.addEventListener('click', closeManageList);
+      const save = document.getElementById('manageSave');
+      if (save) save.addEventListener('click', function () {
+        const inputs = document.querySelectorAll('#manageList .mg-input');
+        const newList = Array.prototype.map.call(inputs, function (inp) { return inp.value.trim(); }).filter(function (s) { return s; });
+        const cb = manageState ? manageState.onChange : null;
+        closeManageList();
+        if (cb) cb(newList);
+      });
+      const mtc = document.getElementById('manageTxCatsBtn'); if (mtc) mtc.addEventListener('click', openManageTxCats);
+      const myh = document.getElementById('manageYanghuBtn'); if (myh) myh.addEventListener('click', openManageYanghu);
+    })();
+    function openManageTxCats() {
+      openManageList('管理理财分类（可新增 / 删除 / 改名）', getTxCats(), false, function (list) {
+        if (!list.length) { showToast('至少保留一个分类'); return; }
+        setTxCats(list); renderTxCatChoices();
+      });
+    }
+    function openManageYanghu() {
+      openManageList('管理养护打卡项（可新增 / 删除 / 上下移动排序）', getYanghuKeys(), true, function (list) {
+        if (!list.length) { showToast('至少保留一个打卡项'); return; }
+        setYanghuKeys(list); renderYanghuList(); renderYanghuHistory();
+      });
+    }
     function txItemHtml(r, editable) {
       const amt = parseFloat(r.fields['金额']) || 0;
       const t = r.fields['交易类型'] || '支出';
@@ -1100,7 +1212,7 @@ const APP_VERSION = 'wobench-v28.4';
       const sign = (t === '收入') ? '+' : '-';
       const color = (t === '收入') ? '#1d9e75' : 'var(--text-sub)';
       const badge = cat || '未分类';
-      const catChips = TX_CATS.map(function (ct) { return '<span class="tx-cat-chip' + (ct === cat ? ' active' : '') + '">' + ct + '</span>'; }).join('');
+      const catChips = getTxCats().map(function (ct) { return '<span class="tx-cat-chip' + (ct === cat ? ' active' : '') + '">' + ct + '</span>'; }).join('');
       const editBtn = editable ? '<span class="tx-edit">编辑</span>' : '';
       const sub = '<div class="tx-sub">' + t + (editable ? '' : ' · ' + r.date) + '</div>';
       const editor = editable
@@ -2982,9 +3094,9 @@ const APP_VERSION = 'wobench-v28.4';
         .then(dbGetAll)
         .then(function (all) { all.forEach(function (r) { store[r.id] = r; }); dedupeShiti(); })
         .then(function () {
-          renderCal(); renderDetail(todayStr); renderHomeSummary(); renderReport('month'); renderTrend(7); renderReview('week'); renderStreakBadges(); renderGoalProgress();
+          renderCal(); renderDetail(todayStr); renderHomeSummary(); renderReport('month'); renderTrend(7); renderReview('week'); renderStreakBadges(); renderGoalProgress(); renderTxCatChoices();
           renderInspirationList(); renderTransactions(); renderTodayTx(); renderAssetSummary();
-          DAILY_MODS.forEach(renderHistory); renderTodo(); renderStudyMonth(); renderYanghu(); renderYanghuHistory(); renderTcmHistory();
+          DAILY_MODS.forEach(renderHistory); renderTodo(); renderStudyMonth(); renderYanghuList(); renderYanghu(); renderYanghuHistory(); renderTcmHistory();
           ['lingguang', 'todo', 'shiti', 'study', 'xiushen', 'zichan', 'favorite'].forEach(function (m) { updateModuleHeaderDate(m); switchModuleTab(m, 'today'); });
           // 日记类模块：初始加载即回填当天记录到表单，否则滑杆/输入框会停留在 HTML 默认值（刷新后显示“回到 60”）
           DAILY_MODS.forEach(function (mod) {

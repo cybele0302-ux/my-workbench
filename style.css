@@ -1211,6 +1211,22 @@
     .card-title--foldable { justify-content: space-between; }
     .card-title .card-fold-btn { width: 30px; height: 28px; border-radius: 9px; font-size: 12px; flex: 0 0 auto; margin-left: auto; display: inline-flex; align-items: center; justify-content: center; color: var(--purple-deep); cursor: pointer; font-weight: 500; padding: 0; border: none; background: rgba(var(--accent-rgb), 0.12); user-select: none; transition: background .2s; }
     .card-title .card-fold-btn:active { background: rgba(var(--accent-rgb), 0.25); }
+    .manage-trigger { width: 30px; height: 28px; border-radius: 9px; font-size: 13px; flex: 0 0 auto; margin-left: 8px; display: inline-flex; align-items: center; justify-content: center; color: var(--purple-deep); cursor: pointer; padding: 0; border: none; background: rgba(var(--accent-rgb), 0.12); user-select: none; transition: background .2s; }
+    .manage-trigger:active { background: rgba(var(--accent-rgb), 0.25); }
+    .manage-trigger.sm { width: auto; height: auto; margin-left: 6px; padding: 3px 10px; font-size: 12px; border-radius: 8px; }
+    .manage-mask { position: fixed; inset: 0; background: rgba(28, 20, 46, 0.42); backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 20px; }
+    .manage-mask.hidden { display: none; }
+    .manage-box { width: 100%; max-width: 384px; max-height: 82vh; overflow: auto; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 18px; box-shadow: 0 18px 50px rgba(60, 38, 110, 0.28); padding: 20px; }
+    .manage-title { font-size: 15px; font-weight: 700; color: var(--text-main); margin-bottom: 14px; line-height: 1.4; }
+    .manage-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+    .mg-item { display: flex; align-items: center; gap: 6px; }
+    .mg-item .mg-input { flex: 1; margin: 0; }
+    .mg-btn { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 9px; border: 1px solid var(--card-border); background: rgba(var(--accent-rgb), 0.06); color: var(--text-sub); font-size: 14px; cursor: pointer; line-height: 1; }
+    .mg-btn:active { background: rgba(var(--accent-rgb), 0.18); }
+    .mg-btn.mg-del { color: #c44569; border-color: rgba(196, 69, 105, 0.35); }
+    .manage-addrow { display: flex; gap: 8px; margin-bottom: 16px; }
+    .manage-addrow .field-input { flex: 1; margin: 0; }
+    .manage-actions { display: flex; justify-content: flex-end; gap: 10px; }
     .check-item { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-size: 13px; color: var(--text-main); padding: 9px 11px; background: rgba(var(--accent-rgb), 0.05); border-radius: 12px; transition: background .2s; -webkit-tap-highlight-color: transparent; }
     .check-item:active { background: rgba(var(--accent-rgb), 0.12); }
     .check-item input { display: none; }

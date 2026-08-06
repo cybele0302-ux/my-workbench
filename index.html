@@ -142,7 +142,7 @@
             <div class="report-tabs">
               <span class="report-tab" data-report="day">日</span>
               <span class="report-tab active" data-report="month">月</span>
-              <span class="report-tab" data-report="month">月</span>
+              <span class="report-tab" data-report="week">周</span>
               <span class="report-tab" data-report="year">年</span>
             </div>
             <div class="report-body" id="reportBody"></div>
@@ -489,17 +489,8 @@
                 </div>
               </div>
               <div class="field" style="margin-top:12px;">
-                <div class="field-label">分类</div>
-                <div class="choice-row" data-save="分类">
-                  <span class="choice active">餐饮</span>
-                  <span class="choice">交通</span>
-                  <span class="choice">购物</span>
-                  <span class="choice">居住</span>
-                  <span class="choice">医疗</span>
-                  <span class="choice">娱乐</span>
-                  <span class="choice">其他</span>
-                  <span class="choice">车</span>
-                </div>
+                <div class="field-label">分类 <button class="manage-trigger sm" type="button" id="manageTxCatsBtn">管理</button></div>
+                <div class="choice-row" data-save="分类" id="txCatChoices"></div>
               </div>
               <input class="field-input" data-save="金额" type="number" placeholder="金额（元）" style="margin-top:12px;">
               <input class="field-input" data-save="备注" placeholder="备注（如：午餐、加油、工资）" style="margin-top:8px;">
@@ -845,94 +836,11 @@
 
             <div class="card yanghu-card">
               <div class="card-title card-title--foldable">每日养护打卡 <span class="privacy-badge" id="yanghuProgress">0/13</span>
+                <button class="manage-trigger card-fold-btn" type="button" id="manageYanghuBtn" aria-label="管理打卡项" title="管理打卡项（增删 / 排序）">⚙</button>
                 <button class="fold-btn card-fold-btn" type="button" data-fold="yanghu" aria-label="收起">▾</button>
               </div>
               <div class="yanghu-list fold-body open" id="foldYanghu">
-                <div class="yanghu-list-inner" id="yanghuList">
-                <label class="check-item"><input type="checkbox" data-yanghu="0"><span class="check-box"></span><span class="check-text">推腹</span></label>
-                <label class="check-item"><input type="checkbox" data-yanghu="1"><span class="check-box"></span><span class="check-text">按摩头皮</span></label>
-                <div class="check-fold">
-                  <div class="check-head">
-                    <label class="check-item"><input type="checkbox" data-yanghu="2"><span class="check-box"></span><span class="check-text">驻颜术</span></label>
-                    <button class="fold-btn" type="button" data-fold="zhuyan" aria-label="展开">▾</button>
-                  </div>
-                  <div class="fold-body" id="foldZhuyan">
-                    <div class="zhuyan-sub">
-                      <div class="zy-row">开天门 9×4 组</div>
-                      <div class="zy-row">推坎宫 9×4 组</div>
-                      <div class="zy-row">通任脉 9×4 组</div>
-                      <div class="zy-row">揉太阳 顺时针 36 次 · 逆时针 36 次</div>
-                      <div class="zy-row">顶颧髎巨髎 9×4 组</div>
-                      <div class="zy-row">提升下颌线 9×4 组</div>
-                      <div class="zy-row">震眼轮 9×4 组</div>
-                      <div class="zy-row">拉耳垂 9×4 组</div>
-                      <a class="zy-video" href="https://v.douyin.com/KcIV-NvFAms/" target="_blank" rel="noopener">▶ 跟练视频（抖音）</a>
-                    </div>
-                  </div>
-                </div>
-                <div class="check-fold">
-                  <div class="check-head">
-                    <label class="check-item"><input type="checkbox" data-yanghu="3"><span class="check-box"></span><span class="check-text">练习金刚功</span></label>
-                    <button class="fold-btn" type="button" data-fold="jingong" aria-label="展开">▾</button>
-                  </div>
-                  <div class="fold-body" id="foldJingong">
-                    <div class="zhuyan-sub">
-                      <div class="zy-row">预备式</div>
-                      <div class="zy-row">第一部 双手插顶利三焦</div>
-                      <div class="zy-row">第二部 手足前后固肾腰</div>
-                      <div class="zy-row">第三部 调理脾胃需单举</div>
-                      <div class="zy-row">第四部 左肝右肺如射雕</div>
-                      <div class="zy-row">第五部 回头望足去心疾</div>
-                      <div class="zy-row">第六步 五劳七伤向后瞧</div>
-                      <div class="zy-row">第七部 凤凰展翅周身力</div>
-                      <div class="zy-row">第八步 两足顿顿饮嗜消</div>
-                      <div class="zy-row">收功式</div>
-                      <a class="zy-video" href="https://v.douyin.com/HZVQBkcIQeE/" target="_blank" rel="noopener">▶ 道长亲讲 · 跟练视频（抖音）</a>
-                    </div>
-                  </div>
-                </div>
-                <div class="check-fold">
-                  <div class="check-head">
-                    <label class="check-item"><input type="checkbox" data-yanghu="11"><span class="check-box"></span><span class="check-text">站桩</span></label>
-                    <button class="fold-btn" type="button" data-fold="zhanzhuang" aria-label="展开">▾</button>
-                  </div>
-                  <div class="fold-body" id="foldZhanzhuang">
-                    <div class="zhuyan-sub">
-                      <a class="zy-video" href="https://v.douyin.com/Je2Nbs7wh74/" target="_blank" rel="noopener">▶ 体弱乏力没精神？试试站桩（抖音）</a>
-                      <a class="zy-video" href="https://v.douyin.com/3vGMDQAaaaA/" target="_blank" rel="noopener">▶ 站桩教学 · 跟练视频（抖音）</a>
-                    </div>
-                  </div>
-                </div>
-                <div class="check-fold">
-                  <div class="check-head">
-                    <label class="check-item"><input type="checkbox" data-yanghu="10"><span class="check-box"></span><span class="check-text">五脏排毒法</span></label>
-                    <button class="fold-btn" type="button" data-fold="wuzang" aria-label="展开">▾</button>
-                  </div>
-                  <div class="fold-body" id="foldWuzang">
-                    <div class="zhuyan-sub">
-                      <div class="zy-row">倪海厦 · 排五毒（肝心脾肺肾）</div>
-                      <a class="zy-video" href="https://v.douyin.com/JDM2OqlvaiQ/" target="_blank" rel="noopener">▶ 倪师排五毒 · 跟练视频（抖音）</a>
-                    </div>
-                  </div>
-                </div>
-                <label class="check-item"><input type="checkbox" data-yanghu="4"><span class="check-box"></span><span class="check-text">震背</span></label>
-                <label class="check-item"><input type="checkbox" data-yanghu="5"><span class="check-box"></span><span class="check-text">午时午睡</span></label>
-                <div class="check-fold">
-                  <div class="check-head">
-                    <label class="check-item"><input type="checkbox" data-yanghu="6"><span class="check-box"></span><span class="check-text">经络拉伸操</span></label>
-                    <button class="fold-btn" type="button" data-fold="lashen" aria-label="展开">▾</button>
-                  </div>
-                  <div class="fold-body" id="foldLashen">
-                    <div class="zhuyan-sub">
-                      <a class="zy-video" href="https://v.douyin.com/V9YWdk2fSNc/" target="_blank" rel="noopener">▶ 八大经络拉伸 · 跟练视频（抖音）</a>
-                    </div>
-                  </div>
-                </div>
-                <label class="check-item"><input type="checkbox" data-yanghu="7"><span class="check-box"></span><span class="check-text">泡脚</span></label>
-                <label class="check-item"><input type="checkbox" data-yanghu="8"><span class="check-box"></span><span class="check-text">梳理经络/按揉穴位</span></label>
-                <label class="check-item"><input type="checkbox" data-yanghu="12"><span class="check-box"></span><span class="check-text">打坐冥想</span></label>
-                <label class="check-item"><input type="checkbox" data-yanghu="9"><span class="check-box"></span><span class="check-text">11 点前睡觉</span></label>
-                </div>
+                <div class="yanghu-list-inner" id="yanghuList"></div>
               </div>
             </div>
 
@@ -1140,6 +1048,22 @@
       <button class="lock-btn" id="inviteBtn">确认</button>
       <div class="lock-hint" id="inviteHint"></div>
       <div class="lock-toggle" id="inviteSkip" style="cursor:pointer;"></div>
+    </div>
+
+    <!-- 自定义列表管理弹窗（理财分类 / 养护打卡项） -->
+    <div class="manage-mask hidden" id="manageMask">
+      <div class="manage-box">
+        <div class="manage-title" id="manageTitle"></div>
+        <div class="manage-list" id="manageList"></div>
+        <div class="manage-addrow">
+          <input class="field-input" id="manageNewInput" placeholder="新增一项，回车或点添加">
+          <button class="ghost-btn" id="manageAddBtn" type="button">添加</button>
+        </div>
+        <div class="manage-actions">
+          <button class="ghost-btn" id="manageCancel" type="button">取消</button>
+          <button class="lock-btn" id="manageSave" type="button">保存</button>
+        </div>
+      </div>
     </div>
   </div>
 
