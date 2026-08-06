@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v28.0';
+const APP_VERSION = 'wobench-v28.2';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -1712,10 +1712,31 @@ const APP_VERSION = 'wobench-v28.0';
       const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b642buf(o.iv) }, key, b642buf(o.ct));
       return JSON.parse(new TextDecoder().decode(pt));
     }
+    // 范围令牌（Route B）：由 Edge Function 签发，含 space_key 声明，供 RLS 隔离
+    let cloudJwt = '', cloudJwtExp = 0;
+    async function ensureCloudJwt(pass) {
+      if (cloudJwt && Date.now() < cloudJwtExp - 60000) return; // 缓存有效，免重复申请
+      try {
+        const res = await fetch(CLOUD_URL + '/functions/v1/auth-mint', {
+          method: 'POST',
+          headers: { 'apikey': CLOUD_ANON, 'Authorization': 'Bearer ' + CLOUD_ANON, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ space_key: cloudSpaceKey, password: pass })
+        });
+        if (!res.ok) throw new Error('mint ' + res.status);
+        const j = await res.json();
+        if (!j.token) throw new Error('no token');
+        cloudJwt = j.token;
+        cloudJwtExp = (j.exp || 0) * 1000;
+      } catch (e) {
+        console.warn('获取范围令牌失败，回退 anon：', e);
+        cloudJwt = ''; // 函数未部署/异常时回退到 anon key（过渡期可用）
+      }
+    }
     function cloudHeaders() {
+      const auth = cloudJwt ? cloudJwt : cloudCfg.appKey;
       return {
         'apikey': cloudCfg.appKey,
-        'Authorization': 'Bearer ' + cloudCfg.appKey,
+        'Authorization': 'Bearer ' + auth,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         'Prefer': 'resolution=merge-duplicates'
@@ -1800,6 +1821,7 @@ const APP_VERSION = 'wobench-v28.0';
     }
     async function cloudPush() {
       if (!cloudCfg || !cloudSpaceKey) return;
+      await ensureCloudJwt(cloudPass);
       if (cloudPulling) { console.warn('cloudPush 跳过：正在拉取云端数据'); return; }
       var recCount = Object.keys(store).length;
       if (recCount === 0) { console.warn('cloudPush 跳过：本地无数据，避免覆盖云端'); return; }
@@ -1822,6 +1844,7 @@ const APP_VERSION = 'wobench-v28.0';
     }
     async function cloudPull() {
       if (!cloudCfg || !cloudSpaceKey) return;
+      await ensureCloudJwt(cloudPass);
       cloudPulling = true;
       try {
         const obj = await cloudFind();
@@ -1916,6 +1939,7 @@ const APP_VERSION = 'wobench-v28.0';
       cloudCfg = { appId: CLOUD_URL, appKey: CLOUD_ANON, api: CLOUD_URL };
       cloudSpaceKey = await sha256Hex(pass);
       cloudPass = pass;
+      await ensureCloudJwt(pass);
       localStorage.setItem(CLOUD_CFG_KEY, JSON.stringify(cloudCfg));
       await persistCloudPass();
       setCloudStatus('连接中…', false);
@@ -1962,6 +1986,7 @@ const APP_VERSION = 'wobench-v28.0';
       if (!pass) return;
       cloudCfg = cfg;
       cloudSpaceKey = await sha256Hex(pass);
+      await ensureCloudJwt(pass);
       setCloudStatus('同步中…', false);
       try {
         await cloudPull();
