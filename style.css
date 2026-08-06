@@ -1193,7 +1193,9 @@
     .ghost-btn.sm.danger { color: #c44569; border-color: rgba(196,69,105,0.4); }
 
     /* 每日养护打卡 */
-    .yanghu-card .yanghu-list { display: flex; flex-direction: column; gap: 10px; }
+    .yanghu-card .yanghu-list-inner { display: flex; flex-direction: column; gap: 10px; }
+    .card-title--foldable { justify-content: space-between; }
+    .card-title .card-fold-btn { width: 30px; height: 28px; border-radius: 9px; font-size: 12px; flex: 0 0 auto; margin-left: auto; }
     .check-item { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-size: 13px; color: var(--text-main); padding: 9px 11px; background: rgba(var(--accent-rgb), 0.05); border-radius: 12px; transition: background .2s; -webkit-tap-highlight-color: transparent; }
     .check-item:active { background: rgba(var(--accent-rgb), 0.12); }
     .check-item input { display: none; }
@@ -1285,6 +1287,7 @@
     .hi-sum { font-size:12px; color:var(--text-sub); line-height:1.5; word-break:break-all; }
     .hi-actions { display:flex; align-items:center; gap:8px; flex-shrink:0; }
     .hi-edit { font-size:11px; color:var(--purple-main); padding:4px 8px; border-radius:8px; background:rgba(168,133,238,0.12); cursor:pointer; }
+    .hi-todo { font-size:11px; color:#1d9e75; padding:4px 8px; border-radius:8px; background:rgba(29,158,117,0.12); cursor:pointer; }
     .hi-del { font-size:15px; color:var(--text-light); cursor:pointer; padding:0 4px; line-height:1; }
     .hi-del:active { color:#d85a30; }
     .edit-banner { font-size:12px; color:var(--purple-dark); background:rgba(168,133,238,0.14); border-radius:10px; padding:8px 10px; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
@@ -1750,7 +1753,7 @@
     .ai-user { align-self: flex-end; background: linear-gradient(135deg, var(--purple-main), var(--purple-deep)); color: #fff; border-bottom-right-radius: 4px; }
     .ai-input-wrap { display: block; }
     .ai-input-box { position: relative; }
-    .ai-textarea { width: 100%; box-sizing: border-box; min-height: 64px; resize: vertical; line-height: 1.6; font-size: 14px; font-family: inherit; padding-bottom: 42px; }
+    .ai-textarea { width: 100%; box-sizing: border-box; min-height: 44px; resize: vertical; line-height: 1.6; font-size: 14px; font-family: inherit; padding-bottom: 42px; }
     .ai-textarea::placeholder { font-size: 14px; line-height: 1.6; color: var(--text-light); }
     #aiCard .card-title { justify-content: space-between; }
     .ai-clear-btn { font-size: 12px; line-height: 1; color: var(--purple-deep); cursor: pointer; font-weight: 500; padding: 5px 12px; border-radius: 11px; background: rgba(var(--accent-rgb), 0.12); user-select: none; }

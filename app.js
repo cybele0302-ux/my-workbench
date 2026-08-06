@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v27.20';
+const APP_VERSION = 'wobench-v27.23';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -222,7 +222,7 @@ const APP_VERSION = 'wobench-v27.20';
     }
 
     // ============ 每日养护打卡（独立数据 · 即勾即存）============
-    const YANGHU_KEYS = ['推腹', '按摩头皮', '驻颜术', '练习金刚功', '震背', '午时午睡', '经络拉伸操', '泡脚', '梳理经络/按揉穴位', '11点前睡觉', '五脏排毒法'];
+    const YANGHU_KEYS = ['推腹', '按摩头皮', '驻颜术', '练习金刚功', '震背', '午时午睡', '经络拉伸操', '泡脚', '梳理经络/按揉穴位', '11点前睡觉', '五脏排毒法', '站桩', '打坐冥想'];
     function yanghuActiveDs() { return editingDate || todayStr; }
     function loadYanghu(ds) {
       const r = store[ds + '|yanghu'];
@@ -273,7 +273,7 @@ const APP_VERSION = 'wobench-v27.20';
       }).join('');
     }
     document.querySelectorAll('#yanghuList input[data-yanghu]').forEach(function (b) { b.addEventListener('change', saveYanghu); });
-    const FOLD_MAP = { zhuyan: 'foldZhuyan', jingong: 'foldJingong', lashen: 'foldLashen', wuzang: 'foldWuzang' };
+    const FOLD_MAP = { zhuyan: 'foldZhuyan', jingong: 'foldJingong', lashen: 'foldLashen', wuzang: 'foldWuzang', zhanzhuang: 'foldZhanzhuang', yanghu: 'foldYanghu' };
     document.querySelectorAll('.fold-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
         const body = document.getElementById(FOLD_MAP[btn.getAttribute('data-fold')]);
@@ -899,7 +899,7 @@ const APP_VERSION = 'wobench-v27.20';
       c.innerHTML = recs.map(function (r) {
         const tags = (r.fields['灵感标签'] || '').split('、').filter(Boolean).map(function (t) { return '<span class="insp-tag">' + escapeHtml(t) + '</span>'; }).join('');
         const lm = lunarCn(r.date).replace(/^.+?年/, '');
-        return '<div class="insp-item" data-insp-id="' + r.id + '"><div class="insp-tags">' + tags + '</div><div class="insp-content">' + escapeHtml(r.fields['灵感内容'] || '') + '</div><div class="insp-foot"><span>' + r.date.slice(5) + ' · ' + lm + '</span><span class="hi-del" data-del="' + r.id + '">删除</span><span class="hi-edit" data-insp-edit="' + r.id + '">编辑</span></div></div>';
+        return '<div class="insp-item" data-insp-id="' + r.id + '"><div class="insp-tags">' + tags + '</div><div class="insp-content">' + escapeHtml(r.fields['灵感内容'] || '') + '</div><div class="insp-foot"><span>' + r.date.slice(5) + ' · ' + lm + '</span><span class="hi-del" data-del="' + r.id + '">删除</span><span class="hi-edit" data-insp-edit="' + r.id + '">编辑</span><span class="hi-todo" data-insp-todo="' + r.id + '">转待办</span></div></div>';
       }).join('');
     }
     function addInspiration() {
@@ -940,6 +940,21 @@ const APP_VERSION = 'wobench-v27.20';
         store[id] = r;
         renderInspirationList();
         showToast('已更新');
+      });
+    }
+    function inspToTodo(id) {
+      const r = store[id];
+      if (!r) { showToast('灵感不存在'); return; }
+      const text = (r.fields['灵感内容'] || '').trim();
+      if (!text) { showToast('灵感内容为空'); return; }
+      const arr = loadTodo();
+      if (arr.some(function (t) { return t.text === text && !t.done; })) { showToast('待办已存在'); return; }
+      arr.unshift({ id: 't_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6), text: text, done: false, tag: '' });
+      saveTodo(arr);
+      delete store[id];
+      dbDelete(id).then(function () {
+        renderTodo(); renderInspirationList(); renderCal(); renderDetail(ymd(new Date())); renderStreakBadges(); renderGoalProgress();
+        showToast('已转为待办');
       });
     }
 
@@ -1203,6 +1218,7 @@ const APP_VERSION = 'wobench-v27.20';
           else if (mod === 'zichan') { renderTransactions(); renderTodayTx(); renderAssetSummary(); }
           else renderHistory(mod);
           renderCal(); renderDetail(ymd(new Date())); renderStreakBadges(); renderGoalProgress();
+          renderReport(currentReport || 'week'); renderTrend(trendDays || 7); renderReview(reviewPeriod || 'week');
         });
         if (rec) showUndoToast('已删除', function () {
           store[id] = rec;
@@ -1211,6 +1227,7 @@ const APP_VERSION = 'wobench-v27.20';
             else if (mod === 'zichan') { renderTransactions(); renderTodayTx(); renderAssetSummary(); }
             else renderHistory(mod);
             renderCal(); renderDetail(ymd(new Date())); renderStreakBadges(); renderGoalProgress();
+            renderReport(currentReport || 'week'); renderTrend(trendDays || 7); renderReview(reviewPeriod || 'week');
             showToast('已恢复');
           });
         });
@@ -1222,6 +1239,8 @@ const APP_VERSION = 'wobench-v27.20';
       if (inspSave) { saveInspEdit(inspSave.getAttribute('data-insp-save')); return; }
       const inspCancel = e.target.closest('[data-insp-cancel]');
       if (inspCancel) { renderInspirationList(); return; }
+      const inspTodo = e.target.closest('[data-insp-todo]');
+      if (inspTodo) { inspToTodo(inspTodo.getAttribute('data-insp-todo')); return; }
       const ed = e.target.closest('[data-edit-id]');
       if (ed) { enterEdit(ed.getAttribute('data-edit-mod') || ed.getAttribute('data-edit-id').split('|')[0], ed.getAttribute('data-edit-id')); return; }
       const ex = e.target.closest('.exit-edit');
@@ -2061,6 +2080,16 @@ const APP_VERSION = 'wobench-v27.20';
         });
         var pct2 = Math.min(100, Math.round(tcmDays / goals.tcm * 100));
         updateGoalBadge('tcm', pct2, tcmDays + '天/' + goals.tcm + '天');
+      }
+      // 修身养性周目标（本周打卡天数）
+      if (goals.xiushen) {
+        var xsDays = 0;
+        Object.keys(store).forEach(function (id) {
+          var r = store[id];
+          if (r.module === 'xiushen' && !isEnc(r) && r.date >= weekStartStr && Object.keys(r.fields).length) xsDays++;
+        });
+        var pctX = Math.min(100, Math.round(xsDays / goals.xiushen * 100));
+        updateGoalBadge('xiushen', pctX, xsDays + '天/' + goals.xiushen + '天', pctX >= 100);
       }
       // 养护打卡日目标（今天完成的打卡项数）
       if (goals.yanghu) {

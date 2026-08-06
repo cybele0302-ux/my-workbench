@@ -104,7 +104,7 @@
             </div>
             <div class="ai-input-wrap">
               <div class="ai-input-box">
-                <textarea class="field-input ai-textarea" id="aiInput" rows="3" placeholder="例如：我最近的学习情况怎么样？"></textarea>
+                <textarea class="field-input ai-textarea" id="aiInput" rows="2" placeholder="例如：我最近的学习情况怎么样？"></textarea>
                 <button class="ghost-btn" id="aiSend">发送</button>
               </div>
             </div>
@@ -123,6 +123,11 @@
                 <span class="goal-name">🌿 中医打卡（每周）</span>
                 <span class="goal-unit">天</span>
                 <input class="field-input goal-input" type="number" data-goal="tcm" placeholder="5" min="0" max="7">
+              </div>
+              <div class="goal-row">
+                <span class="goal-name">🧘 修身养性（每周）</span>
+                <span class="goal-unit">天</span>
+                <input class="field-input goal-input" type="number" data-goal="xiushen" placeholder="5" min="0" max="7">
               </div>
               <div class="goal-row">
                 <span class="goal-name">🪷 养护打卡（每天）</span>
@@ -843,8 +848,11 @@
             </div>
 
             <div class="card yanghu-card">
-              <div class="card-title">每日养护打卡 <span class="privacy-badge" id="yanghuProgress">0/10</span></div>
-              <div class="yanghu-list" id="yanghuList">
+              <div class="card-title card-title--foldable">每日养护打卡 <span class="privacy-badge" id="yanghuProgress">0/13</span>
+                <button class="fold-btn card-fold-btn" type="button" data-fold="yanghu" aria-label="收起">▾</button>
+              </div>
+              <div class="yanghu-list fold-body open" id="foldYanghu">
+                <div class="yanghu-list-inner" id="yanghuList">
                 <label class="check-item"><input type="checkbox" data-yanghu="0"><span class="check-box"></span><span class="check-text">推腹</span></label>
                 <label class="check-item"><input type="checkbox" data-yanghu="1"><span class="check-box"></span><span class="check-text">按摩头皮</span></label>
                 <div class="check-fold">
@@ -889,6 +897,18 @@
                 </div>
                 <div class="check-fold">
                   <div class="check-head">
+                    <label class="check-item"><input type="checkbox" data-yanghu="11"><span class="check-box"></span><span class="check-text">站桩</span></label>
+                    <button class="fold-btn" type="button" data-fold="zhanzhuang" aria-label="展开">▾</button>
+                  </div>
+                  <div class="fold-body" id="foldZhanzhuang">
+                    <div class="zhuyan-sub">
+                      <a class="zy-video" href="https://v.douyin.com/Je2Nbs7wh74/" target="_blank" rel="noopener">▶ 体弱乏力没精神？试试站桩（抖音）</a>
+                      <a class="zy-video" href="https://v.douyin.com/3vGMDQAaaaA/" target="_blank" rel="noopener">▶ 站桩教学 · 跟练视频（抖音）</a>
+                    </div>
+                  </div>
+                </div>
+                <div class="check-fold">
+                  <div class="check-head">
                     <label class="check-item"><input type="checkbox" data-yanghu="10"><span class="check-box"></span><span class="check-text">五脏排毒法</span></label>
                     <button class="fold-btn" type="button" data-fold="wuzang" aria-label="展开">▾</button>
                   </div>
@@ -914,20 +934,23 @@
                 </div>
                 <label class="check-item"><input type="checkbox" data-yanghu="7"><span class="check-box"></span><span class="check-text">泡脚</span></label>
                 <label class="check-item"><input type="checkbox" data-yanghu="8"><span class="check-box"></span><span class="check-text">梳理经络/按揉穴位</span></label>
+                <label class="check-item"><input type="checkbox" data-yanghu="12"><span class="check-box"></span><span class="check-text">打坐冥想</span></label>
                 <label class="check-item"><input type="checkbox" data-yanghu="9"><span class="check-box"></span><span class="check-text">11 点前睡觉</span></label>
+                </div>
               </div>
             </div>
 
             <div class="card">
-              <div class="card-title">今日修行</div>
-              <div class="field">
-                <input class="field-input" data-save="修行内容" placeholder="如：打坐 20min / 站桩 15min / 读《道德经》">
-              </div>
-            </div>
-
-            <div class="card">
-              <div class="card-title">今日感悟</div>
+              <div class="card-title">今日修行感悟</div>
               <textarea class="field-input" rows="3" data-save="修行感悟" placeholder="学习心得、修行感受……"></textarea>
+            </div>
+
+            <div class="card">
+              <div class="card-title">功过格</div>
+              <div class="field-hint" style="font-size:12px;color:var(--text-sub);margin-bottom:8px;">记录今日善举与过失，日省吾身，积善成德。</div>
+              <div class="field">
+                <textarea class="field-input" rows="3" data-save="功过格" placeholder="如：帮同事解决问题 / 对人发了一次脾气"></textarea>
+              </div>
             </div>
           </div>
 
