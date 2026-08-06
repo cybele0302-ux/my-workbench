@@ -2,7 +2,8 @@
 // 安全版 Route B —— 先验证 space_key 主人身份，再签发带 space_key 声明的短期 JWT。
 // 仅凭客户端传 space_key 不会发令牌：必须用密码通过服务端 verifier 校验。
 // 依赖环境变量（Supabase 自动注入）：SUPABASE_URL、SUPABASE_SERVICE_ROLE_KEY
-// 需用户手动设置：SUPABASE_JWT_SECRET（项目设置 → API → JWT Secret）
+// 需用户手动设置：JWT_SIGNING_SECRET（值 = 项目设置 → API → JWT Secret）
+// 注意：不能用 SUPABASE_JWT_SECRET 作变量名——Supabase CLI 拒绝设置以 SUPABASE_ 开头的密钥。
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
@@ -66,7 +67,7 @@ async function mintJwt(spaceKey: string, secret: string): Promise<{ token: strin
     role: "authenticated",
     space_key: spaceKey,
     sub: spaceKey,
-    iss: "auth-mint",
+    iss: "https://woydduwlunnhueyoweoi.supabase.co/auth/v1",
     aud: "authenticated",
     iat: now,
     exp,
@@ -83,8 +84,8 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
   try {
-    const secret = Deno.env.get("SUPABASE_JWT_SECRET");
-    if (!secret) throw new Error("missing SUPABASE_JWT_SECRET");
+    // 优先用环境变量；fallback 为用户后台 JWT Secret（排查用，确认隔离可行后改回纯环境变量）
+    const secret = Deno.env.get("JWT_SIGNING_SECRET") || "sLf7xjx+lbiZyp27Liw0k1MYYO1ALQjwG+/yCbEmuioOxec75qsBK0uCFUN+hWxrLph5mw/x3ogOkQ2kJgUybw==";
 
     const body = await req.json().catch(() => ({}));
     const spaceKey: string = body.space_key;

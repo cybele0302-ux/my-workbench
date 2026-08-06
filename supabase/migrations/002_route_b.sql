@@ -14,10 +14,16 @@ GRANT ALL ON public.spaces TO service_role;
 -- sync 表允许 authenticated 角色（范围令牌持有者）CRUD
 GRANT ALL ON public.sync TO authenticated;
 
--- 2) 把基线策略换成范围策略（确认函数可用后再执行！）
+-- 2) 收口策略（分两阶段，防锁死）
+-- 2a) 阶段A：加范围策略给 authenticated，同时保留 anon 兜底（App 同步验证无误前不删 anon）
 -- DROP POLICY IF EXISTS "anon_full_sync" ON public.sync;
 -- CREATE POLICY "scoped_by_claim" ON public.sync
---   FOR ALL
---   TO authenticated
+--   FOR ALL TO authenticated
 --   USING (space_key = (auth.jwt() ->> 'space_key'))
 --   WITH CHECK (space_key = (auth.jwt() ->> 'space_key'));
+-- CREATE POLICY "anon_fallback" ON public.sync
+--   FOR ALL TO anon
+--   USING (true)
+--   WITH CHECK (true);
+-- 2b) 阶段B（确认 App 用范围令牌同步正常后执行，真隔离）：
+-- DROP POLICY IF EXISTS "anon_fallback" ON public.sync;

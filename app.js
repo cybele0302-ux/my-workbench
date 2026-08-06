@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v28.2';
+const APP_VERSION = 'wobench-v28.3';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -1733,10 +1733,10 @@ const APP_VERSION = 'wobench-v28.2';
       }
     }
     function cloudHeaders() {
-      const auth = cloudJwt ? cloudJwt : cloudCfg.appKey;
+      // 临时回退：纯 anon 基线（恢复同步功能）。隔离方案 C（函数代理）稍后上线。
       return {
         'apikey': cloudCfg.appKey,
-        'Authorization': 'Bearer ' + auth,
+        'Authorization': 'Bearer ' + cloudCfg.appKey,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         'Prefer': 'resolution=merge-duplicates'
@@ -1821,7 +1821,6 @@ const APP_VERSION = 'wobench-v28.2';
     }
     async function cloudPush() {
       if (!cloudCfg || !cloudSpaceKey) return;
-      await ensureCloudJwt(cloudPass);
       if (cloudPulling) { console.warn('cloudPush 跳过：正在拉取云端数据'); return; }
       var recCount = Object.keys(store).length;
       if (recCount === 0) { console.warn('cloudPush 跳过：本地无数据，避免覆盖云端'); return; }
@@ -1844,7 +1843,6 @@ const APP_VERSION = 'wobench-v28.2';
     }
     async function cloudPull() {
       if (!cloudCfg || !cloudSpaceKey) return;
-      await ensureCloudJwt(cloudPass);
       cloudPulling = true;
       try {
         const obj = await cloudFind();
@@ -1939,7 +1937,6 @@ const APP_VERSION = 'wobench-v28.2';
       cloudCfg = { appId: CLOUD_URL, appKey: CLOUD_ANON, api: CLOUD_URL };
       cloudSpaceKey = await sha256Hex(pass);
       cloudPass = pass;
-      await ensureCloudJwt(pass);
       localStorage.setItem(CLOUD_CFG_KEY, JSON.stringify(cloudCfg));
       await persistCloudPass();
       setCloudStatus('连接中…', false);
@@ -1986,7 +1983,6 @@ const APP_VERSION = 'wobench-v28.2';
       if (!pass) return;
       cloudCfg = cfg;
       cloudSpaceKey = await sha256Hex(pass);
-      await ensureCloudJwt(pass);
       setCloudStatus('同步中…', false);
       try {
         await cloudPull();
