@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v27.23';
+const APP_VERSION = 'wobench-v27.24';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -1219,6 +1219,7 @@ const APP_VERSION = 'wobench-v27.23';
           else renderHistory(mod);
           renderCal(); renderDetail(ymd(new Date())); renderStreakBadges(); renderGoalProgress();
           renderReport(currentReport || 'week'); renderTrend(trendDays || 7); renderReview(reviewPeriod || 'week');
+          schedulePush(); // 立即推云端，防止 cloudPull 把已删除记录拉回
         });
         if (rec) showUndoToast('已删除', function () {
           store[id] = rec;
@@ -1228,6 +1229,7 @@ const APP_VERSION = 'wobench-v27.23';
             else renderHistory(mod);
             renderCal(); renderDetail(ymd(new Date())); renderStreakBadges(); renderGoalProgress();
             renderReport(currentReport || 'week'); renderTrend(trendDays || 7); renderReview(reviewPeriod || 'week');
+            schedulePush(); // 撤销恢复也同步云端
             showToast('已恢复');
           });
         });
@@ -2081,16 +2083,15 @@ const APP_VERSION = 'wobench-v27.23';
         var pct2 = Math.min(100, Math.round(tcmDays / goals.tcm * 100));
         updateGoalBadge('tcm', pct2, tcmDays + '天/' + goals.tcm + '天');
       }
-      // 修身养性周目标（本周打卡天数）
-      if (goals.xiushen) {
-        var xsDays = 0;
-        Object.keys(store).forEach(function (id) {
-          var r = store[id];
-          if (r.module === 'xiushen' && !isEnc(r) && r.date >= weekStartStr && Object.keys(r.fields).length) xsDays++;
-        });
-        var pctX = Math.min(100, Math.round(xsDays / goals.xiushen * 100));
-        updateGoalBadge('xiushen', pctX, xsDays + '天/' + goals.xiushen + '天', pctX >= 100);
-      }
+      // 修身养性周进度（本周打卡天数，默认目标7天，无需用户设置）
+      var xsDays = 0;
+      Object.keys(store).forEach(function (id) {
+        var r = store[id];
+        if (r.module === 'xiushen' && !isEnc(r) && r.date >= weekStartStr && Object.keys(r.fields).length) xsDays++;
+      });
+      var xsTarget = (goals.xiushen && goals.xiushen > 0) ? goals.xiushen : 7;
+      var pctX = Math.min(100, Math.round(xsDays / xsTarget * 100));
+      updateGoalBadge('xiushen', pctX, xsDays + '天/' + xsTarget + '天', pctX >= 100);
       // 养护打卡日目标（今天完成的打卡项数）
       if (goals.yanghu) {
         var ygRec = store[todayStr + '|yanghu'];
