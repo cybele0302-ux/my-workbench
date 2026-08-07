@@ -15,61 +15,11 @@
 <body>
   <div id="swUpdateBanner" class="sw-update-banner hidden">发现新版本，点击刷新 <span class="sw-update-go">立即更新 ›</span></div>
   <div class="phone-frame">
-    <div class="hero">
-      <div class="hero-left">
-        <div class="hero-title">我的工作台</div>
-        <div class="hero-sub">记录  学习  修身  观心</div>
-      </div>
-      <div class="hero-date"><b id="heroDateMain">2026.07.30</b><span id="heroDateSub">丙午年六月十七 · 周四</span></div>
-    </div>
-
     <div class="main">
-      <div class="sidebar">
-        <div class="nav-item active" data-module="homepage">
-          <div class="nav-icon" data-icon="home"></div>
-          <div class="nav-text">首页</div>
-        </div>
-        <div class="nav-item" data-module="lingguang">
-          <div class="nav-icon" data-icon="sparkle"></div>
-          <div class="nav-text">灵光闪现</div>
-        </div>
-        <div class="nav-item" data-module="todo">
-          <div class="nav-icon" data-icon="check"></div>
-          <div class="nav-text">待办事项</div>
-        </div>
-        <div class="nav-item" data-module="shiti">
-          <div class="nav-icon" data-icon="leaf"></div>
-          <div class="nav-text">实体感录</div>
-        </div>
-        <div class="nav-item" data-module="study">
-          <div class="nav-icon" data-icon="study"></div>
-          <div class="nav-text">学习</div>
-        </div>
-        <div class="nav-item" data-module="xiushen">
-          <div class="nav-icon" data-icon="lotus"></div>
-          <div class="nav-text">修身养性</div>
-        </div>
-        <div class="nav-item" data-module="zichan">
-          <div class="nav-icon" data-icon="gem"></div>
-          <div class="nav-text">理财</div>
-        </div>
-        <div class="nav-item" data-module="favorite">
-          <div class="nav-icon" data-icon="star"></div>
-          <div class="nav-text">收藏夹</div>
-        </div>
-        <div class="nav-item" data-module="home">
-          <div class="nav-icon" data-icon="calendar"></div>
-          <div class="nav-text">日历</div>
-        </div>
-        <div class="nav-item" data-module="settings">
-          <div class="nav-icon" data-icon="gear"></div>
-          <div class="nav-text">设置</div>
-        </div>
-      </div>
-
       <div class="content">
         <!-- 首页 -->
         <div class="module" id="homepage">
+          <div class="home-date" id="homeDate"></div>
           <div class="greeting-row" id="greetingText">
             <div class="greeting-main">你好呀！✨</div>
             <div class="greeting-sub">愿你稳步向理想的自己靠近</div>
@@ -788,7 +738,7 @@
         <div class="module hidden" id="xiushen">
           <div class="module-header-card" data-module-header="xiushen">
             <div class="mhc-top">
-              <div class="mhc-icon" data-icon="lotus"></div>
+              <div class="mhc-icon" data-icon="tree"></div>
               <div class="mhc-info">
                 <div class="mhc-title">修身养性</div>
                 <div class="mhc-sub">修行、静心，向内生长</div>
@@ -1003,6 +953,80 @@
             <div class="ai-cfg-status" id="aiCfgStatus"></div>
           </div>
         </div>
+
+        <!-- 我的 -->
+        <div class="module hidden" id="mine">
+          <div class="mine-head">
+            <div class="mine-avatar" id="mineAvatar">na</div>
+            <div class="mine-name" id="mineName">na</div>
+            <div class="mine-sub">记录 · 学习 · 修身 · 观心</div>
+          </div>
+
+          <div class="mine-group">
+            <div class="mine-group-title">常用</div>
+            <div class="mine-entry" data-module="lingguang">
+              <div class="mine-entry-icon" data-icon="sparkle"></div>
+              <div class="mine-entry-name">灵光闪现</div>
+              <div class="mine-entry-arrow">›</div>
+            </div>
+            <div class="mine-entry" data-module="todo">
+              <div class="mine-entry-icon" data-icon="check"></div>
+              <div class="mine-entry-name">待办事项</div>
+              <div class="mine-entry-arrow">›</div>
+            </div>
+          </div>
+
+          <div class="mine-group">
+            <div class="mine-group-title">数据与收藏</div>
+            <div class="mine-entry" data-module="zichan">
+              <div class="mine-entry-icon" data-icon="gem"></div>
+              <div class="mine-entry-name">理财</div>
+              <div class="mine-entry-arrow">›</div>
+            </div>
+            <div class="mine-entry" data-module="home">
+              <div class="mine-entry-icon" data-icon="calendar"></div>
+              <div class="mine-entry-name">日历</div>
+              <div class="mine-entry-arrow">›</div>
+            </div>
+            <div class="mine-entry" data-module="favorite">
+              <div class="mine-entry-icon" data-icon="star"></div>
+              <div class="mine-entry-name">收藏夹</div>
+              <div class="mine-entry-arrow">›</div>
+            </div>
+          </div>
+
+          <div class="mine-group">
+            <div class="mine-group-title">系统</div>
+            <div class="mine-entry" data-module="settings">
+              <div class="mine-entry-icon" data-icon="gear"></div>
+              <div class="mine-entry-name">设置</div>
+              <div class="mine-entry-arrow">›</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-tab">
+      <div class="bottom-item active" data-module="homepage">
+        <div class="nav-icon" data-icon="home"></div>
+        <div class="nav-text">首页</div>
+      </div>
+      <div class="bottom-item" data-module="shiti">
+        <div class="nav-icon" data-icon="leaf"></div>
+        <div class="nav-text">感录</div>
+      </div>
+      <div class="bottom-item" data-module="study">
+        <div class="nav-icon" data-icon="study"></div>
+        <div class="nav-text">学习</div>
+      </div>
+      <div class="bottom-item" data-module="xiushen">
+        <div class="nav-icon" data-icon="tree"></div>
+        <div class="nav-text">修养</div>
+      </div>
+      <div class="bottom-item" data-module="mine">
+        <div class="nav-icon" data-icon="person"></div>
+        <div class="nav-text">我的</div>
       </div>
     </div>
 
