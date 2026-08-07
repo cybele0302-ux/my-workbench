@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v28.9';
+const APP_VERSION = 'wobench-v29.0';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -29,31 +29,42 @@ const APP_VERSION = 'wobench-v28.9';
       el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + (ICONS[k] || '') + '</svg>';
     });
 
-    const navItems = document.querySelectorAll('.nav-item');
     const modules = document.querySelectorAll('.module');
+    const bottomItems = document.querySelectorAll('.bottom-item');
+    const mineEntries = document.querySelectorAll('.mine-entry');
 
-    navItems.forEach(item => {
+    function switchTo(target) {
+      modules.forEach(m => {
+        m.classList.toggle('hidden', m.id !== target);
+      });
+      updateModuleHeaderDate(target);
+      switchModuleTab(target, 'today');
+      if (target === 'home') { renderCal(); renderDetail(todayStr); renderHomeSummary(); renderReview('week'); renderStreakBadges(); }
+      else if (target === 'homepage') { renderHomepage(); renderReport('month'); renderTrend(7); }
+      else if (target === 'lingguang') renderInspirationList();
+      else if (target === 'zichan') { renderTransactions(); renderTodayTx(); renderAssetSummary(); }
+      else if (DAILY_MODS.indexOf(target) >= 0) {
+        const rec = store[ymd(new Date()) + '|' + target];
+        if (rec) { const el = document.getElementById(target); if (el) fillForm(el, rec.fields); }
+        renderHistory(target);
+        if (target === 'xiushen') { renderXiushenDaily(todayStr); renderYanghu(); renderYanghuHistory(); }
+        if (target === 'study') { renderStudyMonth(); renderTcm(); renderStudyTimeCard(); }
+      }
+      else if (target === 'todo') renderTodo();
+      else if (target === 'mine') renderMine();
+    }
+
+    bottomItems.forEach(item => {
       item.addEventListener('click', () => {
-        const target = item.dataset.module;
-        navItems.forEach(n => n.classList.remove('active'));
+        bottomItems.forEach(n => n.classList.remove('active'));
         item.classList.add('active');
-        modules.forEach(m => {
-          m.classList.toggle('hidden', m.id !== target);
-        });
-        updateModuleHeaderDate(target);
-        switchModuleTab(target, 'today');
-        if (target === 'home') { renderCal(); renderDetail(todayStr); renderHomeSummary(); renderReview('week'); renderStreakBadges(); }
-        else if (target === 'homepage') { renderHomepage(); renderReport('month'); renderTrend(7); }
-        else if (target === 'lingguang') renderInspirationList();
-        else if (target === 'zichan') { renderTransactions(); renderTodayTx(); renderAssetSummary(); }
-        else if (DAILY_MODS.indexOf(target) >= 0) {
-          const rec = store[ymd(new Date()) + '|' + target];
-          if (rec) { const el = document.getElementById(target); if (el) fillForm(el, rec.fields); }
-          renderHistory(target);
-          if (target === 'xiushen') { renderXiushenDaily(todayStr); renderYanghu(); renderYanghuHistory(); }
-          if (target === 'study') { renderStudyMonth(); renderTcm(); renderStudyTimeCard(); }
-        }
-        else if (target === 'todo') renderTodo();
+        switchTo(item.dataset.module);
+      });
+    });
+
+    mineEntries.forEach(entry => {
+      entry.addEventListener('click', () => {
+        switchTo(entry.dataset.module);
       });
     });
 
@@ -400,10 +411,8 @@ const APP_VERSION = 'wobench-v28.9';
       const dsKey = ymd(t);
       const lunar = lunarCn(dsKey);
       const term = SOLAR_TERMS[dsKey];
-      const main = document.getElementById('heroDateMain');
-      const sub = document.getElementById('heroDateSub');
-      if (main) main.textContent = dsKey.replace(/-/g, '.');
-      if (sub) sub.textContent = lunar + ' · ' + weekCn(t) + (term ? ' · ' + term : '');
+      const el = document.getElementById('homeDate');
+      if (el) el.textContent = dsKey.replace(/-/g, '.') + ' ' + weekCn(t) + ' · ' + lunar + (term ? ' · ' + term : '');
     })();
 
     // ============ 首页日历 ============
@@ -528,6 +537,21 @@ const APP_VERSION = 'wobench-v28.9';
       var q = DAILY_QUOTES[sum % DAILY_QUOTES.length].replace(/\s*——《[^》]*》.*$/, '');
       var qEl = document.getElementById('dailyQuote');
       if (qEl) qEl.textContent = q;
+
+      var dateEl = document.getElementById('homeDate');
+      if (dateEl) {
+        var t2 = new Date();
+        var dsKey2 = ymd(t2);
+        dateEl.textContent = dsKey2.replace(/-/g, '.') + ' ' + weekCn(t2) + ' · ' + lunarCn(dsKey2) + (SOLAR_TERMS[dsKey2] ? ' · ' + SOLAR_TERMS[dsKey2] : '');
+      }
+    }
+
+    function renderMine() {
+      const n = USER_NICKNAME;
+      const nm = document.getElementById('mineName');
+      const av = document.getElementById('mineAvatar');
+      if (nm) nm.textContent = n;
+      if (av) av.textContent = n;
     }
 
     var lastDetailDs = ymd(new Date());
