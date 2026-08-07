@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v28.7';
+const APP_VERSION = 'wobench-v28.8';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -1236,10 +1236,19 @@ const APP_VERSION = 'wobench-v28.7';
       const color = (t === '收入') ? '#1d9e75' : 'var(--text-sub)';
       const badge = cat || '未分类';
       const catChips = getTxCats().map(function (ct) { return '<span class="tx-cat-chip' + (ct === cat ? ' active' : '') + '">' + ct + '</span>'; }).join('');
+      const typeChips = ['支出', '收入'].map(function (tp) { return '<span class="tx-type-chip' + (tp === t ? ' active' : '') + '" data-val="' + tp + '">' + tp + '</span>'; }).join('');
+      const noteEsc = note ? escapeHtml(note).replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
       const editBtn = editable ? '<span class="tx-edit">编辑</span>' : '';
       const sub = '<div class="tx-sub">' + t + (editable ? '' : ' · ' + r.date) + '</div>';
       const editor = editable
-        ? '<div class="tx-editor hidden"><div class="tx-editor-cats">' + catChips + '</div><div class="tx-editor-amt-row"><span class="tx-editor-label">金额（元）</span><input class="field-input tx-editor-amt" type="number" value="' + amt + '"></div><div class="tx-edit-actions"><button class="ghost-btn" data-tx-save="' + r.id + '">保存</button><button class="ghost-btn" data-tx-cancel>取消</button></div></div>'
+        ? '<div class="tx-editor hidden">'
+          + '<div class="tx-editor-row"><span class="tx-editor-label">类型</span><div class="tx-editor-types">' + typeChips + '</div></div>'
+          + '<div class="tx-editor-row"><span class="tx-editor-label">分类</span><div class="tx-editor-cats">' + catChips + '</div></div>'
+          + '<div class="tx-editor-row"><span class="tx-editor-label">金额</span><input class="field-input tx-editor-amt" type="number" value="' + amt + '"></div>'
+          + '<div class="tx-editor-row"><span class="tx-editor-label">备注</span><input class="field-input tx-editor-note" type="text" value="' + noteEsc + '"></div>'
+          + '<div class="tx-editor-row"><span class="tx-editor-label">日期</span><input class="field-input tx-editor-date" type="date" value="' + r.date + '"></div>'
+          + '<div class="tx-edit-actions"><button class="ghost-btn" data-tx-save="' + r.id + '">保存</button><button class="ghost-btn" data-tx-cancel>取消</button></div>'
+          + '</div>'
         : '';
       return '<div class="tx-item' + (editable ? ' tx-editable' : '') + '" data-tx-id="' + r.id + '">'
         + '<div class="tx-row"><span class="tx-badge">' + escapeHtml(badge) + '</span>'
@@ -1260,18 +1269,23 @@ const APP_VERSION = 'wobench-v28.7';
         const lbl = txHistPeriod === 'all' ? '' : (FINANCE_PERIODS[txHistPeriod] ? FINANCE_PERIODS[txHistPeriod].label : '');
         c.innerHTML = '<div class="history-empty">' + (lbl ? lbl : '') + '暂无交易记录</div>'; return;
       }
-      c.innerHTML = recs.map(function (r) { return txItemHtml(r, false); }).join('');
+      c.innerHTML = recs.map(function (r) { return txItemHtml(r, true); }).join('');
     }
     function saveTxEdit(id) {
       const item = document.querySelector('.tx-item[data-tx-id="' + id + '"]');
       if (!item) return;
+      const activeType = item.querySelector('.tx-type-chip.active');
       const activeCat = item.querySelector('.tx-cat-chip.active');
-      const cat = activeCat ? activeCat.textContent.trim() : '';
       const amt = item.querySelector('.tx-editor-amt').value;
+      const noteEl = item.querySelector('.tx-editor-note');
+      const dateEl = item.querySelector('.tx-editor-date');
       const rec = store[id];
       if (!rec) return;
-      if (cat) rec.fields['分类'] = cat;
+      if (activeType) rec.fields['交易类型'] = activeType.getAttribute('data-val');
+      if (activeCat) rec.fields['分类'] = activeCat.textContent.trim();
       if (amt !== '') rec.fields['金额'] = amt;
+      if (noteEl) rec.fields['备注'] = noteEl.value;
+      if (dateEl && dateEl.value) rec.date = dateEl.value;
       rec.updatedAt = Date.now();
       dbPut(rec).then(function () {
         renderTransactions(); renderTodayTx(); renderAssetSummary(); renderCal(); renderDetail(ymd(new Date())); renderStreakBadges(); renderGoalProgress();
@@ -1452,6 +1466,12 @@ const APP_VERSION = 'wobench-v28.7';
       if (txChip) {
         const box = txChip.closest('.tx-editor-cats');
         if (box) box.querySelectorAll('.tx-cat-chip').forEach(function (c) { c.classList.toggle('active', c === txChip); });
+        return;
+      }
+      const txTypeChip = e.target.closest('.tx-type-chip');
+      if (txTypeChip) {
+        const box = txTypeChip.closest('.tx-editor-types');
+        if (box) box.querySelectorAll('.tx-type-chip').forEach(function (c) { c.classList.toggle('active', c === txTypeChip); });
         return;
       }
       const txEdit = e.target.closest('.tx-edit');
