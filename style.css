@@ -1352,6 +1352,11 @@
     .tx-editor-amt { flex:1; }
     .tx-edit-actions { display:flex; gap:8px; margin-top:8px; }
     .tx-edit-actions .ghost-btn { flex:1; }
+    .tx-editor-row { display:flex; align-items:center; gap:8px; margin-top:8px; }
+    .tx-editor-types { display:flex; flex-wrap:wrap; gap:6px; }
+    .tx-type-chip { font-size:12px; padding:3px 12px; border-radius:999px; background:rgba(var(--accent-rgb),0.08); color:var(--text-sub); cursor:pointer; border:1px solid transparent; user-select:none; }
+    .tx-type-chip.active { background:var(--purple-main); color:#fff; border-color:var(--purple-deep); }
+    .tx-editor-note, .tx-editor-date { flex:1; }
 
     /* ═══ 皮肤 A：紫宸·揽星（帝王紫 · 暗夜金线）═══ */
     [data-theme="zichen"] {
