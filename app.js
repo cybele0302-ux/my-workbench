@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v28.8';
+const APP_VERSION = 'wobench-v28.9';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -1239,7 +1239,7 @@ const APP_VERSION = 'wobench-v28.8';
       const typeChips = ['支出', '收入'].map(function (tp) { return '<span class="tx-type-chip' + (tp === t ? ' active' : '') + '" data-val="' + tp + '">' + tp + '</span>'; }).join('');
       const noteEsc = note ? escapeHtml(note).replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
       const editBtn = editable ? '<span class="tx-edit">编辑</span>' : '';
-      const sub = '<div class="tx-sub">' + t + (editable ? '' : ' · ' + r.date) + '</div>';
+      const sub = '<div class="tx-sub">' + t + ' · ' + r.date + '</div>';
       const editor = editable
         ? '<div class="tx-editor hidden">'
           + '<div class="tx-editor-row"><span class="tx-editor-label">类型</span><div class="tx-editor-types">' + typeChips + '</div></div>'
