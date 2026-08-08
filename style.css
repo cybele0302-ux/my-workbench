@@ -1456,6 +1456,8 @@
     .hi-todo { font-size:11px; color:#1d9e75; padding:4px 8px; border-radius:8px; background:rgba(29,158,117,0.12); cursor:pointer; }
     .hi-del { font-size:15px; color:var(--text-light); cursor:pointer; padding:0 4px; line-height:1; }
     .hi-del:active { color:#d85a30; }
+    .hi-pin { font-size:11px; color:var(--text-light); padding:4px 8px; border-radius:8px; background:rgba(0,0,0,0.05); cursor:pointer; }
+    .hi-pin.active { color:var(--purple-main); background:rgba(168,133,238,0.18); font-weight:600; }
     .edit-banner { font-size:12px; color:var(--purple-dark); background:rgba(168,133,238,0.14); border-radius:10px; padding:8px 10px; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
     .edit-banner .exit-edit { margin-left:auto; color:var(--purple-main); cursor:pointer; font-weight:600; }
     /* 经文切换：固定 5 列两行，第 9 项跨 2 列补满右端，确保两行都铺满无空白 */
