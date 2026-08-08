@@ -484,8 +484,8 @@
               </div>
             </div>
             <div class="mhc-tabs">
-              <span class="mhc-tab active" data-tab="favorite" data-tab-name="today">我的收藏</span>
               <span class="mhc-tab" data-tab="favorite" data-tab-name="history">添加收藏</span>
+              <span class="mhc-tab active" data-tab="favorite" data-tab-name="today">我的收藏</span>
             </div>
           </div>
 
@@ -732,10 +732,15 @@
 
           <div class="tab-panel history-panel" data-panel="study">
             <div class="card">
-              <div class="card-title">本月累计</div>
+              <div class="card-title">学习时间</div>
+              <div class="study-period-tabs">
+                <span class="study-period-tab" data-period="day">日</span>
+                <span class="study-period-tab" data-period="week">周</span>
+                <span class="study-period-tab active" data-period="month">月</span>
+              </div>
               <div style="text-align:center; padding:6px 0;">
                 <div id="studyMonthTotal" style="font-size:30px; font-weight:800; color:var(--purple-deep);">0 分钟</div>
-                <div style="font-size:12px; color:var(--text-light); margin-top:4px;">本月已学习</div>
+                <div id="studyPeriodLabel" style="font-size:12px; color:var(--text-light); margin-top:4px;">本月已学习</div>
               </div>
             </div>
 
@@ -757,7 +762,7 @@
         <div class="module hidden" id="xiushen">
           <div class="module-header-card" data-module-header="xiushen">
             <div class="mhc-top">
-              <div class="mhc-icon" data-icon="meditate"></div>
+              <div class="mhc-icon" data-icon="cultivate"></div>
               <div class="mhc-info">
                 <div class="mhc-title">修身养性</div>
                 <div class="mhc-sub">修行、静心，向内生长</div>
@@ -832,6 +837,12 @@
         <div class="module hidden" id="settings">
           <div class="module-title">设置</div>
           <div class="module-subtitle">云端同步、主题与隐私</div>
+
+          <div class="mine-head" id="settingsMineHead" style="display:none;">
+            <div class="mine-avatar" id="settingsMineAvatar">na</div>
+            <div class="mine-name" id="settingsMineName">na</div>
+            <div class="mine-sub" id="settingsMineSub">记录 · 学习 · 修身 · 观心</div>
+          </div>
 
           <div class="card cloud-card" id="settingsCloud">
             <div class="card-title">云端同步 <span class="privacy-badge" id="cloudStatus">未连接</span></div>
@@ -1020,11 +1031,11 @@
         <div class="nav-text">感录</div>
       </div>
       <div class="bottom-item" data-module="study">
-        <div class="nav-icon" data-icon="study"></div>
+        <div class="nav-icon" data-icon="book"></div>
         <div class="nav-text">学习</div>
       </div>
       <div class="bottom-item" data-module="xiushen">
-        <div class="nav-icon" data-icon="meditate"></div>
+        <div class="nav-icon" data-icon="lotus"></div>
         <div class="nav-text">修行</div>
       </div>
       <div class="bottom-item" data-module="mine">
