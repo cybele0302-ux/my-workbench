@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.16.1';
+const APP_VERSION = 'wobench-v29.17';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -503,7 +503,7 @@ const APP_VERSION = 'wobench-v29.16.1';
     function renderYanghuHistory() {
       const c = document.querySelector('[data-history="yanghu"]');
       if (!c) return;
-      const recs = recordsForModule('yanghu').filter(function (r) { return !isEnc(r); }).sort(function (a, b) { return b.date < a.date ? -1 : (b.date > a.date ? 1 : b.updatedAt - a.updatedAt); });
+      const recs = recordsForModule('yanghu').filter(function (r) { return !isEnc(r); }).sort(function (a, b) { if (a.date !== b.date) return a.date < b.date ? 1 : -1; var ia = a.id || '', ib = b.id || ''; return ia < ib ? 1 : -1; });
       const recsFiltered = recs.filter(function (r) { return Object.keys(r.fields || {}).length > 0; });
       if (!recsFiltered.length) { c.innerHTML = '<div class="history-empty">还没有记录</div>'; return; }
       c.innerHTML = recsFiltered.map(function (r) {
@@ -577,7 +577,7 @@ const APP_VERSION = 'wobench-v29.16.1';
     function renderTcmHistory() {
       const c = document.querySelector('[data-history="tcm"]');
       if (!c) return;
-      const recs = recordsForModule('tcm').filter(function (r) { return !isEnc(r); }).sort(function (a, b) { return b.date < a.date ? -1 : (b.date > a.date ? 1 : b.updatedAt - a.updatedAt); });
+      const recs = recordsForModule('tcm').filter(function (r) { return !isEnc(r); }).sort(function (a, b) { if (a.date !== b.date) return a.date < b.date ? 1 : -1; var ia = a.id || '', ib = b.id || ''; return ia < ib ? 1 : -1; });
       const recsFiltered = recs.filter(function (r) { return Object.keys(r.fields || {}).length > 0; });
       if (!recsFiltered.length) { c.innerHTML = '<div class="history-empty">还没有打卡记录</div>'; return; }
       c.innerHTML = recsFiltered.map(function (r) {
@@ -1295,7 +1295,7 @@ const APP_VERSION = 'wobench-v29.16.1';
     function renderHistory(mod) {
       const c = document.querySelector('[data-history="' + mod + '"]');
       if (!c) return;
-      const recs = recordsForModule(mod).filter(function (r) { return !isEnc(r); }).sort(function (a, b) { return b.date < a.date ? -1 : (b.date > a.date ? 1 : b.updatedAt - a.updatedAt); });
+      const recs = recordsForModule(mod).filter(function (r) { return !isEnc(r); }).sort(function (a, b) { if (a.date !== b.date) return a.date < b.date ? 1 : -1; var ia = a.id || '', ib = b.id || ''; return ia < ib ? 1 : -1; });
       const recsFiltered = recs.filter(function (r) {
         var flds = r.fields || {};
         if (mod === 'study') {
@@ -1327,7 +1327,7 @@ const APP_VERSION = 'wobench-v29.16.1';
       if (fb) fb.innerHTML = INSP_TAGS.map(function (t) { return '<span class="filter-chip' + (t === inspFilterTag ? ' active' : '') + '" data-ftag="' + t + '">' + t + '</span>'; }).join('');
       const c = document.getElementById('inspList');
       if (!c) return;
-      let recs = recordsForModule('lingguang').sort(function (a, b) { return b.updatedAt - a.updatedAt; });
+      let recs = recordsForModule('lingguang').sort(function (a, b) { if (a.date !== b.date) return a.date < b.date ? 1 : -1; var ia = a.id || '', ib = b.id || ''; return ia < ib ? 1 : -1; });
       if (inspFilterTag !== '全部') recs = recs.filter(function (r) { return (r.fields['灵感标签'] || '').indexOf(inspFilterTag) >= 0; });
       if (inspSearch) { const q = inspSearch.toLowerCase(); recs = recs.filter(function (r) { return (r.fields['灵感内容'] || '').toLowerCase().indexOf(q) >= 0; }); }
       if (!recs.length) { c.innerHTML = '<div class="history-empty">还没有灵感，记下第一条吧</div>'; return; }
@@ -1498,17 +1498,39 @@ const APP_VERSION = 'wobench-v29.16.1';
       const sum = '<div style="display:flex; gap:14px; margin-bottom:10px; font-size:12px; padding:4px 0;"><span style="color:#c44569;">支出 ' + '¥' + Math.round(exp).toLocaleString() + '</span><span style="color:#1d9e75;">收入 ' + '¥' + Math.round(inc).toLocaleString() + '</span><span style="color:var(--text-main); font-weight:600;">结余 ' + '¥' + Math.round(inc - exp).toLocaleString() + '</span></div>';
       c.innerHTML = sum + recs.map(function (r) { return txItemHtml(r, true); }).join('');
     }
-    const TX_CATS_DEFAULT = ['餐饮', '交通', '购物', '居住', '医疗', '娱乐', '其他', '车'];
-    function getTxCats() {
-      try { const v = JSON.parse(localStorage.getItem('zqdd:tx_cats')); if (Array.isArray(v) && v.length) return v; } catch (e) {}
-      return TX_CATS_DEFAULT.slice();
+    const TX_CATS_DEFAULT_OUT = ['餐饮', '交通', '购物', '居住', '医疗', '娱乐', '其他', '车'];
+    const TX_CATS_DEFAULT_IN = ['工资', '理财产品', '副业', '其他'];
+    // 当前「记一笔」表单选中的交易类型（支出 / 收入），决定分类选择区展示哪套分类
+    let txFormType = '支出';
+    function txCatsKey(type) { return type === '收入' ? 'zqdd:tx_cats_in' : 'zqdd:tx_cats_out'; }
+    function getTxCats(type) {
+      if (type === undefined) type = '支出';
+      const key = txCatsKey(type);
+      try { const v = JSON.parse(localStorage.getItem(key)); if (Array.isArray(v) && v.length) return v; } catch (e) {}
+      // 首次：支出沿用旧 zqdd:tx_cats（用户已有的分类），收入给默认
+      if (type === '收入') { localStorage.setItem(key, JSON.stringify(TX_CATS_DEFAULT_IN)); return TX_CATS_DEFAULT_IN.slice(); }
+      const legacy = localStorage.getItem('zqdd:tx_cats');
+      const list = legacy ? (JSON.parse(legacy) || TX_CATS_DEFAULT_OUT) : TX_CATS_DEFAULT_OUT.slice();
+      localStorage.setItem(key, JSON.stringify(list));
+      return list;
     }
-    function setTxCats(arr) { localStorage.setItem('zqdd:tx_cats', JSON.stringify(arr)); }
+    function setTxCats(type, arr) { localStorage.setItem(txCatsKey(type), JSON.stringify(arr)); }
     function renderTxCatChoices() {
       const row = document.getElementById('txCatChoices');
       if (!row) return;
-      const cats = getTxCats();
+      const cats = getTxCats(txFormType);
       row.innerHTML = cats.map(function (c, i) { return '<span class="choice' + (i === 0 ? ' active' : '') + '" data-value="' + escapeHtml(c) + '">' + escapeHtml(c) + '</span>'; }).join('');
+    }
+    // 交易类型（支出/收入）切换：刷新分类选择区，使其展示对应类型的分类
+    const txTypeRow = document.querySelector('[data-save="交易类型"]');
+    if (txTypeRow) {
+      txTypeRow.addEventListener('click', function (e) {
+        const sp = e.target.closest('.choice'); if (!sp) return;
+        txTypeRow.querySelectorAll('.choice').forEach(function (c) { c.classList.remove('active'); });
+        sp.classList.add('active');
+        txFormType = sp.textContent.trim() === '收入' ? '收入' : '支出';
+        renderTxCatChoices();
+      });
     }
 
     // ---- 通用「自定义列表」管理弹窗（理财分类 / 养护打卡项）----
@@ -1566,10 +1588,11 @@ const APP_VERSION = 'wobench-v29.16.1';
       const myh = document.getElementById('manageYanghuBtn'); if (myh) myh.addEventListener('click', openManageYanghu);
     })();
     function openManageTxCats() {
-      const oldCats = getTxCats();
-      openManageList('管理理财分类（可新增 / 删除 / 改名）', oldCats, false, function (list) {
+      const type = txFormType;
+      const oldCats = getTxCats(type);
+      openManageList('管理理财' + (type === '收入' ? '收入' : '支出') + '分类（可新增 / 删除 / 改名）', oldCats, false, function (list) {
         if (!list.length) { showToast('至少保留一个分类'); return; }
-        // 分类改名时，同步更新已有交易记录里存储的分类字段，否则饼图/明细仍显示旧名
+        // 分类改名时，同步更新已有交易记录里存储的分类字段，否则饼图/明细仍显示旧名（只处理当前类型的记录）
         const removed = oldCats.filter(function (x) { return list.indexOf(x) === -1; });
         const added = list.filter(function (x) { return oldCats.indexOf(x) === -1; });
         const renames = {};
@@ -1578,7 +1601,7 @@ const APP_VERSION = 'wobench-v29.16.1';
         if (Object.keys(renames).length) {
           Object.keys(store).forEach(function (k) {
             const r = store[k];
-            if (r && r.module === 'zichan' && r.fields && !r.fields._enc) {
+            if (r && r.module === 'zichan' && r.fields && !r.fields._enc && (r.fields['交易类型'] || '支出') === type) {
               const c = r.fields['分类'];
               if (c != null && renames.hasOwnProperty(c)) {
                 r.fields['分类'] = renames[c];
@@ -1588,7 +1611,7 @@ const APP_VERSION = 'wobench-v29.16.1';
             }
           });
         }
-        setTxCats(list); renderTxCatChoices();
+        setTxCats(type, list); renderTxCatChoices();
         renderTransactions(); renderTodayTx(); renderAssetSummary(); renderCal(); renderDetail(ymd(new Date())); renderStreakBadges(); renderGoalProgress();
         schedulePush(); // 改名后的记录已落库，立即同步云端，避免旧 blob 在拉取时把分类覆盖回旧名
         showToast(Object.keys(renames).length ? '已同步交易分类' : '分类已更新');
@@ -1608,7 +1631,7 @@ const APP_VERSION = 'wobench-v29.16.1';
       const sign = (t === '收入') ? '+' : '-';
       const color = (t === '收入') ? '#1d9e75' : 'var(--text-sub)';
       const badge = cat || '未分类';
-      const catChips = getTxCats().map(function (ct) { return '<span class="tx-cat-chip' + (ct === cat ? ' active' : '') + '">' + ct + '</span>'; }).join('');
+      const catChips = getTxCats(t).map(function (ct) { return '<span class="tx-cat-chip' + (ct === cat ? ' active' : '') + '">' + ct + '</span>'; }).join('');
       const typeChips = ['支出', '收入'].map(function (tp) { return '<span class="tx-type-chip' + (tp === t ? ' active' : '') + '" data-val="' + tp + '">' + tp + '</span>'; }).join('');
       const noteEsc = note ? escapeHtml(note).replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
       const editBtn = editable ? '<span class="tx-edit">编辑</span>' : '';
@@ -3197,7 +3220,7 @@ const APP_VERSION = 'wobench-v29.16.1';
         var r = store[id];
         if (r.module === FAV_MODULE && !isEnc(r)) out.push(r);
       });
-      out.sort(function (a, b) { return (b.updatedAt || 0) - (a.updatedAt || 0); });
+      out.sort(function (a, b) { if ((a.date || '') !== (b.date || '')) return (a.date || '') < (b.date || '') ? 1 : -1; var ia = a.id || '', ib = b.id || ''; return ia < ib ? 1 : -1; });
       return out;
     }
 
@@ -4216,7 +4239,9 @@ const APP_VERSION = 'wobench-v29.16.1';
       }
       var tagChip = (t.tag) ? '<span class="todo-tag-chip">' + escapeHtml(t.tag) + '</span>' : '';
       var done = t.done ? ' style="opacity:0.5; text-decoration:line-through;"' : '';
-      return '<div class="history-item"' + done + '><div class="hi-main" data-todo-toggle="' + t.id + '" style="cursor:pointer; flex:1;"><div class="hi-sum">' + tagChip + escapeHtml(t.text) + '</div></div><div class="hi-actions"><span class="hi-edit" data-todo-edit="' + t.id + '">编辑</span><span class="hi-del" data-todo-del="' + t.id + '">×</span></div></div>';
+      var pinned = t.pinned ? ' active' : '';
+      var pinLabel = t.pinned ? '已置顶' : '置顶';
+      return '<div class="history-item"' + done + '><div class="hi-main" data-todo-toggle="' + t.id + '" style="cursor:pointer; flex:1;"><div class="hi-sum">' + tagChip + escapeHtml(t.text) + '</div></div><div class="hi-actions"><span class="hi-pin' + pinned + '" data-todo-pin="' + t.id + '">' + pinLabel + '</span><span class="hi-edit" data-todo-edit="' + t.id + '">编辑</span><span class="hi-del" data-todo-del="' + t.id + '">×</span></div></div>';
     }
     function renderTodo() {
       // 渲染筛选 Tab
@@ -4231,6 +4256,8 @@ const APP_VERSION = 'wobench-v29.16.1';
       // 按标签筛选
       var pending = todoFilterTag === '全部' ? allPending : allPending.filter(function (t) { return (t.tag || '') === todoFilterTag || (todoFilterTag === '无' && !t.tag); });
       var done = todoFilterTag === '全部' ? allDone : allDone.filter(function (t) { return (t.tag || '') === todoFilterTag || (todoFilterTag === '无' && !t.tag); });
+      // 置顶的待办排在最前（稳定排序，保持其余原有顺序）
+      pending = pending.slice().sort(function (a, b) { return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0); });
       var cp = document.getElementById('todoList');
       var cd = document.getElementById('todoDone');
       if (cp) cp.innerHTML = pending.length ? pending.map(todoRow).join('') : '<div class="history-empty">暂无待办，去添加一条吧</div>';
@@ -4322,6 +4349,14 @@ const APP_VERSION = 'wobench-v29.16.1';
       }
       var tf = e.target.closest('[data-todo-filter]');
       if (tf) { todoFilterTag = tf.getAttribute('data-todo-filter'); renderTodo(); return; }
+      var pin = e.target.closest('[data-todo-pin]');
+      if (pin) {
+        var pid = pin.getAttribute('data-todo-pin');
+        var arrP = loadTodo();
+        var itP = arrP.filter(function (t) { return t.id === pid; })[0];
+        if (itP) { itP.pinned = !itP.pinned; saveTodo(arrP); renderTodo(); showToast(itP.pinned ? '已置顶' : '已取消置顶'); }
+        return;
+      }
     });
 
     document.addEventListener('keydown', function (e) {
