@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.11';
+const APP_VERSION = 'wobench-v29.16';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -56,14 +56,21 @@ const APP_VERSION = 'wobench-v29.11';
         }
         var subEl = document.querySelector('#settings .module-subtitle');
         if (subEl) subEl.style.display = 'none';
+        // 「我的」头像/名称/签名固定显示在该项内容上方
+        populateSettingsMineHead();
+        var mh = document.getElementById('settingsMineHead');
+        if (mh) mh.style.display = '';
+        if (titleEl) titleEl.style.display = 'none';
       } else if (target === 'settings') {
         // 无 target 时显示全部设置卡片
         var allCards = document.querySelectorAll('#settings > .card');
         allCards.forEach(function(c) { c.style.display = ''; });
         var tEl = document.querySelector('#settings .module-title');
-        if (tEl) tEl.textContent = '设置';
+        if (tEl) { tEl.textContent = '设置'; tEl.style.display = ''; }
         var sEl = document.querySelector('#settings .module-subtitle');
         if (sEl) sEl.style.display = '';
+        var mh2 = document.getElementById('settingsMineHead');
+        if (mh2) mh2.style.display = 'none';
       }
       updateModuleHeaderDate(target);
       switchModuleTab(target, 'today');
@@ -76,7 +83,7 @@ const APP_VERSION = 'wobench-v29.11';
         if (rec) { const el = document.getElementById(target); if (el) fillForm(el, rec.fields); }
         renderHistory(target);
         if (target === 'xiushen') { renderXiushenDaily(todayStr); renderYanghu(); renderYanghuHistory(); }
-        if (target === 'study') { renderStudyMonth(); renderTcm(); renderStudyTimeCard(); }
+        if (target === 'study') { renderStudyPeriod(); renderTcm(); renderStudyTimeCard(); }
       }
       else if (target === 'todo') renderTodo();
       else if (target === 'mine') renderMine();
@@ -295,54 +302,127 @@ const APP_VERSION = 'wobench-v29.11';
         { title: '第八十章', chapter: '第八十章', source: '《道德经》', text: '小国寡民。使有什伯之器而不用，使民重死而不远徙。虽有舟舆，无所乘之；虽有甲兵，无所陈之。使民复结绳而用之。甘其食，美其服，安其居，乐其俗。邻国相望，鸡犬之声相闻，民至老死，不相往来。', explain: '理想之境：国家小、人口少。纵有精巧器具也不使用，百姓看重生命不远迁。虽有船车无须乘坐，虽有甲兵无须陈列。让百姓回到结绳记事的淳朴。吃得香甜、穿得漂亮、住得安适、习俗和乐。邻国相望、鸡犬相闻，百姓直到老死也不相往来（各安其生）。这是返朴安居的图景。' },
         { title: '第八十一章', chapter: '第八十一章', source: '《道德经》', text: '信言不美，美言不信。善者不辩，辩者不善。知者不博，博者不知。圣人不积，既以为人，己愈有；既以与人，己愈多。天之道，利而不害；圣人之道，为而不争。', explain: '真话不华美，华美的话不真。良善者不巧辩，巧辩者不良善。真知者不炫耀广博，炫耀广博者非真知。圣人不囤积，越奉献给人，自己越充实；越给予别人，自己越丰盈。天之道，利物而不害物；圣人之道，作为而不争夺。全书以此作结——无私，方为大成。' }
       ],
+
       vajra: [
         { title: '应无所住', chapter: '第十品', source: '《金刚经》', text: '应无所住而生其心。', explain: '心不执着于任何外境，方能生起清净智慧。修行的要点不是压抑念头，而是不黏着、不追逐，如雁过长空，影沉寒水。' },
         { title: '一切有为法', chapter: '第三十二品', source: '《金刚经》', text: '一切有为法，如梦幻泡影，如露亦如电，应作如是观。', explain: '世间一切因缘和合而生的事物，都如梦、如幻、如泡影、如露、如电，转瞬即逝。以这样的眼光看待得失，心便不易被外境牵动。' },
         { title: '无我相', chapter: '第十四品', source: '《金刚经》', text: '无我相，无人相，无众生相，无寿者相。', explain: '不执着自我的形象，也不执着他人、众生、寿命的分别。放下“我”的边界，才能减少对立与烦恼，体会到更宽广的慈悲。' },
-        { title: '法尚应舍', chapter: '第六品', source: '《金刚经》', text: '法尚应舍，何况非法。', explain: '连正确的法门都应当放下，更不必说不正确的执着。方法是指月之手，目的是觉醒。不要在工具上停留，而要指向真正的内心自由。' }
+        { title: '法尚应舍', chapter: '第六品', source: '《金刚经》', text: '法尚应舍，何况非法。', explain: '连正确的法门都应当放下，更不必说不正确的执着。方法是指月之手，目的是觉醒。不要在工具上停留，而要指向真正的内心自由。' },
+        { title: '凡所有相', chapter: '第五品', source: '《金刚经》', text: '凡所有相，皆是虚妄。若见诸相非相，即见如来。', explain: '一切有形之相皆虚妄不实。能透过表象看见那无相的本体，便见到了如来——不是某个神，而是万法背后的清净实相。' },
+        { title: '三心不可得', chapter: '第十八品', source: '《金刚经》', text: '过去心不可得，现在心不可得，未来心不可得。', explain: '心念念念迁流，过去已灭、未来未生、现在即逝，三心皆了不可得。执着于某个念头，如同想抓住流水，徒劳而已。' },
+        { title: '如来者', chapter: '第二十九品', source: '《金刚经》', text: '如来者，无所从来，亦无所去，故名如来。', explain: '如来不是从某处来、到某处去的实体，而是“如实而来”的觉性本身。来去是相，觉性不动，故名如来。' },
+        { title: '若以色见', chapter: '第二十六品', source: '《金刚经》', text: '若以色见我，以音声求我，是人行邪道，不能见如来。', explain: '若以为拜个金身、念几句咒就能见佛，那便落了外相。真正的佛是觉性，向外求索反而是背离。' },
+        { title: '无住行施', chapter: '第四品', source: '《金刚经》', text: '菩萨于法，应无所住行于布施。', explain: '行善布施却不执着“我在施、施于谁、施了什么”，三轮体空。这样的功德如虚空不可称量，才是清净的给予。' },
+        { title: '七宝布施', chapter: '第八品', source: '《金刚经》', text: '若人满三千大千世界七宝以用布施，其福德不如受持此经四句偈。', explain: '财施再多也有尽，法施一念能破迷。一句般若胜却堆积如山的珍宝，因为法是解脱的种子。' },
+        { title: '说法者', chapter: '第二十一品', source: '《金刚经》', text: '说法者，无法可说，是名说法。', explain: '真正说法的人，知道实相本不可说，所谓说法只是方便引导。执著有法可说，反而迷了。' },
+        { title: '身相见否', chapter: '第五品', source: '《金刚经》', text: '可以身相见如来不？不也，世尊。如来不应以具足色身见。', explain: '佛的圆满不在三十二相好，而在无相的觉性。执着庄严形貌去寻佛，犹如缘木求鱼。' },
+        { title: '无为差别', chapter: '第七品', source: '《金刚经》', text: '一切贤圣，皆以无为法而有差别。', explain: '贤圣之分不在神通高低，而在契合无为法的深浅。越不造作、越贴近本然，境界越高。' }
       ],
       neijing: [
         { title: '法于阴阳', chapter: '上古天真论', source: '《黄帝内经》', text: '法于阴阳，和于术数，食饮有节，起居有常，不妄作劳。', explain: '养生要效法天地阴阳的变化，调和身心术数，饮食有节制，作息有规律，不妄自劳累。看似简单的道理，却是健康长寿的根本。' },
         { title: '正气存内', chapter: '刺法论', source: '《黄帝内经》', text: '正气存内，邪不可干。', explain: '人体自身的正气充足，外邪就难以入侵。不仅是身体，心理亦然：内心清明坚定，外界的干扰自然减少。' },
         { title: '春夏养阳', chapter: '四气调神大论', source: '《黄帝内经》', text: '春夏养阳，秋冬养阴。', explain: '春夏季节宜养护阳气，宜早起、多动、舒展；秋冬宜滋养阴精，宜早睡、少耗、收敛。顺应四时，是中医养生的核心原则。' },
-        { title: '形神合一', chapter: '素问', source: '《黄帝内经》', text: '形与神俱，而尽终其天年。', explain: '身体与心神和谐统一，才能尽享天年。现代人常忽视情绪对身体的伤害，修身养性正是让形与神重新合一。' }
+        { title: '形神合一', chapter: '素问', source: '《黄帝内经》', text: '形与神俱，而尽终其天年。', explain: '身体与心神和谐统一，才能尽享天年。现代人常忽视情绪对身体的伤害，修身养性正是让形与神重新合一。' },
+        { title: '心者君主', chapter: '灵兰秘典', source: '《黄帝内经》', text: '心者，君主之官也，神明出焉。', explain: '心如同一国之君，主宰精神意识。心神安宁，则五脏六腑各安其位；心乱则百症蜂起。养生先养心，此其一也。' },
+        { title: '肝者将军', chapter: '灵兰秘典', source: '《黄帝内经》', text: '肝者，将军之官，谋虑出焉。', explain: '肝如将军，主谋略、主疏泄。情绪郁结最伤肝，故养肝重在舒展情志、少生闷气。' },
+        { title: '肾者作强', chapter: '灵兰秘典', source: '《黄帝内经》', text: '肾者，作强之官，伎巧出焉。', explain: '肾藏精、主骨生髓，关乎精力与智慧。节欲保精、不妄耗，是体力与脑力长盛的根基。' },
+        { title: '上工治未病', chapter: '四气调神大论', source: '《黄帝内经》', text: '是故圣人不治已病治未病，不治已乱治未乱。', explain: '高明的医者，在疾病未成形时便调摄防范。与其病后求医，不如日常养正——预防远胜于治疗。' },
+        { title: '阴平阳秘', chapter: '生气通天论', source: '《黄帝内经》', text: '阴平阳秘，精神乃治；阴阳离决，精气乃绝。', explain: '阴阳平衡协调，精神便安和；一旦阴阳决裂离析，精气随之断绝。平衡二字，是养生的总纲。' },
+        { title: '阳气如日', chapter: '生气通天论', source: '《黄帝内经》', text: '阳气者，若天与日，失其所则折寿而不彰。', explain: '人身的阳气如同天上的太阳，失其本位便寿命减损、光彩不彰。保暖、少耗、避寒，皆是护阳之道。' },
+        { title: '五志所伤', chapter: '阴阳应象大论', source: '《黄帝内经》', text: '怒伤肝，喜伤心，思伤脾，悲伤肺，恐伤肾。', explain: '过激的情绪会伤及对应脏腑。所谓“病由心生”，调畅情志便是服药——心平，则五脏安。' },
+        { title: '四气调神', chapter: '四气调神大论', source: '《黄帝内经》', text: '春三月，此谓发陈，天地俱生，万物以荣，夜卧早起，广步于庭。', explain: '春季是生发之季，宜早睡早起、缓步庭院，让身体随万物一同舒展。顺时而动，是与天地同频的养生。' },
+        { title: '女子七岁', chapter: '上古天真论', source: '《黄帝内经》', text: '女子七岁肾气盛，齿更发长；七七任脉虚，太冲脉衰少。', explain: '女子生命以“七”为节律，肾气盛衰主导发育与衰老。了解自身节律，便知何时养、何时藏。' }
       ],
       zhongyi: [
         { title: '气血流通', chapter: '养生总则', source: '中医养生', text: '气血流通，百病不生。', explain: '气血是生命活动的物质基础。气行则血行，气滞则血瘀。通过运动、呼吸、情志调节，让气血畅通，自然少生病痛。' },
         { title: '药食同源', chapter: '食疗篇', source: '中医养生', text: '五谷为养，五果为助，五畜为益，五菜为充。', explain: '谷物是养生的根本，水果是辅助，肉类是补益，蔬菜是充实。饮食多样化、以植物为主，与现代营养学不谋而合。' },
         { title: '子时熟睡', chapter: '子午流注', source: '中医养生', text: '子时一阳生，胆气始旺，宜熟睡以养少阳。', explain: '晚上 11 点至凌晨 1 点是子时，阳气初生，胆经当令。此时熟睡，有助于阳气生发和肝胆排毒，是最经济的养生法。' },
-        { title: '恬淡虚无', chapter: '情志养生', source: '中医养生', text: '恬淡虚无，真气从之；精神内守，病安从来。', explain: '心境淡泊宁静，真气自然顺畅；精神内守而不外耗，疾病又从何而生？情绪稳定，是最高级的养生。' }
+        { title: '恬淡虚无', chapter: '情志养生', source: '中医养生', text: '恬淡虚无，真气从之；精神内守，病安从来。', explain: '心境淡泊宁静，真气自然顺畅；精神内守而不外耗，疾病又从何而生？情绪稳定，是最高级的养生。' },
+        { title: '五劳所伤', chapter: '宣明五气', source: '中医养生', text: '久视伤血，久卧伤气，久坐伤肉，久立伤骨，久行伤筋。', explain: '任何姿态过久都会成伤。用电脑要起身，卧床莫贪懒，站立需轮换，行走知歇息——动静有节，方护周身。' },
+        { title: '胃不和卧不安', chapter: '逆调论', source: '中医养生', text: '胃不和则卧不安。', explain: '脾胃壅滞、食积不化，最扰睡眠。晚饭宜少、宜淡、宜早，给肠胃留足运化的时间，夜寐才安稳。' },
+        { title: '心主血脉', chapter: '五脏生成', source: '中医养生', text: '心主血脉，其华在面。', explain: '心的状态显于面色。面色红润有光，是心血充盈；苍白或晦暗，常提示心气不足。养面先养心。' },
+        { title: '脾主运化', chapter: '经脉别论', source: '中医养生', text: '脾主运化，为后天之本。', explain: '脾将饮食化为气血精微，是后天滋养的源头。饮食有节、忌生冷黏腻，便是护好这“后天之本”。' },
+        { title: '肝主疏泄', chapter: '病机', source: '中医养生', text: '肝主疏泄，喜条达而恶抑郁。', explain: '肝负责气机调畅，最怕压抑郁结。舒展胸怀、适度宣泄，让肝气条达，身心才松快。' },
+        { title: '肾主藏精', chapter: '六节藏象', source: '中医养生', text: '肾主藏精，为先天之本。', explain: '肾藏先天之精，关乎生长、发育、生殖与衰老。节欲、保暖、少熬夜，是护肾三宝。' },
+        { title: '春捂秋冻', chapter: '四时调摄', source: '中医养生', text: '春捂秋冻，不生杂病。', explain: '初春莫急减衣，让阳气缓缓外达；初秋莫急添衣，让身体渐耐寒寒。顺应寒热渐变，腠理自固。' },
+        { title: '寒从足起', chapter: '养生谚语', source: '中医养生', text: '寒从足下生，病从口中入。', explain: '足部离心脏最远、最易受寒，护脚即是护阳；饮食不节、生冷无度，则病从口入。两端最当留意。' },
+        { title: '养生先养心', chapter: '养生总则', source: '中医养生', text: '养生先养心，心平气和百脉通。', explain: '所有养生法门，皆以心平为基。心若焦躁，补药也难吸收；心若安宁，谷气自能化生气血。' }
       ],
       guiguzi: [
         { title: '捭阖之道', chapter: '捭阖第一', source: '《鬼谷子》', text: '捭阖者，道之大化，说之变也。必豫审其变化。', explain: '捭是开启、是表达，阖是闭合、是缄默。开口与静观，是游说与处世的两种根本力量。懂得在何时言说、何时收束，便能把握人心与事态的流转。于内修而言，也是一种张弛有度的节奏：收放自如，方得从容。' },
-        { title: '反以知古', chapter: '反应第二', source: '《鬼谷子》', text: '反以观往，覆以验来；反以知古，覆以知今。', explain: '回头考察过去，用来验证将来；反思古代，用来理解当下。鬼谷子极重"反复"的功夫——让信息在来回回应中显出真相。修行人亦可借回顾自省，照见自己的成长与盲区。' },
+        { title: '反以知古', chapter: '反应第二', source: '《鬼谷子》', text: '反以观往，覆以验来；反以知古，覆以知今。', explain: '回头考察过去，用来验证将来；反思古代，用来理解当下。鬼谷子极重“反复”的功夫——让信息在来回回应中显出真相。修行人亦可借回顾自省，照见自己的成长与盲区。' },
         { title: '内揵', chapter: '内揵第三', source: '《鬼谷子》', text: '欲说者务隐度，计事者务循顺。', explain: '想说服别人，要先暗中揣度对方心意；谋划事情，要顺着情理自然推进。这是在教我们：真正的智慧不是强求，而是先理解、再顺势。待人接物若能以对方为起点，关系便通畅无碍。' },
-        { title: '揣情', chapter: '揣篇', source: '《鬼谷子》', text: '揣情者，必以其甚喜之时，往而极其欲也；其有欲也，不能隐其情。', explain: '揣摩人心，要在对方最欢喜、欲望最盛时去体会——此时真情难以隐藏。鬼谷子把"识人"变成一门可习的技艺。于修身而言，认识自己亦需在对境起念时观照，方能看清本心的真实取向。' }
+        { title: '揣情', chapter: '揣篇', source: '《鬼谷子》', text: '揣情者，必以其甚喜之时，往而极其欲也；其有欲也，不能隐其情。', explain: '揣摩人心，要在对方最欢喜、欲望最盛时去体会——此时真情难以隐藏。鬼谷子把“识人”变成一门可习的技艺。于修身而言，认识自己亦需在对境起念时观照，方能看清本心的真实取向。' },
+        { title: '粤若稽古', chapter: '捭阖第一', source: '《鬼谷子》', text: '粤若稽古，圣人之在天地间也，为众生之先。', explain: '考察古往，圣人居于天地之间，总能先一步洞察时势、引领众人。先觉者不靠运气，而靠对规律的静观与体认。' },
+        { title: '抵巇', chapter: '抵巇第四', source: '《鬼谷子》', text: '物有自然，事有离合。有近而不可见，有远而可知。', explain: '事物本有自然的裂痕与聚散。有些裂痕近在眼前却被忽视，有些遥远反而能推知。察觉细微的“巇”（缝隙），方能及时修补或顺势而为。' },
+        { title: '飞箝', chapter: '飞箝第五', source: '《鬼谷子》', text: '引钩箝之辞，飞而箝之。', explain: '先以褒扬（飞）投其所好、让其敞开心扉，再顺势加以掌控引导（箝）。此法用于识人，也可反观：莫因几句好话便乱了方寸。' },
+        { title: '忤合', chapter: '忤合第六', source: '《鬼谷子》', text: '凡趋合倍反，计有适合。化转环属，各有形势。', explain: '该靠拢还是该背离，全看情势是否相宜。世事如环，转化无定，审时度势者方能立于不败。固执一端，反失其机。' },
+        { title: '摩篇', chapter: '摩篇第八', source: '《鬼谷子》', text: '摩之在此，符之在彼；从而应之，事无不可。', explain: '在此处揣摩试探，彼处便有相应的回应显形。顺着回响去应对，几乎没有办不成的事。这是“观察—反馈”的辩证智慧。' },
+        { title: '权篇', chapter: '权篇第九', source: '《鬼谷子》', text: '故与智者言，依于博；与博者言，依于辨；与辨者言，依于要。', explain: '对智者谈广度，对博学者谈思辨，对善辩者谈要领。说话要因人而变、投其所重，方能入心。沟通的本质是“对症”，不是“对稿”。' },
+        { title: '谋篇', chapter: '谋篇第十', source: '《鬼谷子》', text: '凡谋有道，必得其所因，以求其情。', explain: '谋划自有其法：必先弄清事情的起因与本根，才能探得实情、定下良策。不明“因”而妄谋，如同无根之木。' },
+        { title: '决篇', chapter: '决篇第十一', source: '《鬼谷子》', text: '危而美名者，可则决之；不用费力而易成者，可则决之。', explain: '该决断时：于公有利、于名无亏者可决；不费力气便易成者也可决。优柔寡断最耗心神，审机而断，是成事的关键。' },
+        { title: '养志', chapter: '养志法灵龟', source: '《鬼谷子》', text: '养志之始，务在安己；己安则志意实坚。', explain: '养护心志，先要让自己安定下来。内心安顿，志向才坚实不可夺。一切外求之前，先安顿好这颗心。' }
       ],
       yinfujing: [
         { title: '观天之道', chapter: '上篇', source: '《阴符经》', text: '观天之道，执天之行，尽矣。', explain: '观察天地自然的运行规律，并按照这个规律去行动，就足够了。这短短十个字，是整部《阴符经》的总纲——天人合一不是空谈，而是切实可行的修行路径。' },
-        { title: '天人合发', chapter: '上篇', source: '《阴符经》', text: '天人合发，万化定基。', explain: '天道与人道相合而发动，万物变化的根基便由此确定。修行人若能将自己的节律与天地同步，便能借天地之力成就自身，此即"盗机"之正用。' },
-        { title: '心生于物', chapter: '中篇', source: '《阴符经》', text: '心生于物，死于物，机在于目。', explain: '心因外物而生起执着，也因外物而陷溺消亡；关键在于你用什么眼光去看它。"机在于目"——觉悟的契机就在你如何看待万物的那一刻。' },
-        { title: '知之修练', chapter: '下篇', source: '《阴符经》', text: '圣人知自然之道不可违，因而制之。', explain: '圣人明白自然规律不可违背，于是顺应它、节制自己。不是征服自然，而是与之和谐共处。修身亦然：不与本性对抗，而是引导它回归正道。' }
+        { title: '天人合发', chapter: '上篇', source: '《阴符经》', text: '天人合发，万化定基。', explain: '天道与人道相合而发动，万物变化的根基便由此确定。修行人若能将自己的节律与天地同步，便能借天地之力成就自身，此即“盗机”之正用。' },
+        { title: '心生于物', chapter: '中篇', source: '《阴符经》', text: '心生于物，死于物，机在于目。', explain: '心因外物而生起执着，也因外物而陷溺消亡；关键在于你用什么眼光去看它。“机在于目”——觉悟的契机就在你如何看待万物的那一刻。' },
+        { title: '知之修练', chapter: '下篇', source: '《阴符经》', text: '圣人知自然之道不可违，因而制之。', explain: '圣人明白自然规律不可违背，于是顺应它、节制自己。不是征服自然，而是与之和谐共处。修身亦然：不与本性对抗，而是引导它回归正道。' },
+        { title: '天性人心', chapter: '上篇', source: '《阴符经》', text: '天性，人也；人心，机也。立天之道，以定人也。', explain: '天之性即人之性，人心是那灵动的机枢。确立了天道的准则，便能安顿人心。天道与人性本是一源两面。' },
+        { title: '三机', chapter: '上篇', source: '《阴符经》', text: '天发杀机，移星易宿；地发杀机，龙蛇起陆；人发杀机，天地反复。', explain: '当天、地、人三者之“机”发动，都会引动巨变的连锁：星宿移位、龙蛇出陆、天地翻覆。机，是潜藏而不可抗的势能，识机者能转祸为福。' },
+        { title: '三盗', chapter: '中篇', source: '《阴符经》', text: '天地，万物之盗；万物，人之盗；人，万物之盗。三盗既宜，三才既安。', explain: '天地盗取万物之精华，万物盗取人之资用，人又盗取万物之利。三者相盗若恰到好处，天、地、人便各得安顿。盗非恶，失衡才是病。' },
+        { title: '食其时', chapter: '中篇', source: '《阴符经》', text: '食其时，百骸理；动其机，万化安。', explain: '按时令而食，百骸自顺；把握时机而动，万变自安。养生与处世，无非“得其时、当其机”六字。' },
+        { title: '绝利一源', chapter: '下篇', source: '《阴符经》', text: '绝利一源，用师十倍；三反昼夜，用师万倍。', explain: '断绝一处贪利、收摄一处心神，效力胜过十倍之师；若昼夜反复修习、纯一不杂，则胜过万倍。专注，是世间最被低估的力量。' },
+        { title: '瞽聋之智', chapter: '下篇', source: '《阴符经》', text: '瞽者善听，聋者善视。绝利一源，则他窍自明。', explain: '盲人听觉敏锐，聋者目光锐利——闭塞一窍，其余反而清明。人若少分心于外欲，内在觉察便自然开显。' },
+        { title: '生杀相根', chapter: '中篇', source: '《阴符经》', text: '生者死之根，死者生之根。恩生于害，害生于恩。', explain: '生与死互为根本，恩与害彼此滋生。祸福相依、利害相转，这本是道的常则。看清这一点，便不致执迷于一端。' },
+        { title: '日月有数', chapter: '上篇', source: '《阴符经》', text: '日月有数，大小有定；圣功生焉，神明出焉。', explain: '日月运行自有度数，大小变化皆有定则。循此定则而行，圣功自然生起，神明自然显现。规律之中，藏着成就的密码。' }
       ],
       yizhou: [
         { title: '天行健', chapter: '乾卦·象传', source: '《周易》', text: '天行健，君子以自强不息。', explain: '天的运行刚健有力，君子效法它，自我图强永不停息。这不是外在的拼搏，而是内在生命力的自然流露——如日月运行，不求而自成。' },
         { title: '地势坤', chapter: '坤卦·象传', source: '《周易》', text: '地势坤，君子以厚德载物。', explain: '大地的气势柔顺厚重，君子效法它，以深厚的德行承载万物。刚柔相济才是完整的修养：有自强之志，亦有包容之量。' },
-        { title: '一阴一阳', chapter: '系辞上传', source: '《周易》', text: '一阴一阳之谓道。继之者善也，成之者性也。', explain: '阴阳的交互运化就是"道"。能够承继道的是善，能够成就道的是性。这句话点出了宇宙的根本法则——二元对立统一，生生不息。' },
-        { title: '穷则变', chapter: '系辞下传', source: '《周易》', text: '穷则变，变则通，通则久。', explain: '路走不通了就要变革，变革了才能通达，通达了才能长久。人生困顿时不必焦虑，因为困境本身就是转机的起点。易学的精髓在于"变"中求通。' }
+        { title: '一阴一阳', chapter: '系辞上传', source: '《周易》', text: '一阴一阳之谓道。继之者善也，成之者性也。', explain: '阴阳的交互运化就是“道”。能够承继道的是善，能够成就道的是性。这句话点出了宇宙的根本法则——二元对立统一，生生不息。' },
+        { title: '穷则变', chapter: '系辞下传', source: '《周易》', text: '穷则变，变则通，通则久。', explain: '路走不通了就要变革，变革了才能通达，通达了才能长久。人生困顿时不必焦虑，因为困境本身就是转机的起点。易学的精髓在于“变”中求通。' },
+        { title: '潜龙勿用', chapter: '乾卦·初九', source: '《周易》', text: '潜龙勿用。阳在下也。', explain: '龙潜伏在水下，不宜妄动。时运未到、根基未稳时，最宜蓄势潜藏。强出头反招损，懂得蛰伏才是真智慧。' },
+        { title: '亢龙有悔', chapter: '乾卦·上九', source: '《周易》', text: '亢龙有悔。盈不可久也。', explain: '龙飞到极高之处，便要后悔——满盈之势难以持久。盛时当知退，居高位而不骄，方能免于物极必反。' },
+        { title: '履霜坚冰', chapter: '坤卦·初六', source: '《周易》', text: '履霜，坚冰至。', explain: '踩到秋霜，便知坚冰将至。见微知著、防祸于未然，是《易》教给我们最朴素的警觉。' },
+        { title: '积善余庆', chapter: '坤卦·文言', source: '《周易》', text: '积善之家，必有余庆；积不善之家，必有余殃。', explain: '善行积累，福泽惠及子孙；恶行积累，灾殃牵连家人。因果不在一朝一夕，而在日积月累。' },
+        { title: '二人同心', chapter: '系辞上传', source: '《周易》', text: '二人同心，其利断金；同心之言，其臭如兰。', explain: '两人心意相通，力量可断金石；同心的话语，气息如兰般芬芳。信任与默契，是人间最坚固的纽带。' },
+        { title: '藏器于身', chapter: '系辞下传', source: '《周易》', text: '君子藏器于身，待时而动。', explain: '君子平日常将才器具藏于身，等待时机成熟才出手。不张扬、不急躁，蓄力于静，发劲于时。' },
+        { title: '谦谦君子', chapter: '谦卦·初六', source: '《周易》', text: '谦谦君子，卑以自牧也。', explain: '谦逊的君子，以谦卑来修养、约束自己。谦不是软弱，而是一种含容万物、不居功自傲的厚德。' },
+        { title: '见善则迁', chapter: '益卦·象传', source: '《周易》', text: '见善则迁，有过则改。', explain: '见到善行便向往追随，发现自己有过错便立即改正。这八个字，是日用常行的修身功课，至简至切。' },
+        { title: '善不积', chapter: '系辞下传', source: '《周易》', text: '善不积不足以成名，恶不积不足以灭身。', explain: '善行不积累，不足以成就美名；恶行不积累，也不足以毁掉自身。勿以善小而不为，勿以恶小而为之。' },
+        { title: '穷理尽性', chapter: '说卦传', source: '《周易》', text: '穷理尽性，以至于命。', explain: '穷尽事理、洞明本性，方能通达天命。由格物以至于知命，是儒家与易学共许的修行次第。' }
       ],
       zhuangzi: [
-        { title: '逍遥游', chapter: '逍遥游', source: '《庄子》', text: '北冥有鱼，其名为鲲。鲲之大，不知其几千里也。', explain: '庄子开篇即以鲲鹏之喻，打破我们对"大小""长短"的固有执念。真正的自由不是身体的无拘无束，而是心灵不被成见和欲望所束缚。' },
+        { title: '逍遥游', chapter: '逍遥游', source: '《庄子》', text: '北冥有鱼，其名为鲲。鲲之大，不知其几千里也。', explain: '庄子开篇即以鲲鹏之喻，打破我们对“大小”“长短”的固有执念。真正的自由不是身体的无拘无束，而是心灵不被成见和欲望所束缚。' },
         { title: '庄周梦蝶', chapter: '齐物论', source: '《庄子》', text: '昔者庄周梦为蝴蝶，栩栩然蝴蝶也……不知周之梦为蝴蝶与？', explain: '庄子通过梦蝶提出终极追问：究竟什么是真实的？人生如梦，梦如人生，与其纠结真假，不如放下分别心，体验当下的自在。' },
-        { title: '无用之用', chapter: '人间世', source: '《庄子》', text: '人皆知有用之用，而莫知无用之用也。', explain: '人人都知道"有用"的好处，却不知道"无用"的大用。歪脖子树因"不成材"而得以终其天年——有时候，不争不抢、看似无用，恰恰是最大的保全与智慧。' },
-        { title: '相濡以沫', chapter: '大宗师', source: '《庄子》', text: '相濡以沫，不如相忘于江湖。', explain: '泉水干涸时鱼儿以唾沫相互润湿，这固然感人，但不如各自在江湖中畅游、彼此遗忘。庄子告诉我们：最高境界的慈悲是不需要互相拖累的各自安好。' }
+        { title: '无用之用', chapter: '人间世', source: '《庄子》', text: '人皆知有用之用，而莫知无用之用也。', explain: '人人都知道“有用”的好处，却不知道“无用”的大用。歪脖子树因“不成材”而得以终其天年——有时候，不争不抢、看似无用，恰恰是最大的保全与智慧。' },
+        { title: '相濡以沫', chapter: '大宗师', source: '《庄子》', text: '相濡以沫，不如相忘于江湖。', explain: '泉水干涸时鱼儿以唾沫相互润湿，这固然感人，但不如各自在江湖中畅游、彼此遗忘。庄子告诉我们：最高境界的慈悲是不需要互相拖累的各自安好。' },
+        { title: '吾生有涯', chapter: '养生主', source: '《庄子》', text: '吾生也有涯，而知也无涯。以有涯随无涯，殆已。', explain: '生命有限，知识无限，以有限追逐无限，只会疲敝。庄子不是教人弃学，而是提醒：懂得取舍、适可而止，才是养生的真意。' },
+        { title: '庖丁解牛', chapter: '养生主', source: '《庄子》', text: '庖丁为文惠君解牛……依乎天理，批大郤，导大窾。', explain: '庖丁十九年刀刃如新，因他顺其纹理、避其骨节。处世亦如此：不硬碰硬，顺着事物的自然缝隙而行，便能游刃有余。' },
+        { title: '井蛙夏虫', chapter: '秋水', source: '《庄子》', text: '井蛙不可以语于海者，拘于虚也；夏虫不可以语于冰者，笃于时也。', explain: '困在井底的蛙，无法谈大海；活不过夏天的虫，无法谈冰雪。人的见识受限于处境，谦逊地承认局限，才能向更广阔的世界敞开。' },
+        { title: '鹪鹩偃鼠', chapter: '逍遥游', source: '《庄子》', text: '鹪鹩巢于深林，不过一枝；偃鼠饮河，不过满腹。', explain: '小鸟在密林中只需一根枝丫筑巢，鼹鼠饮河水不过填饱一肚。人所需其实很少，贪多反成负累，知足便得逍遥。' },
+        { title: '朝菌蟪蛄', chapter: '逍遥游', source: '《庄子》', text: '朝菌不知晦朔，蟪蛄不知春秋。', explain: '朝生暮死的菌不知月有朔望，夏生秋死的蝉不知有春秋。生命长短不同，所见时空便不同。放下“以己度人”的傲慢，方见天地之阔。' },
+        { title: '抟扶摇', chapter: '逍遥游', source: '《庄子》', text: '鹏之徙于南冥也，水击三千里，抟扶摇而上者九万里。', explain: '大鹏南飞，击水三千、乘风九万里。宏伟的志向需要厚积的风力与广阔的视野——小知不及大知，格局决定境界。' },
+        { title: '子非鱼', chapter: '秋水', source: '《庄子》', text: '子非鱼，安知鱼之乐？子非我，安知我不知鱼之乐？', explain: '庄子与惠施濠梁之辩，揭示认知的相对性：你不是我，怎知我不懂鱼的快乐？放下“唯我正确”的执念，便多一分对他人的体谅。' },
+        { title: '螳臂当车', chapter: '人间世', source: '《庄子》', text: '汝不知夫螳螂乎？怒其臂以当车辙，不知其不胜任也。', explain: '螳螂奋臂挡车，不自量力。庄子以此警示：认清自身分量、不逞匹夫之勇，才是保全之道。刚猛未必是勇，知止方为智。' },
+        { title: '得鱼忘筌', chapter: '外物', source: '《庄子》', text: '筌者所以在鱼，得鱼而忘筌；言者所以在意，得意而忘言。', explain: '捕鱼的工具（筌）是为了鱼，捕到便可忘筌；言语是为了达意，会意便可忘言。莫把手段当目的，执着形式而忘了本心。' }
       ],
       taiyi: [
-        { title: '回光守中', chapter: '第一章', source: '《太乙金华宗旨》', text: '回光者，返照也。返照者，返其本有之性也。', explain: '"回光"就是将向外追逐的心光收回，照见自性本有的光明。这部丹经的核心功夫极其简洁：不需要复杂的仪式，只需将意识从外境收回，安住于当下。' },
+        { title: '回光守中', chapter: '第一章', source: '《太乙金华宗旨》', text: '回光者，返照也。返照者，返其本有之性也。', explain: '“回光”就是将向外追逐的心光收回，照见自性本有的光明。这部丹经的核心功夫极其简洁：不需要复杂的仪式，只需将意识从外境收回，安住于当下。' },
         { title: '两眼交光', chapter: '第二章', source: '《太乙金华宗旨》', text: '两目之光，乃元神真意之体。双目谛观鼻端，自得神凝气聚。', explain: '将双眼的目光轻轻凝聚于鼻端（或眉心），是金华功法的入门关键。目光内敛则神不外散，神凝则气自然聚集，久之心光透发，如金华灿烂。' },
-        { title: '守中勿忘', chapter: '第三章', source: '《太乙金华宗旨》', text: '守此一点，勿忘勿助，久之自有光明发现。', explain: '守住这一点灵光，既不忘记它（昏沉），也不刻意去助长它（急躁）。这种"不即不离"的状态正是道家修炼的中道——任其自然生长，不拔苗助长。' },
-        { title: '金华乍现', chapter: '第四章', source: '《太乙金华宗旨》', text: '金华只是这一念，普现无边。才涉有为，便落边际。', explain: '"金华"就是当下一念的清净觉知，它本来遍满一切处。一旦你刻意去追求、去造作，反而落入局限。真正的修行不在作为，而在歇下一切造作后的本然显现。' }
+        { title: '守中勿忘', chapter: '第三章', source: '《太乙金华宗旨》', text: '守此一点，勿忘勿助，久之自有光明发现。', explain: '守住这一点灵光，既不忘记它（昏沉），也不刻意去助长它（急躁）。这种“不即不离”的状态正是道家修炼的中道——任其自然生长，不拔苗助长。' },
+        { title: '金华乍现', chapter: '第四章', source: '《太乙金华宗旨》', text: '金华只是这一念，普现无边。才涉有为，便落边际。', explain: '“金华”就是当下一念的清净觉知，它本来遍满一切处。一旦你刻意去追求、去造作，反而落入局限。真正的修行不在作为，而在歇下一切造作后的本然显现。' },
+        { title: '天心', chapter: '天心章', source: '《太乙金华宗旨》', text: '天心者，即元神也，居方寸之中，为万化之枢纽。', explain: '“天心”就是元神，安住于方寸（眉间一寸）之地，是万有变化的中枢。回光的落点，正是归向这天心。' },
+        { title: '元神识神', chapter: '元神识神论', source: '《太乙金华宗旨》', text: '元神居方寸，识神居后天。回光即收识神而归元神。', explain: '人人皆有元神（先天真性）与识神（后天妄念）。修炼无非是把纷飞的识神收摄，回归清净的元神——如浪息而海现。' },
+        { title: '金华即丹', chapter: '金华论', source: '《太乙金华宗旨》', text: '金华即金丹，非外物也，即一念之觉照。', explain: '世人向外求金丹，却不知金华就是当下那一念的觉照。丹不在身外、不在炉鼎，而在回光返照的清净心中。' },
+        { title: '坎离交', chapter: '坎离交媾', source: '《太乙金华宗旨》', text: '坎离交媾，水火既济，则真阳自生。', explain: '坎（水）离（火）相交、心肾相济，如锅中水火调和，真阳之气自然萌生。这是内炼中“水火既济”的生动写照。' },
+        { title: '炼化次第', chapter: '炼化论', source: '《太乙金华宗旨》', text: '炼精化气，炼气化神，炼神还虚，虚无所止。', explain: '修炼有次第：先化浊精为清气，再化气为神，最终神归于虚寂——虚到无可执处，便是与道合真。' },
+        { title: '动静双修', chapter: '性命双修', source: '《太乙金华宗旨》', text: '动处炼性，静处炼命；性命双修，方契大道。', explain: '遇事对境时炼“性”（心之定力），静坐时炼“命”（身之精气）。性与命如鸟之双翼，偏一则跛，双修乃全。' },
+        { title: '回光调息', chapter: '回光调息', source: '《太乙金华宗旨》', text: '回光与调息相须，息调则光自凝。', explain: '回光与调息相辅相成：呼吸调顺，心光自然凝聚；心光凝聚，呼吸也归于细缓。二者如车两轮，并行不悖。' },
+        { title: '百日专功', chapter: '功夫次第', source: '《太乙金华宗旨》', text: '学者能百日专功，金华自然透发，如春回大地。', explain: '功夫贵在专一与恒久。若能连续百日不辍地回光，金华之光便会自然透发，如同大地回春、生机自现。' }
       ]
+
     };
     let currentJing = 'daodejing';
     function renderXiushenDaily(ds) {
@@ -424,8 +504,9 @@ const APP_VERSION = 'wobench-v29.11';
       const c = document.querySelector('[data-history="yanghu"]');
       if (!c) return;
       const recs = recordsForModule('yanghu').filter(function (r) { return !isEnc(r); }).sort(function (a, b) { return b.date < a.date ? -1 : (b.date > a.date ? 1 : b.updatedAt - a.updatedAt); });
-      if (!recs.length) { c.innerHTML = '<div class="history-empty">还没有记录</div>'; return; }
-      c.innerHTML = recs.map(function (r) {
+      const recsFiltered = recs.filter(function (r) { return Object.keys(r.fields || {}).length > 0; });
+      if (!recsFiltered.length) { c.innerHTML = '<div class="history-empty">还没有记录</div>'; return; }
+      c.innerHTML = recsFiltered.map(function (r) {
         const total = YANGHU_KEYS.length;
         const done = Object.keys(r.fields).length;
         const lm = lunarCn(r.date).replace(/^.+?年/, '');
@@ -497,8 +578,9 @@ const APP_VERSION = 'wobench-v29.11';
       const c = document.querySelector('[data-history="tcm"]');
       if (!c) return;
       const recs = recordsForModule('tcm').filter(function (r) { return !isEnc(r); }).sort(function (a, b) { return b.date < a.date ? -1 : (b.date > a.date ? 1 : b.updatedAt - a.updatedAt); });
-      if (!recs.length) { c.innerHTML = '<div class="history-empty">还没有打卡记录</div>'; return; }
-      c.innerHTML = recs.map(function (r) {
+      const recsFiltered = recs.filter(function (r) { return Object.keys(r.fields || {}).length > 0; });
+      if (!recsFiltered.length) { c.innerHTML = '<div class="history-empty">还没有打卡记录</div>'; return; }
+      c.innerHTML = recsFiltered.map(function (r) {
         const total = TCM_KEYS.length;
         const done = Object.keys(r.fields).length;
         const lm = lunarCn(r.date).replace(/^.+?年/, '');
@@ -670,6 +752,32 @@ const APP_VERSION = 'wobench-v29.11';
       const nm = document.getElementById('mineName');
       const sub = document.getElementById('mineSub');
       const av = document.getElementById('mineAvatar');
+      if (nm) nm.textContent = USER_NICKNAME;
+      if (sub) {
+        var s = '';
+        try { s = localStorage.getItem('zqdd:mine_sub') || ''; } catch (e) {}
+        sub.textContent = s || '记录 · 学习 · 修身 · 观心';
+      }
+      if (av) {
+        var avData = '';
+        try { avData = localStorage.getItem('zqdd:avatar') || ''; } catch (e) {}
+        if (avData) {
+          av.style.backgroundImage = 'url(' + avData + ')';
+          av.style.backgroundSize = 'cover';
+          av.style.backgroundPosition = 'center';
+          av.textContent = '';
+        } else {
+          av.style.backgroundImage = '';
+          av.textContent = USER_NICKNAME;
+        }
+      }
+    }
+
+    // 「我的」头像/名称/签名 → 固定在设置单项内容上方
+    function populateSettingsMineHead() {
+      var av = document.getElementById('settingsMineAvatar');
+      var nm = document.getElementById('settingsMineName');
+      var sub = document.getElementById('settingsMineSub');
       if (nm) nm.textContent = USER_NICKNAME;
       if (sub) {
         var s = '';
@@ -1156,7 +1264,7 @@ const APP_VERSION = 'wobench-v29.11';
       dbPut(store[id]).then(function () {
         if (wasEditing && !keepEdit) exitEdit(key);
         renderHistory(key); renderCal(); renderDetail(ds);
-        if (key === 'study') { renderStudyMonth(); renderStudyTimeCard(); }
+        if (key === 'study') { renderStudyPeriod(); renderStudyTimeCard(); }
         renderStreakBadges(); renderGoalProgress();
         if (!silent) showToast(wasEditing ? ('已更新 ' + ds + ' 的记录') : (key === 'shiti' ? '已保存今日实体感录' : ('已保存今日「' + key + '」记录')));
       });
@@ -1188,8 +1296,22 @@ const APP_VERSION = 'wobench-v29.11';
       const c = document.querySelector('[data-history="' + mod + '"]');
       if (!c) return;
       const recs = recordsForModule(mod).filter(function (r) { return !isEnc(r); }).sort(function (a, b) { return b.date < a.date ? -1 : (b.date > a.date ? 1 : b.updatedAt - a.updatedAt); });
-      if (!recs.length) { c.innerHTML = '<div class="history-empty">还没有记录</div>'; return; }
-      c.innerHTML = recs.map(function (r) {
+      const recsFiltered = recs.filter(function (r) {
+        var flds = r.fields || {};
+        if (mod === 'study') {
+          var focus = Number(flds['专注计时'] || 0);
+          var selfd = Number(flds['自主时长'] || 0);
+          var hasOther = Object.keys(flds).some(function (k) {
+            if (k === '专注计时' || k === '自主时长') return false;
+            var v = flds[k];
+            return v !== '' && v !== undefined && v !== null && v !== '0';
+          });
+          return (focus > 0 || selfd > 0 || hasOther);
+        }
+        return Object.keys(flds).some(function (k) { return flds[k] !== '' && flds[k] !== undefined && flds[k] !== null; });
+      });
+      if (!recsFiltered.length) { c.innerHTML = '<div class="history-empty">还没有记录</div>'; return; }
+      c.innerHTML = recsFiltered.map(function (r) {
         const sum = Object.keys(r.fields).map(function (k) { return k + '：' + r.fields[k]; }).join(' · ') || '（空）';
         const lm = lunarCn(r.date).replace(/^.+?年/, '');
         return '<div class="history-item"><div class="hi-main"><div class="hi-date">' + r.date.slice(5) + ' · ' + lm + '</div><div class="hi-sum">' + escapeHtml(sum) + '</div></div><div class="hi-actions"><span class="hi-edit" data-edit-id="' + r.id + '" data-edit-mod="' + mod + '">编辑</span><span class="hi-del" data-del="' + r.id + '">×</span></div></div>';
@@ -1597,20 +1719,31 @@ const APP_VERSION = 'wobench-v29.11';
       rec.updatedAt = Date.now();
       store[baseId] = rec;
       dbPut(rec).then(function () {
-        renderHistory('study'); renderStudyMonth(); renderStudyTimeCard(); renderCal(); renderDetail(ds); renderStreakBadges(); renderGoalProgress();
+        renderHistory('study'); renderStudyPeriod(); renderStudyTimeCard(); renderCal(); renderDetail(ds); renderStreakBadges(); renderGoalProgress();
         studyElapsed = 0; if (studyTimerEl) studyTimerEl.textContent = '00:00';
         studyLogBtn.style.display = 'none'; studyStartBtn.style.display = '';
         showToast('已计入今日 ' + mins + ' 分钟');
       });
     });
-    function renderStudyMonth() {
-      const ym = ymd(new Date()).slice(0, 7);
+    let studyPeriodMode = 'month';
+    function renderStudyPeriod(period) {
+      if (period) studyPeriodMode = period;
+      const d = new Date();
+      const today = ymd(d);
+      const ym = today.slice(0, 7);
+      const weekStart = ymd(new Date(d.getTime() - 6 * 86400000));
       let total = 0;
-      recordsForModule('study').filter(function (r) { return !isEnc(r) && r.date.indexOf(ym) === 0; }).forEach(function (r) {
-        const f = r.fields;
-        total += studyMinsOf(f);
+      recordsForModule('study').filter(function (r) { return !isEnc(r); }).forEach(function (r) {
+        let inRange = false;
+        if (studyPeriodMode === 'day') inRange = (r.date === today);
+        else if (studyPeriodMode === 'week') inRange = (r.date >= weekStart);
+        else inRange = (r.date.indexOf(ym) === 0);
+        if (inRange) total += studyMinsOf(r.fields);
       });
       setText('studyMonthTotal', total + ' 分钟');
+      const labelEl = document.getElementById('studyPeriodLabel');
+      if (labelEl) labelEl.textContent = studyPeriodMode === 'day' ? '今日已学习' : (studyPeriodMode === 'week' ? '本周已学习' : '本月已学习');
+      document.querySelectorAll('.study-period-tab').forEach(function (t) { t.classList.toggle('active', t.dataset.period === studyPeriodMode); });
     }
     function renderStudyTimeCard() {
       const ds = ymd(new Date());
@@ -1653,6 +1786,11 @@ const APP_VERSION = 'wobench-v29.11';
     if (selfMinus) selfMinus.addEventListener('click', function () { const inp = document.getElementById('selfStudyInput'); setSelfMins((parseInt(inp ? inp.value : 0, 10) || 0) - 5); });
     const selfPlus = document.getElementById('selfPlus');
     if (selfPlus) selfPlus.addEventListener('click', function () { const inp = document.getElementById('selfStudyInput'); setSelfMins((parseInt(inp ? inp.value : 0, 10) || 0) + 5); });
+
+    // 学习时间卡片：日/周/月 tab 切换
+    document.querySelectorAll('.study-period-tab').forEach(function (t) {
+      t.addEventListener('click', function () { renderStudyPeriod(t.dataset.period); });
+    });
 
     // ---- 保存按钮分发 ----
     document.querySelectorAll('[data-save-btn]').forEach(function (btn) {
@@ -1920,7 +2058,7 @@ const APP_VERSION = 'wobench-v29.11';
         all.forEach(function (r) { if (r && r.id) store[r.id] = r; });
         renderCal(); renderDetail(todayStr); renderHomeSummary(); renderReport('month'); renderTrend(7); renderReview('week'); renderStreakBadges(); renderGoalProgress();
         renderInspirationList(); renderTransactions(); renderTodayTx(); renderAssetSummary();
-        DAILY_MODS.forEach(renderHistory); renderTodo(); renderStudyMonth();
+        DAILY_MODS.forEach(renderHistory); renderTodo(); renderStudyPeriod();
         renderBackupList();
         showToast((cover ? '已覆盖导入 ' : '已合并导入 ') + recs.length + ' 条记录');
       });
@@ -2019,7 +2157,7 @@ const APP_VERSION = 'wobench-v29.11';
       all.forEach(function (r) { if (r && r.id) store[r.id] = r; });
       renderCal(); renderDetail(todayStr); renderHomeSummary(); renderReport('month'); renderTrend(7); renderReview('week'); renderStreakBadges(); renderGoalProgress();
       renderInspirationList(); renderTransactions(); renderTodayTx(); renderAssetSummary();
-      DAILY_MODS.forEach(renderHistory); renderTodo(); renderStudyMonth();
+      DAILY_MODS.forEach(renderHistory); renderTodo(); renderStudyPeriod();
       showToast('已恢复到 ' + e.name);
     }
     function deleteBackup(ts) {
@@ -2225,7 +2363,7 @@ const APP_VERSION = 'wobench-v29.11';
         _renderAllScheduled = false;
         renderCal(); renderDetail(todayStr); renderHomeSummary(); renderReport('month'); renderTrend(7); renderReview('week'); renderStreakBadges(); renderGoalProgress();
         renderInspirationList(); renderTransactions(); renderTodayTx(); renderAssetSummary();
-        DAILY_MODS.forEach(renderHistory); renderTodo(); renderStudyMonth();
+        DAILY_MODS.forEach(renderHistory); renderTodo(); renderStudyPeriod();
       });
     }
     async function cloudPush() {
@@ -3410,7 +3548,7 @@ const APP_VERSION = 'wobench-v29.11';
         .then(function () {
           renderCal(); renderDetail(todayStr); renderHomeSummary(); renderReport('month'); renderTrend(7); renderReview('week'); renderStreakBadges(); renderGoalProgress(); renderTxCatChoices();
           renderInspirationList(); renderTransactions(); renderTodayTx(); renderAssetSummary();
-          DAILY_MODS.forEach(renderHistory); renderTodo(); renderStudyMonth(); renderYanghuList(); renderYanghu(); renderYanghuHistory(); renderTcmHistory();
+          DAILY_MODS.forEach(renderHistory); renderTodo(); renderStudyPeriod(); renderYanghuList(); renderYanghu(); renderYanghuHistory(); renderTcmHistory();
           ['lingguang', 'todo', 'shiti', 'study', 'xiushen', 'zichan', 'favorite'].forEach(function (m) { updateModuleHeaderDate(m); switchModuleTab(m, 'today'); });
           // 日记类模块：初始加载即回填当天记录到表单，否则滑杆/输入框会停留在 HTML 默认值（刷新后显示“回到 60”）
           DAILY_MODS.forEach(function (mod) {
@@ -3451,7 +3589,7 @@ const APP_VERSION = 'wobench-v29.11';
         .catch(function (e) {
           console.error(e); renderCal(); renderDetail(todayStr); renderHomeSummary(); renderReport('month'); renderTrend(7); renderReview('week'); renderStreakBadges(); renderGoalProgress();
           renderInspirationList(); renderTransactions(); renderTodayTx(); renderAssetSummary();
-          DAILY_MODS.forEach(renderHistory); renderTodo(); renderStudyMonth();
+          DAILY_MODS.forEach(renderHistory); renderTodo(); renderStudyPeriod();
           ['lingguang', 'todo', 'shiti', 'study', 'xiushen', 'zichan', 'favorite'].forEach(function (m) { updateModuleHeaderDate(m); switchModuleTab(m, 'today'); });
         });
     })();
