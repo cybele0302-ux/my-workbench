@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.17';
+const APP_VERSION = 'wobench-v29.19.1';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -82,10 +82,11 @@ const APP_VERSION = 'wobench-v29.17';
         const rec = store[ymd(new Date()) + '|' + target];
         if (rec) { const el = document.getElementById(target); if (el) fillForm(el, rec.fields); }
         renderHistory(target);
-        if (target === 'xiushen') { renderXiushenDaily(todayStr); renderYanghu(); renderYanghuHistory(); }
-        if (target === 'study') { renderStudyPeriod(); renderTcm(); renderStudyTimeCard(); }
+        if (target === 'xiushen') { renderXiushenDaily(todayStr); renderYanghuList(); renderYanghuHistory(); }
+        if (target === 'study') { renderStudyPeriod(); renderTcm(); renderStudyTimeCard(); renderTcmHistory(); }
       }
       else if (target === 'todo') renderTodo();
+      else if (target === 'favorite') { renderFavGrid(); renderReadingList(); }
       else if (target === 'mine') renderMine();
       if (BOTTOM_TABS.indexOf(target) >= 0) {
         bottomItems.forEach(n => n.classList.toggle('active', n.dataset.module === target));
@@ -506,13 +507,14 @@ const APP_VERSION = 'wobench-v29.17';
       const recs = recordsForModule('yanghu').filter(function (r) { return !isEnc(r); }).sort(function (a, b) { if (a.date !== b.date) return a.date < b.date ? 1 : -1; var ia = a.id || '', ib = b.id || ''; return ia < ib ? 1 : -1; });
       const recsFiltered = recs.filter(function (r) { return Object.keys(r.fields || {}).length > 0; });
       if (!recsFiltered.length) { c.innerHTML = '<div class="history-empty">还没有记录</div>'; return; }
-      c.innerHTML = recsFiltered.map(function (r) {
+      const items = recsFiltered.map(function (r) {
         const total = YANGHU_KEYS.length;
         const done = Object.keys(r.fields).length;
         const lm = lunarCn(r.date).replace(/^.+?年/, '');
         const names = Object.keys(r.fields).join(' · ');
         return '<div class="history-item"><div class="hi-main"><div class="hi-date">' + r.date.slice(5) + ' · ' + lm + ' · 完成 ' + done + '/' + total + '</div><div class="hi-sum">' + escapeHtml(names) + '</div></div></div>';
-      }).join('');
+      });
+      renderPaged('hist:yanghu', c, items);
     }
     // 勾选改为事件委托，兼容动态生成的养护打卡项
     document.getElementById('yanghuList').addEventListener('change', function (e) { if (e.target && e.target.matches('input[data-yanghu]')) saveYanghu(); });
@@ -527,6 +529,20 @@ const APP_VERSION = 'wobench-v29.17';
       if (!body) return;
       const open = body.classList.toggle('open');
       btn.textContent = open ? '▾' : '▸';
+    });
+    // 列表「加载更多」委托（分页）
+    document.addEventListener('click', function (e) {
+      const b = e.target.closest('[data-load-more]');
+      if (!b) return;
+      const parts = b.getAttribute('data-load-more').split(':');
+      const key = parts[0], start = parseInt(parts[1], 10) || 0;
+      const arr = _paged[key], c = _pagedEl[key];
+      if (arr && c) paintPaged(key, c, arr, start);
+    });
+    document.addEventListener('click', function (e) {
+      const b = e.target.closest('[data-load-more-fav]');
+      if (!b) return;
+      appendFavSlice(parseInt(b.getAttribute('data-load-more-fav'), 10) || 0);
     });
 
     // ============ 中医学习打卡（独立数据 · 即勾即存）============
@@ -580,13 +596,14 @@ const APP_VERSION = 'wobench-v29.17';
       const recs = recordsForModule('tcm').filter(function (r) { return !isEnc(r); }).sort(function (a, b) { if (a.date !== b.date) return a.date < b.date ? 1 : -1; var ia = a.id || '', ib = b.id || ''; return ia < ib ? 1 : -1; });
       const recsFiltered = recs.filter(function (r) { return Object.keys(r.fields || {}).length > 0; });
       if (!recsFiltered.length) { c.innerHTML = '<div class="history-empty">还没有打卡记录</div>'; return; }
-      c.innerHTML = recsFiltered.map(function (r) {
+      const items = recsFiltered.map(function (r) {
         const total = TCM_KEYS.length;
         const done = Object.keys(r.fields).length;
         const lm = lunarCn(r.date).replace(/^.+?年/, '');
         const names = Object.keys(r.fields).join(' · ');
         return '<div class="history-item"><div class="hi-main"><div class="hi-date">' + r.date.slice(5) + ' · ' + lm + ' · 完成 ' + done + '/' + total + '</div><div class="hi-sum">' + escapeHtml(names) + '</div></div></div>';
-      }).join('');
+      });
+      renderPaged('hist:tcm', c, items);
     }
     document.querySelectorAll('#tcmList input[data-tcm]').forEach(function (b) { b.addEventListener('change', saveTcm); });
     document.querySelectorAll('#tcmList input[data-tcmnote]').forEach(function (n) { n.addEventListener('input', saveTcm); });
@@ -1292,6 +1309,60 @@ const APP_VERSION = 'wobench-v29.17';
         });
       });
     }
+    // ============ 列表分页（首屏只渲前 N 条，点「加载更多」追加；海量数据不卡）============
+    const PAGE_SIZE = 50;
+    const _paged = {}, _pagedEl = {};
+    let _favCards = [], _favGrid = null;
+    function paintPaged(key, c, itemsHtml, start) {
+      _paged[key] = itemsHtml; _pagedEl[key] = c;
+      if (start === 0) c.innerHTML = '';
+      const slice = itemsHtml.slice(start, start + PAGE_SIZE);
+      c.insertAdjacentHTML('beforeend', slice.join(''));
+      const next = start + PAGE_SIZE;
+      const oldF = c.querySelector('.load-more-foot'); if (oldF) oldF.remove();
+      if (next < itemsHtml.length) {
+        const f = document.createElement('div');
+        f.className = 'load-more-foot';
+        f.innerHTML = '<button type="button" class="load-more-btn" data-load-more="' + key + ':' + next + '">加载更多（剩 ' + (itemsHtml.length - next) + ' 条）</button>';
+        c.appendChild(f);
+      }
+    }
+    function renderPaged(key, c, itemsHtml) { paintPaged(key, c, itemsHtml, 0); }
+    function buildFavCard(r) {
+      var card = document.createElement('div');
+      card.className = 'fav-card';
+      card.setAttribute('data-fav-id', r.id);
+      var typeLabel = r.fields.favType || 'note';
+      var typeMap = { note: '摘抄', link: '链接', text: '记录', image: '图片', file: '文件' };
+      card.innerHTML =
+        '<div class="fav-card-type">' + escapeHtml(typeMap[typeLabel] || typeLabel) + '</div>' +
+        (r.fields.image ? '<img class="fav-card-thumb" src="' + (safeUrl(r.fields.image) || r.fields.image) + '" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;margin:2px 0 6px;display:block;">' : '') +
+        '<div class="fav-card-title">' + escapeHtml(r.fields.title || '无标题') + '</div>' +
+        (r.fields.body ? '<div class="fav-card-preview">' + escapeHtml(r.fields.body.substring(0, 80)) + '</div>' : '') +
+        (r.fields.file ? '<div class="fav-card-file" data-open-file="1" style="cursor:pointer;">📎 ' + escapeHtml(r.fields.file.name) + ' · ' + fmtFileSize(r.fields.file.size) + '</div>' : '') +
+        (r.fields.tags ? '<div><span class="fav-tag">' + r.fields.tags.split(',').map(function (t) { return escapeHtml(t.trim()); }).join('</span><span class="fav-tag">') + '</span></div>' : '') +
+        '<div class="fav-card-date">' + (r.updatedAt ? new Date(r.updatedAt).toLocaleDateString('zh-CN') : '') + '</div>';
+      card.addEventListener('click', function () { showFavDetail(r.id); });
+      if (r.fields.file) {
+        var fchip = card.querySelector('[data-open-file]');
+        if (fchip) fchip.addEventListener('click', function (e) { e.stopPropagation(); openFavFile(r.fields.file); });
+      }
+      return card;
+    }
+    function appendFavSlice(start) {
+      if (!_favGrid) return;
+      const slice = _favCards.slice(start, start + PAGE_SIZE);
+      slice.forEach(function (card) { _favGrid.appendChild(card); });
+      const next = start + PAGE_SIZE;
+      const oldF = _favGrid.querySelector('.load-more-foot'); if (oldF) oldF.remove();
+      if (next < _favCards.length) {
+        const f = document.createElement('div');
+        f.className = 'load-more-foot';
+        f.innerHTML = '<button type="button" class="load-more-btn" data-load-more-fav="' + next + '">加载更多（剩 ' + (_favCards.length - next) + ' 条）</button>';
+        _favGrid.appendChild(f);
+      }
+    }
+
     function renderHistory(mod) {
       const c = document.querySelector('[data-history="' + mod + '"]');
       if (!c) return;
@@ -1311,11 +1382,12 @@ const APP_VERSION = 'wobench-v29.17';
         return Object.keys(flds).some(function (k) { return flds[k] !== '' && flds[k] !== undefined && flds[k] !== null; });
       });
       if (!recsFiltered.length) { c.innerHTML = '<div class="history-empty">还没有记录</div>'; return; }
-      c.innerHTML = recsFiltered.map(function (r) {
+      const items = recsFiltered.map(function (r) {
         const sum = Object.keys(r.fields).map(function (k) { return k + '：' + r.fields[k]; }).join(' · ') || '（空）';
         const lm = lunarCn(r.date).replace(/^.+?年/, '');
         return '<div class="history-item"><div class="hi-main"><div class="hi-date">' + r.date.slice(5) + ' · ' + lm + '</div><div class="hi-sum">' + escapeHtml(sum) + '</div></div><div class="hi-actions"><span class="hi-edit" data-edit-id="' + r.id + '" data-edit-mod="' + mod + '">编辑</span><span class="hi-del" data-del="' + r.id + '">×</span></div></div>';
-      }).join('');
+      });
+      renderPaged('hist:' + mod, c, items);
     }
 
     // ---- 灵光闪现：多条记录 + 标签筛选 + 搜索 ----
@@ -1331,11 +1403,12 @@ const APP_VERSION = 'wobench-v29.17';
       if (inspFilterTag !== '全部') recs = recs.filter(function (r) { return (r.fields['灵感标签'] || '').indexOf(inspFilterTag) >= 0; });
       if (inspSearch) { const q = inspSearch.toLowerCase(); recs = recs.filter(function (r) { return (r.fields['灵感内容'] || '').toLowerCase().indexOf(q) >= 0; }); }
       if (!recs.length) { c.innerHTML = '<div class="history-empty">还没有灵感，记下第一条吧</div>'; return; }
-      c.innerHTML = recs.map(function (r) {
+      const items = recs.map(function (r) {
         const tags = (r.fields['灵感标签'] || '').split('、').filter(Boolean).map(function (t) { return '<span class="insp-tag">' + escapeHtml(t) + '</span>'; }).join('');
         const lm = lunarCn(r.date).replace(/^.+?年/, '');
         return '<div class="insp-item" data-insp-id="' + r.id + '"><div class="insp-tags">' + tags + '</div><div class="insp-content">' + escapeHtml(r.fields['灵感内容'] || '') + '</div><div class="insp-foot"><span>' + r.date.slice(5) + ' · ' + lm + '</span><span class="hi-del" data-del="' + r.id + '">删除</span><span class="hi-edit" data-insp-edit="' + r.id + '">编辑</span><span class="hi-todo" data-insp-todo="' + r.id + '">转待办</span></div></div>';
-      }).join('');
+      });
+      renderPaged('insp', c, items);
     }
     function addInspiration() {
       const el = document.getElementById('lingguang');
@@ -1670,7 +1743,8 @@ const APP_VERSION = 'wobench-v29.17';
         const lbl = txHistPeriod === 'all' ? '' : (FINANCE_PERIODS[txHistPeriod] ? FINANCE_PERIODS[txHistPeriod].label : '');
         c.innerHTML = '<div class="history-empty">' + (lbl ? lbl : '') + '暂无交易记录</div>'; return;
       }
-      c.innerHTML = recs.map(function (r) { return txItemHtml(r, true); }).join('');
+      const items = recs.map(function (r) { return txItemHtml(r, true); });
+      renderPaged('tx', c, items);
     }
     function saveTxEdit(id) {
       const item = document.querySelector('.tx-item[data-tx-id="' + id + '"]');
@@ -2253,6 +2327,12 @@ const APP_VERSION = 'wobench-v29.17';
     const CLOUD_CFG_KEY = 'zqdd:cloud', CLOUD_PASS_KEY = 'zqdd:cloudPass';
     let cloudCfg = null, cloudSpaceKey = '', lastKnownCloudAt = 0, pushTimer = null, cloudTimer = null;
     let cloudPulling = false, lastPullRecordCount = 0, suppressDirty = false, cloudPass = '';
+    // 持久化「上次成功同步的云端时间戳」：云端 pushed_at 未超过它则跳过整包拉取+解密，避免每次打开都解密（数据越多越慢）
+    function loadLastCloudAt() { return cloudSpaceKey ? (parseInt(localStorage.getItem('zqdd:cloud_at_' + cloudSpaceKey) || '0', 10) || 0) : 0; }
+    function saveLastCloudAt(v) { if (cloudSpaceKey) localStorage.setItem('zqdd:cloud_at_' + cloudSpaceKey, String(v)); }
+    // 增量上传游标：仅上传 updatedAt 大于此值的记录（每条独立成行，避免整包重传）
+    function loadLastPushAt() { return cloudSpaceKey ? (parseInt(localStorage.getItem('zqdd:cloud_push_at_' + cloudSpaceKey) || '0', 10) || 0) : 0; }
+    function saveLastPushAt(v) { if (cloudSpaceKey) localStorage.setItem('zqdd:cloud_push_at_' + cloudSpaceKey, String(v)); }
 
     function loadCloudCfg() {
       try { cloudCfg = JSON.parse(localStorage.getItem(CLOUD_CFG_KEY) || 'null'); } catch (e) { cloudCfg = null; }
@@ -2390,14 +2470,38 @@ const APP_VERSION = 'wobench-v29.17';
       _renderAllScheduled = true;
       requestAnimationFrame(function () {
         _renderAllScheduled = false;
-        renderCal(); renderDetail(todayStr); renderHomeSummary(); renderReport('month'); renderTrend(7); renderReview('week'); renderStreakBadges(); renderGoalProgress();
-        renderInspirationList(); renderTransactions(); renderTodayTx(); renderAssetSummary();
-        DAILY_MODS.forEach(renderHistory); renderTodo(); renderStudyPeriod();
+        // 只重绘「当前可见模块」+ 全局首页卡片，避免每次同步都全量重绘所有隐藏模块（启动/同步更快）
+        const cur = (typeof navStack !== 'undefined' && navStack && navStack.length) ? navStack[navStack.length - 1] : 'homepage';
+        renderHomeSummary(); renderStreakBadges(); renderGoalProgress();
+        if (cur === 'home' || cur === 'homepage') {
+          renderCal(); renderDetail(todayStr); renderReport('month'); renderTrend(7); renderReview('week');
+        } else if (cur === 'lingguang') {
+          renderInspirationList();
+        } else if (cur === 'zichan') {
+          renderTransactions(); renderTodayTx(); renderAssetSummary();
+        } else if (cur === 'todo') {
+          renderTodo();
+        } else if (cur === 'favorite') {
+          renderFavGrid(); renderReadingList();
+        } else if (DAILY_MODS.indexOf(cur) >= 0) {
+          const rec = store[ymd(new Date()) + '|' + cur];
+          if (rec) { const el = document.getElementById(cur); if (el) fillForm(el, rec.fields); }
+          renderHistory(cur);
+          if (cur === 'xiushen') { renderXiushenDaily(todayStr); renderYanghuList(); renderYanghuHistory(); }
+          if (cur === 'study') { renderStudyPeriod(); renderTcm(); renderStudyTimeCard(); renderTcmHistory(); }
+        }
       });
     }
     async function cloudPush() {
       if (!cloudCfg || !cloudSpaceKey) return;
       if (cloudPulling) { console.warn('cloudPush 跳过：正在拉取云端数据'); return; }
+      // 优先走增量通道（仅上传变更记录）；不可用则回退整包
+      try { await cloudPushIncremental(); return; } catch (e) { console.warn('增量上传不可用，回退整包', e); }
+      await cloudPushFull();
+    }
+    async function cloudPushFull() {
+      if (!cloudCfg || !cloudSpaceKey) return;
+      if (cloudPulling) { console.warn('cloudPushFull 跳过：正在拉取云端数据'); return; }
       var recCount = Object.keys(store).length;
       if (recCount === 0) { console.warn('cloudPush 跳过：本地无数据，避免覆盖云端'); return; }
       if (lastPullRecordCount > 0 && recCount < lastPullRecordCount * 0.5) {
@@ -2413,11 +2517,26 @@ const APP_VERSION = 'wobench-v29.17';
         try { obj = await cloudFind(); } catch (e) { obj = null; }
         await cloudUpsert(payload, pushedAt, obj ? obj.id : null);
         lastKnownCloudAt = pushedAt;
+        saveLastCloudAt(pushedAt);
       } catch (e) {
         console.error('cloudPush 失败', e);
       }
     }
     async function cloudPull() {
+      if (!cloudCfg || !cloudSpaceKey) return;
+      cloudPulling = true;
+      try {
+        // 优先走增量通道（仅拉取/解密自上次同步后变更的记录）；异常或需引导时回退整包
+        let usedInc = false;
+        try { usedInc = await cloudPullIncremental(); } catch (e) { usedInc = false; }
+        if (!usedInc) { await cloudPullFull(); }
+      } catch (e) {
+        console.error('cloudPull 失败', e);
+      } finally {
+        cloudPulling = false;
+      }
+    }
+    async function cloudPullFull() {
       if (!cloudCfg || !cloudSpaceKey) return;
       cloudPulling = true;
       try {
@@ -2428,6 +2547,7 @@ const APP_VERSION = 'wobench-v29.17';
         const data = await cloudDecrypt(obj.payload, pass);
         await mergeCloudData(data);
         lastKnownCloudAt = obj.pushed_at || Date.now();
+        saveLastCloudAt(lastKnownCloudAt);
         lastPullRecordCount = Object.keys(store).length;
         if (hasPassword() && !cryptoKey) { isLocked = true; showLock('unlock'); }
         else if (hasPassword() && cryptoKey) { await decryptAllFromStore(cryptoKey); }
@@ -2495,6 +2615,70 @@ const APP_VERSION = 'wobench-v29.17';
       // 存在本地更新或墓碑变更时统一回传一次，使云端 blob 与本地一致（彻底清除幽灵记录）
       if (localWins || resurrected > 0 || deletedIds.length) schedulePush();
     }
+    // ===== 增量通道：逐条合并（仅 store 中真正变化的记录落盘，不重写整包）=====
+    async function mergeCloudRecords(recs, cloudDeleted) {
+      const cloudById = {};
+      (recs || []).forEach(function (r) { if (r && r.id) cloudById[r.id] = r; });
+      const changed = [];
+      let localWins = false;
+      Object.keys(store).forEach(function (id) {
+        const local = store[id];
+        const c = cloudById[id];
+        if (c) {
+          if ((c.updatedAt || 0) > (local.updatedAt || 0)) { store[id] = c; changed.push(id); }
+          else if ((c.updatedAt || 0) < (local.updatedAt || 0)) { localWins = true; }
+          else { if (String(c.id) > String(local.id)) { store[id] = c; changed.push(id); } else localWins = true; }
+          delete cloudById[id];
+        }
+      });
+      Object.keys(cloudById).forEach(function (id) {
+        if (deletedIds.indexOf(id) >= 0) return; // 墓碑：永不复活
+        store[id] = cloudById[id]; changed.push(id);
+      });
+      if (Array.isArray(cloudDeleted)) {
+        cloudDeleted.forEach(function (d) { if (deletedIds.indexOf(d) < 0) deletedIds.push(d); });
+        localStorage.setItem(DELETED_KEY, JSON.stringify(deletedIds));
+        deletedIds.forEach(function (id) { if (store[id]) { delete store[id]; dbDelete(id); changed.push(id); } });
+      }
+      const toPut = changed.filter(function (id) { return store[id]; });
+      suppressDirty = true;
+      try { await Promise.all(toPut.map(function (id) { return dbPut(store[id]); })); } finally { suppressDirty = false; }
+      if (localWins) schedulePush(); // 本地较新 → 稍后增量回传
+    }
+    // 增量拉取：只取 lastKnownCloudAt 之后变更的行，逐条解密合并（打开 App 不再整包解密）
+    async function cloudPullIncremental() {
+      const j = await cloudProxyCall('since', { since: lastKnownCloudAt });
+      if (!j || !Array.isArray(j.rows)) throw new Error('incremental unavailable');
+      if (j.rows.length === 0) return false; // 无增量 → 调用方回退整包引导
+      const pass = cloudPass;
+      const recs = []; const tomb = [];
+      for (const row of j.rows) {
+        if (row.deleted) { tomb.push(row.rec_id); continue; }
+        try { recs.push(await cloudDecrypt(row.payload, pass)); } catch (e) { console.warn('跳过无法解密的增量记录', row.rec_id); }
+      }
+      await mergeCloudRecords(recs, tomb);
+      const maxTs = j.rows.reduce(function (m, r) { return Math.max(m, r.updated_at || 0); }, lastKnownCloudAt);
+      lastKnownCloudAt = maxTs; saveLastCloudAt(maxTs);
+      lastPullRecordCount = Object.keys(store).length;
+      if (hasPassword() && !cryptoKey) { isLocked = true; showLock('unlock'); }
+      else if (hasPassword() && cryptoKey) { await decryptAllFromStore(cryptoKey); }
+      renderAllCloud();
+      return true;
+    }
+    // 增量上传：仅加密 updatedAt 大于 lastPushAt 的记录（每张独立成行）
+    async function cloudPushIncremental() {
+      const pass = cloudPass;
+      const lastPush = loadLastPushAt();
+      const dirty = Object.keys(store).filter(function (id) { return (store[id].updatedAt || 0) > lastPush; });
+      const rows = [];
+      for (const id of dirty) {
+        try { rows.push({ rec_id: id, payload: await cloudEncrypt(store[id], pass), updated_at: store[id].updatedAt || Date.now() }); } catch (e) {}
+      }
+      deletedIds.forEach(function (id) { rows.push({ rec_id: id, payload: '', updated_at: Date.now(), deleted: true }); });
+      if (rows.length === 0) { saveLastPushAt(Date.now()); return; }
+      await cloudProxyCall('put-batch', { rows });
+      saveLastPushAt(Date.now());
+    }
     function schedulePush() {
       if (!cloudCfg || !cloudSpaceKey) return;
       if (pushTimer) clearTimeout(pushTimer);
@@ -2512,6 +2696,7 @@ const APP_VERSION = 'wobench-v29.17';
     async function cloudConnect(pass) {
       cloudCfg = { appId: CLOUD_URL, appKey: CLOUD_ANON, api: CLOUD_URL };
       cloudSpaceKey = await sha256Hex(pass);
+      lastKnownCloudAt = loadLastCloudAt();
       cloudPass = pass;
       localStorage.setItem(CLOUD_CFG_KEY, JSON.stringify(cloudCfg));
       await persistCloudPass();
@@ -2548,6 +2733,7 @@ const APP_VERSION = 'wobench-v29.17';
     }
     function cloudDisconnect() {
       if (cloudTimer) { clearInterval(cloudTimer); cloudTimer = null; }
+      if (cloudSpaceKey) localStorage.removeItem('zqdd:cloud_at_' + cloudSpaceKey);
       cloudCfg = null; cloudSpaceKey = ''; lastKnownCloudAt = 0; cloudPass = '';
       localStorage.removeItem(CLOUD_PASS_KEY);
       localStorage.removeItem(CLOUD_CFG_KEY);
@@ -2561,6 +2747,7 @@ const APP_VERSION = 'wobench-v29.17';
       if (!pass) return;
       cloudCfg = cfg;
       cloudSpaceKey = await sha256Hex(pass);
+      lastKnownCloudAt = loadLastCloudAt();
       setCloudStatus('同步中…', false);
       try {
         await cloudPull();
@@ -3242,26 +3429,9 @@ const APP_VERSION = 'wobench-v29.17';
       }
       if (hint) hint.style.display = 'none';
 
-      recs.forEach(function (r) {
-        var card = document.createElement('div');
-        card.className = 'fav-card';
-        var typeLabel = r.fields.favType || 'note';
-        var typeMap = { note:'摘抄', link:'链接', text:'记录', image:'图片', file:'文件' };
-        card.innerHTML =
-          '<div class="fav-card-type">' + escapeHtml(typeMap[typeLabel] || typeLabel) + '</div>' +
-          (r.fields.image ? '<img class="fav-card-thumb" src="' + (safeUrl(r.fields.image) || r.fields.image) + '" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;margin:2px 0 6px;display:block;">' : '') +
-          '<div class="fav-card-title">' + escapeHtml(r.fields.title || '无标题') + '</div>' +
-          (r.fields.body ? '<div class="fav-card-preview">' + escapeHtml(r.fields.body.substring(0, 80)) + '</div>' : '') +
-          (r.fields.file ? '<div class="fav-card-file" data-open-file="1" style="cursor:pointer;">📎 ' + escapeHtml(r.fields.file.name) + ' · ' + fmtFileSize(r.fields.file.size) + '</div>' : '') +
-          (r.fields.tags ? '<div><span class="fav-tag">' + r.fields.tags.split(',').map(function(t){return escapeHtml(t.trim());}).join('</span><span class="fav-tag">') + '</span></div>' : '') +
-          '<div class="fav-card-date">' + (r.updatedAt ? new Date(r.updatedAt).toLocaleDateString('zh-CN') : '') + '</div>';
-        card.addEventListener('click', function () { showFavDetail(r.id); });
-        if (r.fields.file) {
-          var fchip = card.querySelector('[data-open-file]');
-          if (fchip) fchip.addEventListener('click', function (e) { e.stopPropagation(); openFavFile(r.fields.file); });
-        }
-        if (grid) grid.appendChild(card);
-      });
+      _favCards = recs.map(buildFavCard);
+      _favGrid = grid;
+      appendFavSlice(0);
     }
 
     function showFavDetail(id) {
@@ -3575,17 +3745,9 @@ const APP_VERSION = 'wobench-v29.17';
         .then(dbGetAll)
         .then(function (all) { all.forEach(function (r) { store[r.id] = r; }); dedupeShiti(); })
         .then(function () {
+          // 首页/全局（默认可见模块）一次性渲染；其余模块改为切到对应 tab 时才由 showModule 渲染（懒加载，启动更快）
           renderCal(); renderDetail(todayStr); renderHomeSummary(); renderReport('month'); renderTrend(7); renderReview('week'); renderStreakBadges(); renderGoalProgress(); renderTxCatChoices();
-          renderInspirationList(); renderTransactions(); renderTodayTx(); renderAssetSummary();
-          DAILY_MODS.forEach(renderHistory); renderTodo(); renderStudyPeriod(); renderYanghuList(); renderYanghu(); renderYanghuHistory(); renderTcmHistory();
-          ['lingguang', 'todo', 'shiti', 'study', 'xiushen', 'zichan', 'favorite'].forEach(function (m) { updateModuleHeaderDate(m); switchModuleTab(m, 'today'); });
-          // 日记类模块：初始加载即回填当天记录到表单，否则滑杆/输入框会停留在 HTML 默认值（刷新后显示“回到 60”）
-          DAILY_MODS.forEach(function (mod) {
-            const el = document.getElementById(mod);
-            if (!el) return;
-            const rec = loadRecord(ymd(new Date()), mod);
-            if (Object.keys(rec).length) fillForm(el, rec); else clearForm(el);
-          });
+          ['lingguang', 'todo', 'shiti', 'study', 'xiushen', 'zichan', 'favorite', 'home', 'mine'].forEach(function (m) { updateModuleHeaderDate(m); switchModuleTab(m, 'today'); });
           cloudAutoStart();
           checkBackupReminder();
           renderBackupList();
@@ -3601,8 +3763,6 @@ const APP_VERSION = 'wobench-v29.17';
             } catch (e) {}
           }, 800);
           trimBackups().then(renderBackupList);
-          renderReadingList();
-          renderFavGrid();
           ['input', 'change'].forEach(function (evt) {
             const sleepInput = document.getElementById('sleepTimeInput');
             const wakeInput = document.getElementById('wakeTimeInput');
@@ -3616,10 +3776,8 @@ const APP_VERSION = 'wobench-v29.17';
           updateSleepUI();
         })
         .catch(function (e) {
-          console.error(e); renderCal(); renderDetail(todayStr); renderHomeSummary(); renderReport('month'); renderTrend(7); renderReview('week'); renderStreakBadges(); renderGoalProgress();
-          renderInspirationList(); renderTransactions(); renderTodayTx(); renderAssetSummary();
-          DAILY_MODS.forEach(renderHistory); renderTodo(); renderStudyPeriod();
-          ['lingguang', 'todo', 'shiti', 'study', 'xiushen', 'zichan', 'favorite'].forEach(function (m) { updateModuleHeaderDate(m); switchModuleTab(m, 'today'); });
+          console.error(e); renderHomepage(); renderCal(); renderDetail(todayStr); renderHomeSummary(); renderReport('month'); renderTrend(7); renderReview('week'); renderStreakBadges(); renderGoalProgress(); renderTxCatChoices();
+          ['lingguang', 'todo', 'shiti', 'study', 'xiushen', 'zichan', 'favorite', 'home', 'mine'].forEach(function (m) { updateModuleHeaderDate(m); switchModuleTab(m, 'today'); });
         });
     })();
 
@@ -4260,8 +4418,14 @@ const APP_VERSION = 'wobench-v29.17';
       pending = pending.slice().sort(function (a, b) { return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0); });
       var cp = document.getElementById('todoList');
       var cd = document.getElementById('todoDone');
-      if (cp) cp.innerHTML = pending.length ? pending.map(todoRow).join('') : '<div class="history-empty">暂无待办，去添加一条吧</div>';
-      if (cd) cd.innerHTML = done.length ? done.map(todoRow).join('') : '<div class="history-empty">还没有已完成的事项</div>';
+      if (cp) {
+        if (pending.length) { const items = pending.map(todoRow); renderPaged('todo:pending', cp, items); }
+        else cp.innerHTML = '<div class="history-empty">暂无待办，去添加一条吧</div>';
+      }
+      if (cd) {
+        if (done.length) { const items = done.map(todoRow); renderPaged('todo:done', cd, items); }
+        else cd.innerHTML = '<div class="history-empty">还没有已完成的事项</div>';
+      }
       var cnt = document.getElementById('todoDoneCount');
       if (cnt) cnt.textContent = done.length ? ('（' + done.length + '）') : '';
     }
