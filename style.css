@@ -348,8 +348,8 @@
       background: var(--modal-bg, #fff);
       border: 1px solid var(--card-border);
       border-radius: 14px;
-      padding: 14px;
-      margin-bottom: 8px;
+      padding: 10px 12px;
+      margin-bottom: 6px;
       cursor: pointer;
       box-shadow: 0 3px 12px rgba(60, 38, 110, 0.08);
       transition: transform .15s, box-shadow .15s;
@@ -364,7 +364,7 @@
       flex-shrink: 0; font-size: 18px;
     }
     .mine-entry-icon svg { width: 20px; height: 20px; }
-    .mine-entry-name { flex: 1; font-size: 15px; font-weight: 600; color: var(--text-main); }
+    .mine-entry-name { flex: 1; font-size: 13px; font-weight: 600; color: var(--text-main); }
     .mine-entry-arrow { color: var(--text-light); font-size: 18px; }
 
     .module-title {
@@ -447,6 +447,8 @@
     .mhc-icon[data-icon="study"]::before { content: "📚"; }
     .mhc-icon[data-icon="lotus"]::before { content: "🪷"; }
     .mhc-icon[data-icon="gem"]::before { content: "💎"; }
+    .mhc-icon[data-icon="cultivate"]::before { content: "🧘"; }
+    .mhc-icon[data-icon="star"]::before { content: "⭐"; }
 
     .mhc-info {
       flex: 1;
@@ -482,17 +484,20 @@
 
     .mhc-tabs {
       display: flex;
-      gap: 8px;
+      justify-content: center;
+      gap: 10px;
       position: relative;
       z-index: 1;
     }
 
     .mhc-tab {
-      flex: 1;
+      flex: 0 0 auto;
+      min-width: 118px;
+      max-width: 140px;
       text-align: center;
-      padding: 10px 0;
+      padding: 8px 0;
       border-radius: 999px;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       color: rgba(255,255,255,0.78);
       background: rgba(255,255,255,0.14);
@@ -1434,6 +1439,13 @@
 
     /* 历史记录 / 列表 / 筛选 */
     .history-list { display:flex; flex-direction:column; gap:8px; max-height:320px; overflow-y:auto; }
+    /* 待办列表框 +一个祥云图案距离(46px=320+46)；灵感库 +两个祥云(320+92) */
+    #todoList { max-height: 366px; }
+    #inspList { max-height: 412px; }
+    /* 理财交易明细框拉高，显示更多明细，贴近底部导航 */
+    #txList { max-height: calc(100dvh - 220px); }
+    /* 实体感录历史记录框拉长 3 行祥云 (+138px) */
+    [data-history="shiti"] { max-height: 458px; }
     .history-empty { font-size:12px; color:var(--text-light); padding:10px 0; text-align:center; }
     .history-item { display:flex; align-items:center; gap:8px; padding:10px 12px; border-radius:12px; background:rgba(168,133,238,0.07); border:1px solid rgba(168,133,238,0.12); }
     .hi-main { flex:1; min-width:0; }
@@ -2133,6 +2145,23 @@
   margin-right: -18px !important;
 }
 .study-sub-panel.hidden { display: none; }
+
+/* 学习时间卡片：日 / 周 / 月 切换 */
+.study-period-tabs { display: flex; gap: 8px; justify-content: center; margin-bottom: 12px; }
+.study-period-tab {
+  flex: 0 0 auto; min-width: 64px; text-align: center; font-size: 13px; font-weight: 600;
+  padding: 7px 16px; border-radius: 10px; cursor: pointer; user-select: none;
+  color: var(--text-2, #5a5563);
+  background: var(--card-bg, rgba(255,255,255,.5));
+  border: 1px solid var(--border, rgba(0,0,0,.08));
+  transition: all .18s;
+}
+.study-period-tab.active {
+  color: #fff;
+  background: var(--purple-deep, #6f4fb8);
+  border-color: var(--purple-deep, #6f4fb8);
+  box-shadow: 0 2px 10px rgba(111,79,184,.22);
+}
 
 /* ==== 阅读项：编辑 / 回到正在学习 按钮 ==== */
 .reading-edit, .reading-restore {
