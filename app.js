@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.16';
+const APP_VERSION = 'wobench-v29.16.1';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -1487,7 +1487,8 @@ const APP_VERSION = 'wobench-v29.16';
       const c = document.getElementById('todayTxList');
       if (!c) return;
       const ds = ymd(new Date());
-      const recs = recordsForModule('zichan').filter(function (r) { return !isEnc(r) && r.date === ds; }).sort(function (a, b) { return b.updatedAt - a.updatedAt; });
+      // 今日收支：按创建顺序（id 含时间戳）稳定排序，编辑不跳位
+      const recs = recordsForModule('zichan').filter(function (r) { return !isEnc(r) && r.date === ds; }).sort(function (a, b) { var ia = a.id || '', ib = b.id || ''; return ia < ib ? 1 : -1; });
       if (!recs.length) { c.innerHTML = '<div class="history-empty">今日暂无交易</div>'; return; }
       let exp = 0, inc = 0;
       recs.forEach(function (r) {
@@ -1635,7 +1636,12 @@ const APP_VERSION = 'wobench-v29.16';
       document.querySelectorAll('[data-tx-filter]').forEach(function (t) { t.classList.toggle('active', t.dataset.txFilter === txHistPeriod); });
       const c = document.getElementById('txList');
       if (!c) return;
-      let recs = recordsForModule('zichan').filter(function (r) { return !isEnc(r); }).sort(function (a, b) { return b.updatedAt - a.updatedAt; });
+      // 强制按收支时间（记录 date）降序排序；同日用记录 id（含创建时间戳）稳定排序，编辑只改 updatedAt，不影响顺序、不跳位
+      let recs = recordsForModule('zichan').filter(function (r) { return !isEnc(r); }).sort(function (a, b) {
+        if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+        var ia = a.id || '', ib = b.id || '';
+        return ia < ib ? 1 : -1;
+      });
       if (txHistPeriod !== 'all') recs = recs.filter(function (r) { return inPeriod(r.date, txHistPeriod); });
       if (!recs.length) {
         const lbl = txHistPeriod === 'all' ? '' : (FINANCE_PERIODS[txHistPeriod] ? FINANCE_PERIODS[txHistPeriod].label : '');
