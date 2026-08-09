@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.19.1';
+const APP_VERSION = 'wobench-v29.20';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -83,9 +83,9 @@ const APP_VERSION = 'wobench-v29.19.1';
         if (rec) { const el = document.getElementById(target); if (el) fillForm(el, rec.fields); }
         renderHistory(target);
         if (target === 'xiushen') { renderXiushenDaily(todayStr); renderYanghuList(); renderYanghuHistory(); }
-        if (target === 'study') { renderStudyPeriod(); renderTcm(); renderStudyTimeCard(); renderTcmHistory(); }
+        if (target === 'study') { renderStudyPeriod(); renderTcm(); renderStudyTimeCard(); renderTcmHistory(); renderReadingList(); }
       }
-      else if (target === 'todo') renderTodo();
+      else if (target === 'todo') { renderTodo(); renderTodoTagRow(); }
       else if (target === 'favorite') { renderFavGrid(); renderReadingList(); }
       else if (target === 'mine') renderMine();
       if (BOTTOM_TABS.indexOf(target) >= 0) {
@@ -1015,6 +1015,7 @@ const APP_VERSION = 'wobench-v29.19.1';
         const mod = tab.dataset.tab;
         const name = tab.dataset.tabName;
         switchModuleTab(mod, name);
+        if (mod === 'study' && name === 'history') renderTcmHistory();
         const m = document.getElementById(mod);
         const strip = m && m.querySelector('[data-card-tabs]');
         if (strip) strip.style.display = (name === 'history') ? 'none' : '';
@@ -4382,14 +4383,54 @@ const APP_VERSION = 'wobench-v29.19.1';
       } catch (e) { return []; }
     }
     function saveTodo(arr) { localStorage.setItem('zqdd:todo', JSON.stringify(arr)); }
+    // ---- 待办标签：可编辑 / 可增减，持久化并同步到列表与筛选 ----
+    var TODO_TAGS_KEY = 'zqdd:todo_tags';
+    function loadTodoTags() {
+      try { var a = JSON.parse(localStorage.getItem(TODO_TAGS_KEY) || 'null'); if (Array.isArray(a)) return a; } catch (e) {}
+      return ['生活', '工作', '学习'];
+    }
+    function saveTodoTags(a) { try { localStorage.setItem(TODO_TAGS_KEY, JSON.stringify(a)); } catch (e) {} }
+    function todoFilterTags() { return ['全部'].concat(loadTodoTags()).concat(['无']); }
+    function renderTodoTagRow() {
+      var row = document.getElementById('todoTagRow');
+      if (!row) return;
+      var tags = loadTodoTags();
+      row.innerHTML = tags.map(function (tg) {
+        var active = (selectedTodoTag || '') === tg ? ' active' : '';
+        return '<span class="todo-tag' + active + '" data-todo-tag="' + escapeAttr(tg) + '">' + escapeHtml(tg) + ' <span class="todo-tag-x" data-todo-del-tag="' + escapeAttr(tg) + '" title="删除标签">×</span></span>';
+      }).join('');
+      row.querySelectorAll('.todo-tag').forEach(function (sp) {
+        sp.addEventListener('click', function (e) {
+          if (e.target.closest('[data-todo-del-tag]')) return;
+          selectedTodoTag = sp.getAttribute('data-todo-tag') || '';
+          updateTodoTagUI();
+        });
+      });
+      row.querySelectorAll('[data-todo-del-tag]').forEach(function (x) {
+        x.addEventListener('click', function (e) {
+          e.stopPropagation();
+          removeTodoTag(x.getAttribute('data-todo-del-tag'));
+        });
+      });
+    }
+    function removeTodoTag(tg) {
+      var tags = loadTodoTags().filter(function (t) { return t !== tg; });
+      saveTodoTags(tags);
+      // 引用该标签的待办归为「无」，避免遗留孤立标签
+      var arr = loadTodo();
+      arr.forEach(function (t) { if (t.tag === tg) t.tag = ''; });
+      saveTodo(arr);
+      if (selectedTodoTag === tg) selectedTodoTag = '';
+      renderTodoTagRow(); updateTodoTagUI(); renderTodo();
+    }
     var editingTodoId = null;
     var editingTodoTag = '';
     function todoRow(t) {
       if (editingTodoId === t.id) {
-        var editTags = ['', '生活', '工作', '学习'].map(function (tg) {
+        var editTags = [''].concat(loadTodoTags()).map(function (tg) {
           var label = tg || '无';
           var active = (editingTodoTag || '') === tg ? ' active' : '';
-          return '<span class="todo-tag' + active + '" data-todo-edittag="' + tg + '">' + label + '</span>';
+          return '<span class="todo-tag' + active + '" data-todo-edittag="' + escapeAttr(tg) + '">' + escapeHtml(label) + '</span>';
         }).join('');
         return '<div class="history-item" style="flex-wrap:wrap;"><div class="hi-main" style="flex:1 1 100%;"><input class="field-input" id="todoEditInput" value="' + escapeAttr(t.text) + '" style="width:100%;"></div>'
           + '<div class="todo-tag-row" id="todoEditTagRow" style="flex:1 1 100%; margin-top:8px;">' + editTags + '</div>'
@@ -4405,8 +4446,9 @@ const APP_VERSION = 'wobench-v29.19.1';
       // 渲染筛选 Tab
       var fb = document.getElementById('todoFilterBar');
       if (fb) {
-        fb.innerHTML = TODO_FILTER_TAGS.map(function (t) {
-          return '<span class="filter-chip' + (t === todoFilterTag ? ' active' : '') + '" data-todo-filter="' + t + '">' + t + '</span>';
+        var ftags = todoFilterTags();
+        fb.innerHTML = ftags.map(function (t) {
+          return '<span class="filter-chip' + (t === todoFilterTag ? ' active' : '') + '" data-todo-filter="' + escapeAttr(t) + '">' + escapeHtml(t) + '</span>';
         }).join('');
       }
       var allPending = loadTodo().filter(function (t) { return !t.done; });
@@ -4458,6 +4500,22 @@ const APP_VERSION = 'wobench-v29.19.1';
       });
     }
     updateTodoTagUI();
+
+    // 新增待办标签（可增减，持久化）
+    var todoAddTag = document.getElementById('todoAddTag');
+    var todoNewTag = document.getElementById('todoNewTag');
+    if (todoAddTag) todoAddTag.addEventListener('click', function () {
+      var v = ((todoNewTag && todoNewTag.value) || '').trim();
+      if (!v) { showToast('请输入标签名'); return; }
+      var tags = loadTodoTags();
+      if (tags.indexOf(v) >= 0) { showToast('标签已存在'); return; }
+      tags.push(v); saveTodoTags(tags);
+      if (todoNewTag) todoNewTag.value = '';
+      renderTodoTagRow(); renderTodo(); showToast('已添加标签「' + v + '」');
+    });
+    if (todoNewTag) todoNewTag.addEventListener('keydown', function (e) { if (e.key === 'Enter' && todoAddTag) todoAddTag.click(); });
+    renderTodoTagRow();
+
     document.addEventListener('click', function (e) {
       var tg = e.target.closest('[data-todo-toggle]');
       if (tg) {
