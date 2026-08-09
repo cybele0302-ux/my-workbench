@@ -484,16 +484,16 @@
 
     .mhc-tabs {
       display: flex;
-      justify-content: center;
+      justify-content: flex-start;
       gap: 10px;
       position: relative;
       z-index: 1;
     }
 
     .mhc-tab {
-      flex: 0 0 auto;
-      min-width: 118px;
-      max-width: 140px;
+      flex: 1 1 0;
+      min-width: 0;
+      max-width: none;
       text-align: center;
       padding: 8px 0;
       border-radius: 999px;
@@ -1954,9 +1954,11 @@
     .tcm-note-input { flex: 1 1 auto; min-width: 0; margin: 0; font-size: 12px; padding: 9px 10px; height: 38px; box-sizing: border-box; border-radius: 10px; }
 
     /* ===== 待办标签（生活 / 工作） ===== */
-    .todo-tag-row { display: flex; gap: 8px; margin-top: 12px; }
-    .todo-tag { padding: 7px 16px; border-radius: 999px; font-size: 12px; font-weight: 600; background: rgba(var(--accent-rgb), 0.06); border: 1px solid var(--card-border); color: var(--text-sub); cursor: pointer; transition: all 0.2s; -webkit-tap-highlight-color: transparent; }
+    .todo-tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .todo-tag { padding: 7px 14px; border-radius: 999px; font-size: 12px; font-weight: 600; background: rgba(var(--accent-rgb), 0.06); border: 1px solid var(--card-border); color: var(--text-sub); cursor: pointer; transition: all 0.2s; -webkit-tap-highlight-color: transparent; }
     .todo-tag.active { background: linear-gradient(135deg, var(--purple-main), var(--purple-deep)); color: #fff; border-color: transparent; box-shadow: 0 6px 14px rgba(var(--accent-deep-rgb), 0.28); }
+    .todo-tag-x { margin-left: 4px; opacity: 0.55; font-weight: 700; cursor: pointer; }
+    .todo-tag-x:hover { opacity: 1; }
     .todo-tag-chip { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 9px; border-radius: 999px; margin-right: 6px; background: rgba(var(--accent-rgb), 0.14); color: var(--purple-deep); vertical-align: middle; }
 
     /* ===== 交易明细（平铺，最多两行） ===== */
@@ -2144,10 +2146,14 @@
 /* 让所有内嵌 tab 条两端突破卡片内边距、与外缘对齐（保留各自 margin-bottom） */
 .report-tabs,
 .trend-tabs,
-.study-sub-tabs,
-.mhc-tabs {
+.study-sub-tabs {
   margin-left: -18px !important;
   margin-right: -18px !important;
+}
+/* 模块头部 tab（今日内容/历史记录）：不突破内边距，与上方内容对齐、左右对称 */
+.mhc-tabs {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 .study-sub-panel.hidden { display: none; }
 
