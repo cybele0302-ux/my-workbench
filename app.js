@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.20';
+const APP_VERSION = 'wobench-v29.20.1';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -104,6 +104,9 @@ const APP_VERSION = 'wobench-v29.20';
     // mode: 'reset' 根级切换(清空栈) | 'push' 入栈(来自我的/快捷) | 'keep' 不改变栈(返回)
     function switchTo(target, opts) {
       opts = opts || {};
+      // 切走当前模块前，先把未落盘的今日面板保存，避免填了的「身体变化」等数据在切换时丢失
+      const curMod = document.querySelector('.module:not(.hidden)');
+      if (curMod && AUTOSAVE_MODS.indexOf(curMod.id) >= 0) flushAutoSave(curMod.id);
       if (opts.reset || (BOTTOM_TABS.indexOf(target) >= 0 && !opts.keep)) {
         navStack = [target];
       } else if (opts.push) {
@@ -1014,6 +1017,8 @@ const APP_VERSION = 'wobench-v29.20';
       tab.addEventListener('click', function () {
         const mod = tab.dataset.tab;
         const name = tab.dataset.tabName;
+        // 切到历史面板前，先把今日面板已改动但未落盘的内容保存，避免切走后被覆盖丢失
+        if (AUTOSAVE_MODS.indexOf(mod) >= 0) flushAutoSave(mod);
         switchModuleTab(mod, name);
         if (mod === 'study' && name === 'history') renderTcmHistory();
         const m = document.getElementById(mod);
@@ -1290,9 +1295,21 @@ const APP_VERSION = 'wobench-v29.20';
     // ---- 改动即自动保存（输入 / 选择 / 滑杆） ----
     const AUTOSAVE_MODS = ['shiti', 'study', 'xiushen'];
     const autoSaveTimers = {};
+    const autoSaveDirty = {};
     function scheduleAutoSave(mod) {
+      autoSaveDirty[mod] = true;
       clearTimeout(autoSaveTimers[mod]);
-      autoSaveTimers[mod] = setTimeout(function () { saveModule(mod, { silent: true, keepEdit: true }); }, 550);
+      autoSaveTimers[mod] = setTimeout(function () { autoSaveDirty[mod] = false; saveModule(mod, { silent: true, keepEdit: true }); }, 550);
+    }
+    // 切换模块 / 切到后台 / 关闭页面前，把用户已改动但未落盘（防抖未触发）的表单立即保存，避免丢失
+    function flushAutoSave(mod) {
+      if (!autoSaveDirty[mod]) return;
+      clearTimeout(autoSaveTimers[mod]);
+      autoSaveDirty[mod] = false;
+      saveModule(mod, { silent: true, keepEdit: true });
+    }
+    function flushAllAutoSave() {
+      AUTOSAVE_MODS.forEach(function (m) { flushAutoSave(m); });
     }
     function setupAutoSave() {
       AUTOSAVE_MODS.forEach(function (mod) {
@@ -2650,7 +2667,13 @@ const APP_VERSION = 'wobench-v29.20';
     async function cloudPullIncremental() {
       const j = await cloudProxyCall('since', { since: lastKnownCloudAt });
       if (!j || !Array.isArray(j.rows)) throw new Error('incremental unavailable');
-      if (j.rows.length === 0) return false; // 无增量 → 调用方回退整包引导
+      if (j.rows.length === 0) {
+        // 无增量：仅「从未同步过（lastKnownCloudAt=0）」才回退整包做一次引导；
+        // 已同步过则直接跳过，避免「云端无变更也整包解密」造成的长时间白屏
+        if (lastKnownCloudAt === 0) return false;
+        lastPullRecordCount = Object.keys(store).length;
+        return true;
+      }
       const pass = cloudPass;
       const recs = []; const tomb = [];
       for (const row of j.rows) {
@@ -3815,6 +3838,13 @@ const APP_VERSION = 'wobench-v29.20';
       }).catch(function (e) { console.error('SW 注册失败', e); });
       navigator.serviceWorker.addEventListener('controllerchange', function () { window.location.reload(); });
     }
+    // 页面隐藏 / 卸载前强制落盘未保存的表单，杜绝「填完即退出」导致的数据丢失
+    ['visibilitychange', 'pagehide'].forEach(function (ev) {
+      window.addEventListener(ev, function () {
+        if (ev === 'visibilitychange' && ev.target.visibilityState !== 'hidden') return;
+        flushAllAutoSave();
+      });
+    });
     function showUpdateBanner() {
       const b = document.getElementById('swUpdateBanner');
       if (b) b.classList.remove('hidden');
