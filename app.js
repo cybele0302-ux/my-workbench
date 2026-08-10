@@ -1,6 +1,12 @@
 
     
-const APP_VERSION = 'wobench-v29.22';
+const APP_VERSION = 'wobench-v29.23';
+function fmtMoney(n) {
+  var v = Number(n);
+  if (!isFinite(v)) v = 0;
+  v = Math.round(v * 100) / 100;
+  return v.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
@@ -1134,9 +1140,9 @@ const APP_VERSION = 'wobench-v29.22';
       }
 
       if (exp || inc) {
-        html += '<div class="report-section"><div class="report-section-title">💰 收支 ¥' + Math.round(inc - exp).toLocaleString() + '</div>';
-        html += '<div class="report-row"><div class="report-row-name">支出</div><div class="report-row-bar"><div class="report-row-fill" style="width:' + Math.min(100, (exp / Math.max(exp, inc) * 100 || 0)) + '%; background:linear-gradient(90deg,#ff8fa3,#c44569)"></div></div><div class="report-row-value">¥' + Math.round(exp).toLocaleString() + '</div></div>';
-        html += '<div class="report-row"><div class="report-row-name">收入</div><div class="report-row-bar"><div class="report-row-fill" style="width:' + Math.min(100, (inc / Math.max(exp, inc) * 100 || 0)) + '%; background:linear-gradient(90deg,#7fdcb3,#1d9e75)"></div></div><div class="report-row-value">¥' + Math.round(inc).toLocaleString() + '</div></div></div>';
+        html += '<div class="report-section"><div class="report-section-title">💰 收支 ¥' + fmtMoney(inc - exp) + '</div>';
+        html += '<div class="report-row"><div class="report-row-name">支出</div><div class="report-row-bar"><div class="report-row-fill" style="width:' + Math.min(100, (exp / Math.max(exp, inc) * 100 || 0)) + '%; background:linear-gradient(90deg,#ff8fa3,#c44569)"></div></div><div class="report-row-value">¥' + fmtMoney(exp) + '</div></div>';
+        html += '<div class="report-row"><div class="report-row-name">收入</div><div class="report-row-bar"><div class="report-row-fill" style="width:' + Math.min(100, (inc / Math.max(exp, inc) * 100 || 0)) + '%; background:linear-gradient(90deg,#7fdcb3,#1d9e75)"></div></div><div class="report-row-value">¥' + fmtMoney(inc) + '</div></div></div>';
       }
 
       // 语义小结：根据数据给出一句可读结论，而非冷冰冰的数字
@@ -1144,8 +1150,8 @@ const APP_VERSION = 'wobench-v29.22';
         var tips = [];
         if (totalDays >= 1) tips.push('坚持记录了 ' + totalDays + ' 天');
         if (studyMins >= 60) tips.push('学习 ' + (studyMins >= 60 ? (Math.round(studyMins / 60 * 10) / 10) + ' 小时' : studyMins + ' 分钟'));
-        if (exp > inc && (exp + inc) > 0) tips.push('本月支出已高于收入 ' + '¥' + Math.round(exp - inc).toLocaleString() + '，注意控支');
-        else if (inc > 0 && exp >= 0) tips.push('收支结余 ' + '¥' + Math.round(inc - exp).toLocaleString());
+        if (exp > inc && (exp + inc) > 0) tips.push('本月支出已高于收入 ' + '¥' + fmtMoney(exp - inc) + '，注意控支');
+        else if (inc > 0 && exp >= 0) tips.push('收支结余 ' + '¥' + fmtMoney(inc - exp));
         if (avgSleep != null && avgSleep < 60) tips.push('睡眠均值仅 ' + avgSleep + ' 分，建议早点休息');
         if (!studyMins && !counts.lingguang && !counts.shiti && counts.zichan === 0) tips.push('这个周期内容偏少，试着随手记一条');
         var insight = tips.length ? tips.join(' · ') : '一切平稳，继续保持 👍';
@@ -1518,9 +1524,9 @@ const APP_VERSION = 'wobench-v29.22';
           else { exp += amt; const c = r.fields['分类'] || '其他'; cats[c] = (cats[c] || 0) + amt; }
         }
       });
-      setText('expThisMonth', '¥' + Math.round(exp).toLocaleString());
-      setText('incThisMonth', '¥' + Math.round(inc).toLocaleString());
-      setText('balThisMonth', '¥' + Math.round(inc - exp).toLocaleString());
+      setText('expThisMonth', '¥' + fmtMoney(exp));
+      setText('incThisMonth', '¥' + fmtMoney(inc));
+      setText('balThisMonth', '¥' + fmtMoney(inc - exp));
       // 月度预算目标（目标设置 goal=budget）：以自然月支出衡量，超支高亮
       var budgetBar = document.getElementById('budgetBar');
       if (budgetBar) {
@@ -1535,7 +1541,7 @@ const APP_VERSION = 'wobench-v29.22';
           var over = monthExp > budget;
           budgetBar.innerHTML = '<div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">'
             + '<span style="color:var(--text-sub);">本月预算</span>'
-            + '<span style="color:' + (over ? '#c44569' : 'var(--text-main)') + ';">¥' + Math.round(monthExp).toLocaleString() + ' / ¥' + Math.round(budget).toLocaleString() + (over ? '（超 ' + Math.round(monthExp - budget).toLocaleString() + '）' : '') + '</span></div>'
+            + '<span style="color:' + (over ? '#c44569' : 'var(--text-main)') + ';">¥' + fmtMoney(monthExp) + ' / ¥' + fmtMoney(budget) + (over ? '（超 ' + fmtMoney(monthExp - budget) + '）' : '') + '</span></div>'
             + '<div style="height:10px; background:rgba(var(--accent-rgb),0.12); border-radius:999px; overflow:hidden;"><div style="height:100%; width:' + usedPct + '%; background:' + (over ? 'linear-gradient(90deg,#ff8fa3,#c44569)' : 'linear-gradient(90deg,var(--purple-main),var(--purple-deep))') + '; border-radius:999px; transition:width .3s;"></div></div>';
         } else budgetBar.innerHTML = '';
       }
@@ -1556,7 +1562,7 @@ const APP_VERSION = 'wobench-v29.22';
           const donut = '<svg viewBox="0 0 108 108" width="108" height="108" style="flex:none;">'
             + '<circle cx="' + cx + '" cy="' + cy + '" r="' + R + '" fill="none" stroke="rgba(var(--accent-rgb),0.10)" stroke-width="16"></circle>'
             + segs
-            + '<text x="' + cx + '" y="' + (cy - 1) + '" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text-main)">¥' + Math.round(total).toLocaleString() + '</text>'
+            + '<text x="' + cx + '" y="' + (cy - 1) + '" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text-main)">¥' + fmtMoney(total) + '</text>'
             + '<text x="' + cx + '" y="' + (cy + 12) + '" text-anchor="middle" font-size="9" fill="var(--text-sub)">总支出</text></svg>';
           const legend = '<div style="flex:1; display:flex; flex-direction:column; gap:5px; font-size:12px; min-width:0;">'
             + entries.map(function (e, i) {
@@ -1564,7 +1570,7 @@ const APP_VERSION = 'wobench-v29.22';
               return '<div style="display:flex; align-items:center; gap:6px; min-width:0;">'
                 + '<span style="width:9px; height:9px; border-radius:3px; flex:none; background:' + COLORS[i % COLORS.length] + ';"></span>'
                 + '<span style="color:var(--text-sub); flex:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:60px;">' + escapeHtml(e[0]) + '</span>'
-                + '<span style="margin-left:auto; color:var(--text-main); flex:none;">¥' + Math.round(e[1]).toLocaleString() + ' · ' + pct + '%</span></div>';
+                + '<span style="margin-left:auto; color:var(--text-main); flex:none;">¥' + fmtMoney(e[1]) + ' · ' + pct + '%</span></div>';
             }).join('')
             + '</div>';
           chart.innerHTML = '<div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">' + donut + legend + '</div>';
@@ -1586,7 +1592,7 @@ const APP_VERSION = 'wobench-v29.22';
         const amt = parseFloat(r.fields['金额']) || 0;
         if ((r.fields['交易类型'] || '支出') === '收入') inc += amt; else exp += amt;
       });
-      const sum = '<div style="display:flex; gap:14px; margin-bottom:10px; font-size:12px; padding:4px 0;"><span style="color:#c44569;">支出 ' + '¥' + Math.round(exp).toLocaleString() + '</span><span style="color:#1d9e75;">收入 ' + '¥' + Math.round(inc).toLocaleString() + '</span><span style="color:var(--text-main); font-weight:600;">结余 ' + '¥' + Math.round(inc - exp).toLocaleString() + '</span></div>';
+      const sum = '<div style="display:flex; gap:14px; margin-bottom:10px; font-size:12px; padding:4px 0;"><span style="color:#c44569;">支出 ' + '¥' + fmtMoney(exp) + '</span><span style="color:#1d9e75;">收入 ' + '¥' + fmtMoney(inc) + '</span><span style="color:var(--text-main); font-weight:600;">结余 ' + '¥' + fmtMoney(inc - exp) + '</span></div>';
       c.innerHTML = sum + recs.map(function (r) { return txItemHtml(r, true); }).join('');
     }
     const TX_CATS_DEFAULT_OUT = ['餐饮', '交通', '购物', '居住', '医疗', '娱乐', '其他', '车'];
@@ -1731,7 +1737,7 @@ const APP_VERSION = 'wobench-v29.22';
         ? '<div class="tx-editor hidden">'
           + '<div class="tx-editor-row"><span class="tx-editor-label">类型</span><div class="tx-editor-types">' + typeChips + '</div></div>'
           + '<div class="tx-editor-row"><span class="tx-editor-label">分类</span><div class="tx-editor-cats">' + catChips + '</div></div>'
-          + '<div class="tx-editor-row"><span class="tx-editor-label">金额</span><input class="field-input tx-editor-amt" type="number" value="' + amt + '"></div>'
+          + '<div class="tx-editor-row"><span class="tx-editor-label">金额</span><input class="field-input tx-editor-amt" type="number" step="0.01" value="' + amt + '"></div>'
           + '<div class="tx-editor-row"><span class="tx-editor-label">备注</span><input class="field-input tx-editor-note" type="text" value="' + noteEsc + '"></div>'
           + '<div class="tx-editor-row"><span class="tx-editor-label">日期</span><input class="field-input tx-editor-date" type="date" value="' + r.date + '"></div>'
           + '<div class="tx-edit-actions"><button class="ghost-btn" data-tx-save="' + r.id + '">保存</button><button class="ghost-btn" data-tx-cancel>取消</button></div>'
@@ -1740,7 +1746,7 @@ const APP_VERSION = 'wobench-v29.22';
       return '<div class="tx-item' + (editable ? ' tx-editable' : '') + '" data-tx-id="' + r.id + '">'
         + '<div class="tx-row"><span class="tx-badge">' + escapeHtml(badge) + '</span>'
         + '<span class="tx-note">' + escapeHtml(note) + '</span>'
-        + '<span class="tx-amt" style="color:' + color + '">' + sign + ' ¥' + Math.round(amt).toLocaleString() + '</span>' + editBtn + '<span class="hi-del" data-del="' + r.id + '">×</span></div>'
+        + '<span class="tx-amt" style="color:' + color + '">' + sign + ' ¥' + fmtMoney(amt) + '</span>' + editBtn + '<span class="hi-del" data-del="' + r.id + '">×</span></div>'
         + sub
         + editor
         + '</div>';
@@ -2910,7 +2916,7 @@ const APP_VERSION = 'wobench-v29.22';
       var expData = dates.map(function (ds) {
         var exp = 0;
         recordsForDay(ds, 'zichan').forEach(function (r) { if ((r.fields['交易类型'] || '支出') !== '收入') exp += parseFloat(r.fields['金额']) || 0; });
-        return Math.round(exp);
+        return exp;
       });
       var sleepData = dates.map(function (ds) {
         var scores = [];
@@ -3040,7 +3046,7 @@ const APP_VERSION = 'wobench-v29.22';
           if (r.module === 'zichan' && !isEnc(r) && r.date.indexOf(ym) === 0 && (r.fields['交易类型'] || '支出') !== '收入') exp += parseFloat(r.fields['金额']) || 0;
         });
         var pct3 = Math.min(100, Math.round(exp / goals.budget * 100));
-        updateGoalBadge('zichan', pct3, '¥' + Math.round(exp) + '/¥' + goals.budget, pct3 >= 100);
+        updateGoalBadge('zichan', pct3, '¥' + fmtMoney(exp) + '/¥' + fmtMoney(goals.budget), pct3 >= 100);
       }
     }
     function updateGoalBadge(mod, pct, label, over) {
@@ -3161,7 +3167,7 @@ const APP_VERSION = 'wobench-v29.22';
       text += '✅ 待办完成 ' + todoDone + ' 项。\n';
       text += '🚽 实体感录 ' + shitiCount + ' 天。';
       if (avgSleep) text += '\n🌙 平均睡眠质量 ' + avgSleep + ' 分。';
-      text += '\n💰 支出 ' + '¥' + Math.round(exp).toLocaleString() + ' / 收入 ' + '¥' + Math.round(inc).toLocaleString() + ' / 结余 ' + '¥' + Math.round(inc - exp).toLocaleString() + '。';
+      text += '\n💰 支出 ' + '¥' + fmtMoney(exp) + ' / 收入 ' + '¥' + fmtMoney(inc) + ' / 结余 ' + '¥' + fmtMoney(inc - exp) + '。';
 
       var savedReview = '';
       try { savedReview = localStorage.getItem('zqdd:review_' + reviewPeriod + '_' + start) || ''; } catch (e) {}
