@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.21';
+const APP_VERSION = 'wobench-v29.22';
 
     const ICONS = {
       sparkle: '<path d="M12 3 L13.6 10.4 L21 12 L13.6 13.6 L12 21 L10.4 13.6 L3 12 L10.4 10.4 Z"/>',
