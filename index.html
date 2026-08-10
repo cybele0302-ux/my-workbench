@@ -94,7 +94,7 @@
               <div class="goal-row">
                 <span class="goal-name">💰 理财月支出上限</span>
                 <span class="goal-unit">元</span>
-                <input class="field-input goal-input" type="number" data-goal="budget" placeholder="3000" min="0">
+                <input class="field-input goal-input" type="number" data-goal="budget" placeholder="3000" min="0" step="0.01">
               </div>
             </div>
             </div>
@@ -446,7 +446,7 @@
                 <div class="field-label">分类 <button class="manage-trigger sm" type="button" id="manageTxCatsBtn">管理</button></div>
                 <div class="choice-row" data-save="分类" id="txCatChoices"></div>
               </div>
-              <input class="field-input" data-save="金额" type="number" placeholder="金额（元）" style="margin-top:12px;">
+              <input class="field-input" data-save="金额" type="number" placeholder="金额（元）" step="0.01" style="margin-top:12px;">
               <input class="field-input" data-save="备注" placeholder="备注（如：午餐、加油、工资）" style="margin-top:8px;">
             </div>
 
