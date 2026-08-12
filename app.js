@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.23';
+const APP_VERSION = 'wobench-v29.24';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -1230,7 +1230,7 @@ function fmtMoney(n) {
         }
         else if (inp.classList.contains('tag-group')) inp.querySelectorAll('.tag.active').forEach(function (t) { t.classList.remove('active'); });
         else if (inp.classList.contains('choice-row')) { inp.querySelectorAll('.choice').forEach(function (c) { c.classList.remove('active'); }); const f = inp.querySelector('.choice'); if (f) f.classList.add('active'); }
-        else if (inp.classList.contains('pick-grid')) { inp.querySelectorAll('.pick-item').forEach(function (p) { p.classList.remove('active'); }); const f = inp.querySelector('.pick-item'); if (f) f.classList.add('active'); }
+        else if (inp.classList.contains('pick-grid')) { inp.querySelectorAll('.pick-item').forEach(function (p) { p.classList.remove('active'); }); var _def = null; inp.querySelectorAll('.pick-item').forEach(function (p) { if (!_def && p.querySelector('.pick-label') && p.querySelector('.pick-label').textContent === '平淡') _def = p; }); if (!_def) _def = inp.querySelector('.pick-item'); if (_def) _def.classList.add('active'); }
       });
       updateSleepUI();
     }
@@ -2508,8 +2508,16 @@ function fmtMoney(n) {
         } else if (cur === 'favorite') {
           renderFavGrid(); renderReadingList();
         } else if (DAILY_MODS.indexOf(cur) >= 0) {
-          const rec = store[ymd(new Date()) + '|' + cur];
-          if (rec) { const el = document.getElementById(cur); if (el) fillForm(el, rec.fields); }
+          // 守卫：正在输入 / 还有未落盘的自动保存 / 正在编辑历史记录时，不重填表单，
+          // 否则云端 60 秒同步会把用户正在编辑的文字覆盖回退
+          const el = document.getElementById(cur);
+          const activeEl = document.activeElement;
+          const focusedEdit = el && activeEl && el.contains(activeEl) && activeEl.matches && activeEl.matches('[data-save]') && (activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'INPUT');
+          const editingMod = editingId ? ('' + editingId).split('|')[1] : null;
+          if (!focusedEdit && !autoSaveDirty[cur] && editingMod !== cur) {
+            const rec = store[ymd(new Date()) + '|' + cur];
+            if (rec && el) fillForm(el, rec.fields);
+          }
           renderHistory(cur);
           if (cur === 'xiushen') { renderXiushenDaily(todayStr); renderYanghuList(); renderYanghuHistory(); }
           if (cur === 'study') { renderStudyPeriod(); renderTcm(); renderStudyTimeCard(); renderTcmHistory(); }
