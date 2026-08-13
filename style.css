@@ -1999,7 +1999,7 @@
     .tcm-note-input { flex: 1 1 auto; min-width: 0; margin: 0; font-size: 12px; padding: 9px 10px; height: 38px; box-sizing: border-box; border-radius: 10px; }
 
     /* ===== 待办标签（生活 / 工作） ===== */
-    .todo-tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .todo-tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; width: 100%; justify-content: space-between; }
     .todo-tag { padding: 7px 14px; border-radius: 999px; font-size: 12px; font-weight: 600; background: rgba(var(--accent-rgb), 0.06); border: 1px solid var(--card-border); color: var(--text-sub); cursor: pointer; transition: all 0.2s; -webkit-tap-highlight-color: transparent; }
     .todo-tag.active { background: linear-gradient(135deg, var(--purple-main), var(--purple-deep)); color: #fff; border-color: transparent; box-shadow: 0 6px 14px rgba(var(--accent-deep-rgb), 0.28); }
     .todo-tag-x { margin-left: 4px; opacity: 0.55; font-weight: 700; cursor: pointer; }
@@ -2292,7 +2292,7 @@
 .phone-frame.has-back .module-title { padding-left: 44px; }
 
 /* ===== 学习标签（可编辑/删减） ===== */
-.study-tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+.study-tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; width: 100%; justify-content: space-between; }
 .study-tag-chip { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--card-border); background: rgba(var(--accent-rgb), 0.05); font-size: 13px; color: var(--text-main); cursor: pointer; -webkit-tap-highlight-color: transparent; transition: all .15s; }
 .study-tag-chip.active { background: var(--purple-main); color: #fff; border-color: var(--purple-main); }
 .study-tag-x { margin-left: 2px; font-size: 14px; line-height: 1; opacity: 0.55; }
