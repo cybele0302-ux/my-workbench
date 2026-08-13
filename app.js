@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.26';
+const APP_VERSION = 'wobench-v29.27';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -1689,6 +1689,8 @@ function fmtMoney(n) {
       });
       const mtc = document.getElementById('manageTxCatsBtn'); if (mtc) mtc.addEventListener('click', openManageTxCats);
       const myh = document.getElementById('manageYanghuBtn'); if (myh) myh.addEventListener('click', openManageYanghu);
+      const mttb = document.getElementById('manageTodoTagsBtn'); if (mttb) mttb.addEventListener('click', openManageTodoTags);
+      const mstb = document.getElementById('manageStudyTagsBtn'); if (mstb) mstb.addEventListener('click', openManageStudyTags);
     })();
     function openManageTxCats() {
       const type = txFormType;
@@ -1724,6 +1726,18 @@ function fmtMoney(n) {
       openManageList('管理养护打卡项（可新增 / 删除 / 上下移动排序）', getYanghuKeys(), true, function (list) {
         if (!list.length) { showToast('至少保留一个打卡项'); return; }
         setYanghuKeys(list); renderYanghuList(); renderYanghuHistory();
+      });
+    }
+    function openManageTodoTags() {
+      openManageList('管理待办标签（可新增 / 删除 / 改名）', loadTodoTags(), false, function (list) {
+        if (!list.length) { showToast('至少保留一个标签'); return; }
+        saveTodoTags(list); renderTodoTagRow(); renderTodo();
+      });
+    }
+    function openManageStudyTags() {
+      openManageList('管理学习标签（可新增 / 删除 / 改名）', studyTags, false, function (list) {
+        if (!list.length) { showToast('至少保留一个标签'); return; }
+        studyTags = list; saveStudyTags(); renderStudyTagRow();
       });
     }
     function txItemHtml(r, editable) {
@@ -1867,20 +1881,11 @@ function fmtMoney(n) {
       cur.forEach(function (t) { selectedStudyTags[t] = true; });
       row.innerHTML = studyTags.map(function (t) {
         var active = selectedStudyTags[t] ? ' active' : '';
-        return '<span class="study-tag-chip' + active + '" data-study-tag="' + escapeAttr(t) + '">' + escapeHtml(t) + '<span class="study-tag-x" data-study-tag-del="' + escapeAttr(t) + '">×</span></span>';
+        return '<span class="study-tag-chip' + active + '" data-study-tag="' + escapeAttr(t) + '">' + escapeHtml(t) + '</span>';
       }).join('');
     }
     var studyTagRowEl = document.getElementById('studyTagRow');
     if (studyTagRowEl) studyTagRowEl.addEventListener('click', function (e) {
-      var del = e.target.closest('[data-study-tag-del]');
-      if (del) {
-        var dt = del.getAttribute('data-study-tag-del');
-        studyTags = studyTags.filter(function (x) { return x !== dt; });
-        delete selectedStudyTags[dt];
-        saveStudyTags(); updateStudySubject(); renderStudyTagRow();
-        showToast('已删除标签：' + dt);
-        return;
-      }
       var chip = e.target.closest('[data-study-tag]');
       if (chip) {
         var t2 = chip.getAttribute('data-study-tag');
@@ -1888,17 +1893,8 @@ function fmtMoney(n) {
         updateStudySubject(); renderStudyTagRow();
       }
     });
-    var studyAddTagBtn = document.getElementById('studyAddTag');
-    if (studyAddTagBtn) studyAddTagBtn.addEventListener('click', function () {
-      var inp = document.getElementById('studyNewTag');
-      var v = inp ? inp.value.trim() : '';
-      if (!v) { showToast('请输入标签名'); return; }
-      if (studyTags.indexOf(v) < 0) studyTags.push(v);
-      selectedStudyTags[v] = true;
-      saveStudyTags();
-      if (inp) inp.value = '';
-      updateStudySubject(); renderStudyTagRow();
-    });
+    // 学习标签的增删改已统一到「⚙ 管理」弹窗（openManageStudyTags）
+
 
     let studyPeriodMode = 'month';
     function renderStudyPeriod(period) {
@@ -4542,31 +4538,16 @@ function fmtMoney(n) {
       var tags = loadTodoTags();
       row.innerHTML = tags.map(function (tg) {
         var active = (selectedTodoTag || '') === tg ? ' active' : '';
-        return '<span class="todo-tag' + active + '" data-todo-tag="' + escapeAttr(tg) + '">' + escapeHtml(tg) + ' <span class="todo-tag-x" data-todo-del-tag="' + escapeAttr(tg) + '" title="删除标签">×</span></span>';
+        return '<span class="todo-tag' + active + '" data-todo-tag="' + escapeAttr(tg) + '">' + escapeHtml(tg) + '</span>';
       }).join('');
       row.querySelectorAll('.todo-tag').forEach(function (sp) {
-        sp.addEventListener('click', function (e) {
-          if (e.target.closest('[data-todo-del-tag]')) return;
+        sp.addEventListener('click', function () {
           selectedTodoTag = sp.getAttribute('data-todo-tag') || '';
           updateTodoTagUI();
         });
       });
-      row.querySelectorAll('[data-todo-del-tag]').forEach(function (x) {
-        x.addEventListener('click', function (e) {
-          e.stopPropagation();
-          removeTodoTag(x.getAttribute('data-todo-del-tag'));
-        });
-      });
-    }
-    function removeTodoTag(tg) {
-      var tags = loadTodoTags().filter(function (t) { return t !== tg; });
-      saveTodoTags(tags);
-      // 引用该标签的待办归为「无」，避免遗留孤立标签
-      var arr = loadTodo();
-      arr.forEach(function (t) { if (t.tag === tg) t.tag = ''; });
-      saveTodo(arr);
-      if (selectedTodoTag === tg) selectedTodoTag = '';
-      renderTodoTagRow(); updateTodoTagUI(); renderTodo();
+      // 删除标签已收敛到「⚙ 管理」弹窗（openManageTodoTags）
+
     }
     var editingTodoId = null;
     var editingTodoTag = '';
@@ -4674,19 +4655,7 @@ function fmtMoney(n) {
     }
     updateTodoTagUI();
 
-    // 新增待办标签（可增减，持久化）
-    var todoAddTag = document.getElementById('todoAddTag');
-    var todoNewTag = document.getElementById('todoNewTag');
-    if (todoAddTag) todoAddTag.addEventListener('click', function () {
-      var v = ((todoNewTag && todoNewTag.value) || '').trim();
-      if (!v) { showToast('请输入标签名'); return; }
-      var tags = loadTodoTags();
-      if (tags.indexOf(v) >= 0) { showToast('标签已存在'); return; }
-      tags.push(v); saveTodoTags(tags);
-      if (todoNewTag) todoNewTag.value = '';
-      renderTodoTagRow(); renderTodo(); showToast('已添加标签「' + v + '」');
-    });
-    if (todoNewTag) todoNewTag.addEventListener('keydown', function (e) { if (e.key === 'Enter' && todoAddTag) todoAddTag.click(); });
+    // 待办标签的增删改已统一到「⚙ 管理」弹窗（openManageTodoTags）
     renderTodoTagRow();
 
     document.addEventListener('click', function (e) {
