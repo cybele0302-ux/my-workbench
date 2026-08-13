@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.29';
+const APP_VERSION = 'wobench-v29.30';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -825,6 +825,23 @@ function fmtMoney(n) {
         }
       }
     }
+    function refreshAvatar() {
+      ['mineAvatar', 'settingsMineAvatar'].forEach(function (id) {
+        var av = document.getElementById(id);
+        if (!av) return;
+        var avData = '';
+        try { avData = localStorage.getItem('zqdd:avatar') || ''; } catch (e) {}
+        if (avData) {
+          av.style.backgroundImage = 'url(' + avData + ')';
+          av.style.backgroundSize = 'cover';
+          av.style.backgroundPosition = 'center';
+          av.textContent = '';
+        } else {
+          av.style.backgroundImage = '';
+          av.textContent = USER_NICKNAME;
+        }
+      });
+    }
 
     // 头像本地上传 + 昵称/签名双击编辑
     (function () {
@@ -841,6 +858,7 @@ function fmtMoney(n) {
           var r = new FileReader();
           r.onload = function () {
             try { localStorage.setItem('zqdd:avatar', r.result); } catch (e) {}
+            try { schedulePush(); } catch (e2) {}
             av.style.backgroundImage = 'url(' + r.result + ')';
             av.style.backgroundSize = 'cover';
             av.style.backgroundPosition = 'center';
@@ -1393,9 +1411,57 @@ function fmtMoney(n) {
       }
     }
 
+    function shiftYmd(base, delta) {
+      var p = String(base).split('-');
+      var dt = new Date(+p[0], +p[1] - 1, +p[2]);
+      dt.setDate(dt.getDate() + delta);
+      return ymd(dt);
+    }
+    function renderStudyHistory(c) {
+      const recs = recordsForModule('study').filter(function (r) { return !isEnc(r); });
+      const recByDate = {};
+      recs.forEach(function (r) { recByDate[r.date] = r; });
+      const today = ymd(new Date());
+      let start = today;
+      if (recs.length) {
+        const dates = recs.map(function (r) { return r.date; }).sort();
+        start = dates[0];
+        const cutoff = shiftYmd(today, -120);
+        if (start < cutoff) start = cutoff;
+      } else {
+        start = shiftYmd(today, -14);
+      }
+      const days = [];
+      var d = start;
+      while (d <= today) { days.push(d); d = shiftYmd(d, 1); }
+      const items = days.map(function (ds) {
+        const r = recByDate[ds];
+        const lm = lunarCn(ds).replace(/^.+?年/, '');
+        if (r) {
+          const flds = r.fields || {};
+          const sum = Object.keys(flds).map(function (k) { return k + '：' + flds[k]; }).join(' · ') || '（空）';
+          return '<div class="history-item"><div class="hi-main"><div class="hi-date">' + ds.slice(5) + ' · ' + lm + '</div><div class="hi-sum">' + escapeHtml(sum) + '</div></div><div class="hi-actions"><span class="hi-edit" data-edit-id="' + r.id + '" data-edit-mod="study">编辑</span><span class="hi-del" data-del="' + r.id + '">×</span></div></div>';
+        }
+        return '<div class="history-item hi-empty-day" data-fill-date="' + ds + '"><div class="hi-main"><div class="hi-date">' + ds.slice(5) + ' · ' + lm + '</div><div class="hi-sum hi-empty-sum">— 无记录，点击补录 —</div></div><div class="hi-actions"><span class="hi-fill" data-fill-date="' + ds + '">补录</span></div></div>';
+      });
+      renderPaged('hist:study', c, items);
+    }
+    function goFillStudyDate(ds) {
+      editingId = null;
+      editingDate = ds;
+      switchModuleTab('study', 'today');
+      var el = document.getElementById('study');
+      if (el && typeof clearForm === 'function') clearForm(el);
+      var b = document.querySelector('[data-edit-banner="study"]');
+      if (b) { b.classList.remove('hidden'); var bb = b.querySelector('b'); if (bb) bb.textContent = ds + ' · ' + lunarCn(ds).replace(/^.+?年/, ''); }
+      var btn = document.querySelector('[data-save-btn="study"]'); if (btn) btn.textContent = '保存 · ' + ds.slice(5);
+      renderTcm(); renderTcmHistory();
+      if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
     function renderHistory(mod) {
       const c = document.querySelector('[data-history="' + mod + '"]');
       if (!c) return;
+      if (mod === 'study') { renderStudyHistory(c); return; }
       const recs = recordsForModule(mod).filter(function (r) { return !isEnc(r); }).sort(function (a, b) { if (a.date !== b.date) return a.date < b.date ? 1 : -1; var ia = a.id || '', ib = b.id || ''; return ia < ib ? 1 : -1; });
       const recsFiltered = recs.filter(function (r) {
         var flds = r.fields || {};
@@ -1982,6 +2048,8 @@ function fmtMoney(n) {
       if (inspTodo) { inspToTodo(inspTodo.getAttribute('data-insp-todo')); return; }
       const ed = e.target.closest('[data-edit-id]');
       if (ed) { enterEdit(ed.getAttribute('data-edit-mod') || ed.getAttribute('data-edit-id').split('|')[0], ed.getAttribute('data-edit-id')); return; }
+      const fill = e.target.closest('[data-fill-date]');
+      if (fill) { goFillStudyDate(fill.getAttribute('data-fill-date')); return; }
       const ex = e.target.closest('.exit-edit');
       if (ex) { const b = ex.closest('[data-edit-banner]'); if (b) exitEdit(b.getAttribute('data-edit-banner')); return; }
       const ft = e.target.closest('[data-ftag]');
@@ -2549,6 +2617,8 @@ function fmtMoney(n) {
         verifier: localStorage.getItem(VERIFIER_KEY),
         goals: localStorage.getItem(GOAL_KEY),
         aiCfg: localStorage.getItem('zqdd:ai_cfg'),
+        avatar: localStorage.getItem('zqdd:avatar'),
+        readingList: localStorage.getItem('readingList'),
         deleted: deletedIds
       };
     }
@@ -2708,6 +2778,8 @@ function fmtMoney(n) {
       if (data.verifier != null) localStorage.setItem(VERIFIER_KEY, data.verifier);
       if (data.goals != null) localStorage.setItem(GOAL_KEY, data.goals);
       if (data.aiCfg != null) { localStorage.setItem('zqdd:ai_cfg', data.aiCfg); refreshAiCfgCache(); }
+      if (data.avatar != null) { localStorage.setItem('zqdd:avatar', data.avatar); refreshAvatar(); }
+      if (data.readingList != null) { localStorage.setItem('readingList', data.readingList); renderReadingList(); }
       loadGoals();
       // 存在本地更新或墓碑变更时统一回传一次，使云端 blob 与本地一致（彻底清除幽灵记录）
       if (localWins || resurrected > 0 || deletedIds.length) schedulePush();
@@ -3349,7 +3421,7 @@ function fmtMoney(n) {
       if (rl) rl.querySelectorAll('.reading-check').forEach(function (cb) {
         cb.addEventListener('change', function () {
           var rec = findRec(this.getAttribute('data-rid'));
-          if (this.checked && rec) { rec.done = true; rec.doneDate = todayStr; saveReadingData(data); renderReadingList(); showToast('已移入「已阅读」'); }
+          if (this.checked && rec) { rec.done = true; rec.doneDate = todayStr; saveReadingData(data); schedulePush(); renderReadingList(); showToast('已移入「已阅读」'); }
         });
       });
       if (rl) rl.querySelectorAll('.reading-page-input').forEach(function (inp) {
@@ -3361,7 +3433,7 @@ function fmtMoney(n) {
       if (rl) rl.querySelectorAll('.reading-del').forEach(function (btn) {
         btn.addEventListener('click', function () {
           var rec = findRec(this.getAttribute('data-rid'));
-          if (rec && confirm('删除「' + rec.title + '」？')) { data = data.filter(function (r) { return r.id !== rec.id; }); saveReadingData(data); renderReadingList(); }
+          if (rec && confirm('删除「' + rec.title + '」？')) { data = data.filter(function (r) { return r.id !== rec.id; }); saveReadingData(data); schedulePush(); renderReadingList(); }
         });
       });
       if (rl) rl.querySelectorAll('.reading-edit').forEach(function (btn) {
@@ -3373,7 +3445,7 @@ function fmtMoney(n) {
       if (dl) dl.querySelectorAll('.reading-restore').forEach(function (btn) {
         btn.addEventListener('click', function () {
           var rec = findRec(this.getAttribute('data-rid'));
-          if (rec) { rec.done = false; rec.doneDate = null; saveReadingData(data); renderReadingList();
+          if (rec) { rec.done = false; rec.doneDate = null; saveReadingData(data); schedulePush(); renderReadingList();
             var rt = document.querySelector('.study-reading-tab[data-sread="reading"]'); if (rt) rt.click(); showToast('已移回「正在阅读」'); }
         });
       });
@@ -3430,6 +3502,7 @@ function fmtMoney(n) {
         data.push({ id: 'r' + Date.now() + Math.floor(Math.random() * 1000), title: title, page: page, total: total, done: false, addedDate: todayStr });
       }
       saveReadingData(data);
+      schedulePush();
       renderReadingList();
       if (readingAddForm) readingAddForm.style.display = 'none';
       var ft = document.getElementById('readingFormTitle'); if (ft) ft.textContent = '添加阅读项';
