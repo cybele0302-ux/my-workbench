@@ -133,6 +133,10 @@
               <div class="trend-chart" id="trendBowel"></div>
             </div>
             <div class="trend-section">
+              <div class="trend-section-title">🌡️ 体温</div>
+              <div class="trend-chart" id="trendTemp"></div>
+            </div>
+            <div class="trend-section">
               <div class="trend-section-title">💰 每日支出</div>
               <div class="trend-chart" id="trendExpense"></div>
             </div>
@@ -249,6 +253,11 @@
                 <button class="ghost-btn" id="todoAdd" style="width:auto; padding:10px 18px;">添加</button>
               </div>
               <div class="todo-tag-row" id="todoTagRow"></div>
+              <div class="todo-type-row" id="todoTypeRow" style="margin-top:8px;">
+                <span style="font-size:12px;color:var(--text-sub);margin-right:4px;">类型</span>
+                <span class="todo-type-chip active" data-todo-addtype="short">短期</span>
+                <span class="todo-type-chip" data-todo-addtype="long">长期</span>
+              </div>
               <div style="display:flex; gap:6px; margin-top:8px;">
                 <input class="field-input" id="todoNewTag" placeholder="新增标签名" style="flex:1;">
                 <button class="ghost-btn" id="todoAddTag" style="width:auto; padding:6px 12px;">+ 标签</button>
@@ -257,6 +266,11 @@
 
             <div class="card">
               <div class="card-title">待办列表</div>
+              <div class="todo-type-tabs" id="todoTypeTabs">
+                <span class="todo-type-tab active" data-todo-type="all">所有待办</span>
+                <span class="todo-type-tab" data-todo-type="short">短期待办</span>
+                <span class="todo-type-tab" data-todo-type="long">长期待办</span>
+              </div>
               <div class="filter-bar" id="todoFilterBar"></div>
               <div class="history-list" id="todoList"></div>
             </div>
@@ -296,7 +310,8 @@
                 <div class="field-label">🌤 天气 · 心情</div>
                 <div class="study-sub-tabs">
                   <span class="study-sub-tab active" data-shiti="weather">🌤 天气</span>
-                  <span class="study-sub-tab" data-shiti="mood">😊 今日心情</span>
+                  <span class="study-sub-tab" data-shiti="mood">😊 心情</span>
+                  <span class="study-sub-tab" data-shiti="temp">🌡️ 体温</span>
                 </div>
                 <div class="study-sub-panel" data-shiti-panel="weather">
                   <div class="pick-grid weather" data-save="天气">
@@ -314,6 +329,19 @@
                     <div class="pick-item"><span class="emoji">😔</span><span class="pick-label">低落</span></div>
                     <div class="pick-item"><span class="emoji">😤</span><span class="pick-label">烦躁</span></div>
                     <div class="pick-item"><span class="emoji">😴</span><span class="pick-label">困倦</span></div>
+                  </div>
+                </div>
+                <div class="study-sub-panel hidden" data-shiti-panel="temp">
+                  <div class="field">
+                    <div class="field-label">🌡️ 记录体温</div>
+                    <div class="temp-record-row">
+                      <input type="time" class="field-input temp-time-input" id="tempTimeInput">
+                      <input class="field-input" id="tempValueInput" type="number" step="0.1" min="34" max="43" placeholder="36.5" style="flex:1;">
+                      <span style="align-self:center;font-size:13px;color:var(--text-sub);">℃</span>
+                      <button class="ghost-btn" id="tempAddBtn" style="width:auto;padding:6px 14px;">添加</button>
+                    </div>
+                    <input type="hidden" data-save="体温" id="tempDataInput" value="">
+                    <div class="temp-list" id="tempList"></div>
                   </div>
                 </div>
               </div>
@@ -368,7 +396,7 @@
 
               <div class="field">
                 <div class="field-label">🚽 排便</div>
-                <input class="field-input" data-save="排便" placeholder="例如：1 次 · 成形软便，排便顺畅">
+                <textarea class="field-input" rows="2" data-save="排便" placeholder="例如：1 次 · 成形软便，排便顺畅"></textarea>
                 <div style="margin-top:10px;" class="choice-row" data-save="排便次数">
                   <span class="choice">0 次</span>
                   <span class="choice active">1 次</span>
@@ -501,6 +529,7 @@
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                 <button class="ghost-btn" id="favBackBtn" style="font-size:12px; padding:4px 12px;">← 返回列表</button>
                 <button class="ghost-btn" id="favEditBtn" style="font-size:12px; padding:4px 12px; color:#8e44ad;">编辑</button>
+                <button class="ghost-btn" id="favPinBtn" style="font-size:12px; padding:4px 12px; color:#d4a017;">置顶</button>
                 <button class="ghost-btn" id="favDeleteBtn" style="font-size:12px; padding:4px 12px; color:#c0392b;">删除</button>
               </div>
               <div class="fav-detail">
@@ -587,58 +616,24 @@
 
           <div class="tab-panel today-panel" data-panel="study">
             <div class="card" id="studyTimerCard">
-              <div class="card-title">学习计时</div>
-              <div class="study-sub-tabs">
-                <span class="study-sub-tab active" data-stimer="timer">⏱ 专注计时</span>
-                <span class="study-sub-tab" data-stimer="self">✋ 自主计时</span>
-                <span class="study-sub-tab" data-stimer="duration">📊 学习时长</span>
-              </div>
-
-              <div class="study-sub-panel" data-stimer-panel="timer">
-                <div style="text-align:center; padding:8px 0;">
-                  <div id="studyTimer" style="font-size:38px; font-weight:800; color:var(--purple-deep); font-variant-numeric:tabular-nums; letter-spacing:2px;">00:00</div>
-                  <div style="margin-top:10px; display:flex; gap:10px; justify-content:center;">
-                    <button class="ghost-btn" id="studyStart" style="width:auto; padding:9px 22px;">开始</button>
-                    <button class="ghost-btn" id="studyStop" style="width:auto; padding:9px 22px; display:none;">停止</button>
-                    <button class="ghost-btn" id="studyLog" style="width:auto; padding:9px 22px; display:none;">计入今日</button>
+              <div class="card-title">学习时长</div>
+              <div style="text-align:center; padding:6px 0;">
+                <div id="studyDurationVal" style="font-size:38px; font-weight:800; color:var(--purple-deep); font-variant-numeric:tabular-nums;">0 分钟</div>
+                <div class="study-self-ctrl" style="justify-content:center; margin-top:10px; gap:10px;">
+                  <div class="study-fine">
+                    <button class="stepper-btn" type="button" id="studyDurMinus">−15</button>
+                    <button class="stepper-btn" type="button" id="studyDurPlus">+15</button>
                   </div>
-                  <div style="margin-top:6px; font-size:12px; color:var(--text-light);">计时结束可计入今日学习时长</div>
-                </div>
-              </div>
-
-              <div class="study-sub-panel hidden" data-stimer-panel="self">
-                <div class="field">
-                  <div class="field-label">✋ 自主计时 <span class="study-self-readout" id="selfStudyVal">0 分钟</span></div>
-                  <input type="range" id="selfStudySlider" class="study-slider" min="0" max="600" step="5" value="0">
-                  <div class="study-self-ctrl">
-                    <div class="study-presets" id="selfStudyPresets">
-                      <button class="preset-pill" type="button" data-min="15">15</button>
-                      <button class="preset-pill" type="button" data-min="30">30</button>
-                      <button class="preset-pill" type="button" data-min="45">45</button>
-                      <button class="preset-pill" type="button" data-min="60">60</button>
-                      <button class="preset-pill" type="button" data-min="90">90</button>
-                    </div>
-                    <div class="study-fine">
-                      <button class="stepper-btn" type="button" id="selfMinus">−5</button>
-                      <button class="stepper-btn" type="button" id="selfPlus">+5</button>
-                    </div>
-                  </div>
-                  <input type="hidden" data-save="自主时长" id="selfStudyInput" value="0">
-                </div>
-              </div>
-
-              <div class="study-sub-panel hidden" data-stimer-panel="duration">
-                <div class="study-duration-grid">
-                  <div class="field">
-                    <div class="field-label">🕒 专注计时（自动计入）</div>
-                    <div class="study-focus-total" id="studyFocusTotal">0 分钟</div>
-                  </div>
-                  <div class="field">
-                    <div class="field-label">✋ 自主计时</div>
-                    <div class="study-focus-total" id="studySelfTotal">0 分钟</div>
+                  <div class="study-presets" id="studyDurPresets">
+                    <button class="preset-pill" type="button" data-min="30">30</button>
+                    <button class="preset-pill" type="button" data-min="60">60</button>
+                    <button class="preset-pill" type="button" data-min="90">90</button>
+                    <button class="preset-pill" type="button" data-min="120">120</button>
+                    <button class="preset-pill" type="button" data-min="180">180</button>
                   </div>
                 </div>
-                <div class="study-total-line">当日合计：<b id="studyDayTotal">0 分钟</b></div>
+                <input type="range" id="studyDurationSlider" class="study-slider" min="0" max="600" step="5" value="0" style="width:100%; margin-top:14px;">
+                <input type="hidden" id="studyDurationInput" data-save="学习时长" value="0">
               </div>
             </div>
 
@@ -695,13 +690,11 @@
               <div class="card-title">今日学习</div>
               <div class="field">
                 <div class="field-label">🏷️ 学习标签</div>
-                <div class="tag-group" data-save="学习科目" style="margin-bottom:4px;">
-                  <span class="tag">中医</span>
-                  <span class="tag">国学经典</span>
-                  <span class="tag">AI科技</span>
-                  <span class="tag">历史文化</span>
-                  <span class="tag">管理学</span>
-                  <span class="tag">其他</span>
+                <div class="study-tag-row" id="studyTagRow"></div>
+                <input type="hidden" id="studySubjectHidden" data-save="学习科目" value="">
+                <div style="display:flex; gap:6px; margin-top:8px;">
+                  <input class="field-input" id="studyNewTag" placeholder="新增标签名" style="flex:1;">
+                  <button class="ghost-btn" id="studyAddTag" style="width:auto; padding:6px 12px;">+ 标签</button>
                 </div>
               </div>
               <div class="field">
@@ -1011,6 +1004,11 @@
             <div class="mine-entry" data-module="settings" data-settings="settingsVersion"><div class="mine-entry-icon">🔄</div><div class="mine-entry-name">版本更新</div><div class="mine-entry-arrow">›</div></div>
             <div class="mine-entry" data-module="settings" data-settings="settingsInvite"><div class="mine-entry-icon">👥</div><div class="mine-entry-name">邀请协作</div><div class="mine-entry-arrow">›</div></div>
             <div class="mine-entry" data-module="settings" data-settings="settingsAi"><div class="mine-entry-icon">🤖</div><div class="mine-entry-name">AI 小助手配置</div><div class="mine-entry-arrow">›</div></div>
+          </div>
+
+          <div class="mine-group">
+            <div class="mine-group-title">账号</div>
+            <div class="mine-entry" data-logout="1"><div class="mine-entry-icon">🚪</div><div class="mine-entry-name">退出登录</div><div class="mine-entry-arrow">›</div></div>
           </div>
         </div>
       </div>
