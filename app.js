@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.25';
+const APP_VERSION = 'wobench-v29.26';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -89,7 +89,8 @@ function fmtMoney(n) {
         if (rec) { const el = document.getElementById(target); if (el) fillForm(el, rec.fields); }
         renderHistory(target);
         if (target === 'xiushen') { renderXiushenDaily(todayStr); renderYanghuList(); renderYanghuHistory(); }
-        if (target === 'study') { renderStudyPeriod(); renderTcm(); renderStudyTimeCard(); renderTcmHistory(); renderReadingList(); }
+        if (target === 'study') { renderStudyPeriod(); renderTcm(); renderStudyTimeCard(); renderTcmHistory(); renderReadingList(); renderStudyTagRow(); }
+        if (target === 'shiti') { renderTempList(); }
       }
       else if (target === 'todo') { renderTodo(); renderTodoTagRow(); }
       else if (target === 'favorite') { renderFavGrid(); renderReadingList(); }
@@ -1358,7 +1359,10 @@ function fmtMoney(n) {
       card.setAttribute('data-fav-id', r.id);
       var typeLabel = r.fields.favType || 'note';
       var typeMap = { note: '摘抄', link: '链接', text: '记录', image: '图片', file: '文件' };
+      var favPinned = r.pinned ? ' active' : '';
+      var favPinTxt = r.pinned ? '📌 已置顶' : '📌 置顶';
       card.innerHTML =
+        '<div class="fav-card-pin' + favPinned + '" data-fav-pin="' + escapeAttr(r.id) + '">' + favPinTxt + '</div>' +
         '<div class="fav-card-type">' + escapeHtml(typeMap[typeLabel] || typeLabel) + '</div>' +
         (r.fields.image ? '<img class="fav-card-thumb" src="' + (safeUrl(r.fields.image) || r.fields.image) + '" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;margin:2px 0 6px;display:block;">' : '') +
         '<div class="fav-card-title">' + escapeHtml(r.fields.title || '无标题') + '</div>' +
@@ -1366,7 +1370,9 @@ function fmtMoney(n) {
         (r.fields.file ? '<div class="fav-card-file" data-open-file="1" style="cursor:pointer;">📎 ' + escapeHtml(r.fields.file.name) + ' · ' + fmtFileSize(r.fields.file.size) + '</div>' : '') +
         (r.fields.tags ? '<div><span class="fav-tag">' + r.fields.tags.split(',').map(function (t) { return escapeHtml(t.trim()); }).join('</span><span class="fav-tag">') + '</span></div>' : '') +
         '<div class="fav-card-date">' + (r.updatedAt ? new Date(r.updatedAt).toLocaleDateString('zh-CN') : '') + '</div>';
-      card.addEventListener('click', function () { showFavDetail(r.id); });
+      card.addEventListener('click', function (e) { if (e.target.closest('[data-fav-pin]')) return; showFavDetail(r.id); });
+      var pinBtn = card.querySelector('[data-fav-pin]');
+      if (pinBtn) pinBtn.addEventListener('click', function (e) { e.stopPropagation(); toggleFavPin(r.id); });
       if (r.fields.file) {
         var fchip = card.querySelector('[data-open-file]');
         if (fchip) fchip.addEventListener('click', function (e) { e.stopPropagation(); openFavFile(r.fields.file); });
@@ -1806,8 +1812,7 @@ function fmtMoney(n) {
     }
 
     // ---- 学习：专注计时 + 本月累计 ----
-    let studyTimerInt = null, studyStartTs = 0, studyElapsed = 0;
-    function fmtStudy(ms) { const s = Math.floor(ms / 1000); const m = Math.floor(s / 60), sec = s % 60; return String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0'); }
+    // ---- 学习：学习时长（简洁记录） ----
     function studyMinsOf(f) {
       if (!f) return 0;
       let m = 0;
@@ -1820,38 +1825,81 @@ function fmtMoney(n) {
       }
       return m;
     }
-    const studyTimerEl = document.getElementById('studyTimer');
-    const studyStartBtn = document.getElementById('studyStart');
-    const studyStopBtn = document.getElementById('studyStop');
-    const studyLogBtn = document.getElementById('studyLog');
-    if (studyStartBtn) studyStartBtn.addEventListener('click', function () {
-      studyStartTs = Date.now(); studyElapsed = 0;
-      if (studyTimerEl) studyTimerEl.textContent = '00:00';
-      studyStartBtn.style.display = 'none'; studyStopBtn.style.display = ''; studyLogBtn.style.display = 'none';
-      studyTimerInt = setInterval(function () { studyElapsed = Date.now() - studyStartTs; if (studyTimerEl) studyTimerEl.textContent = fmtStudy(studyElapsed); }, 1000);
+    // 学习时长卡片：读取/设置当日学习时长（分钟）
+    function getStudyDuration() {
+      const inp = document.getElementById('studyDurationInput');
+      return inp ? (parseInt(inp.value, 10) || 0) : 0;
+    }
+    function setStudyDuration(v) {
+      v = Math.max(0, Math.min(600, Math.round(v / 5) * 5));
+      const inp = document.getElementById('studyDurationInput');
+      if (inp) inp.value = v;
+      const valEl = document.getElementById('studyDurationVal');
+      if (valEl) valEl.textContent = v + ' 分钟';
+      const slider = document.getElementById('studyDurationSlider');
+      if (slider) slider.value = v;
+      const wrap = document.getElementById('studyDurPresets');
+      if (wrap) wrap.querySelectorAll('.preset-pill').forEach(function (x) { x.classList.toggle('active', parseInt(x.dataset.min, 10) === v); });
+    }
+    const studyDurPresets = document.getElementById('studyDurPresets');
+    if (studyDurPresets) studyDurPresets.querySelectorAll('.preset-pill').forEach(function (p) {
+      p.addEventListener('click', function () { setStudyDuration(parseInt(p.dataset.min, 10) || 0); });
     });
-    if (studyStopBtn) studyStopBtn.addEventListener('click', function () {
-      clearInterval(studyTimerInt);
-      if (studyTimerEl) studyTimerEl.textContent = fmtStudy(studyElapsed);
-      studyStopBtn.style.display = 'none'; studyLogBtn.style.display = ''; studyStartBtn.style.display = 'none';
+    const studyDurSlider = document.getElementById('studyDurationSlider');
+    if (studyDurSlider) studyDurSlider.addEventListener('input', function () { setStudyDuration(parseInt(studyDurSlider.value, 10) || 0); });
+    const studyDurMinus = document.getElementById('studyDurMinus');
+    if (studyDurMinus) studyDurMinus.addEventListener('click', function () { setStudyDuration(getStudyDuration() - 15); });
+    const studyDurPlus = document.getElementById('studyDurPlus');
+    if (studyDurPlus) studyDurPlus.addEventListener('click', function () { setStudyDuration(getStudyDuration() + 15); });
+
+    // ---- 学习标签：可编辑 / 可删减 ----
+    var STUDY_TAG_KEY = 'zqdd:study_tags';
+    var studyTags = (function () { try { var a = JSON.parse(localStorage.getItem(STUDY_TAG_KEY)); return Array.isArray(a) && a.length ? a : null; } catch (e) { return null; } })() || ['中医', '国学经典', 'AI科技', '历史文化', '管理学', '其他'];
+    var selectedStudyTags = {};
+    function saveStudyTags() { try { localStorage.setItem(STUDY_TAG_KEY, JSON.stringify(studyTags)); } catch (e) {} }
+    function updateStudySubject() { var hid = document.getElementById('studySubjectHidden'); if (hid) hid.value = Object.keys(selectedStudyTags).join(','); }
+    function renderStudyTagRow() {
+      var row = document.getElementById('studyTagRow');
+      if (!row) return;
+      var hid = document.getElementById('studySubjectHidden');
+      var cur = hid && hid.value ? hid.value.split(',').map(function (s) { return s.trim(); }).filter(Boolean) : [];
+      selectedStudyTags = {};
+      cur.forEach(function (t) { selectedStudyTags[t] = true; });
+      row.innerHTML = studyTags.map(function (t) {
+        var active = selectedStudyTags[t] ? ' active' : '';
+        return '<span class="study-tag-chip' + active + '" data-study-tag="' + escapeAttr(t) + '">' + escapeHtml(t) + '<span class="study-tag-x" data-study-tag-del="' + escapeAttr(t) + '">×</span></span>';
+      }).join('');
+    }
+    var studyTagRowEl = document.getElementById('studyTagRow');
+    if (studyTagRowEl) studyTagRowEl.addEventListener('click', function (e) {
+      var del = e.target.closest('[data-study-tag-del]');
+      if (del) {
+        var dt = del.getAttribute('data-study-tag-del');
+        studyTags = studyTags.filter(function (x) { return x !== dt; });
+        delete selectedStudyTags[dt];
+        saveStudyTags(); updateStudySubject(); renderStudyTagRow();
+        showToast('已删除标签：' + dt);
+        return;
+      }
+      var chip = e.target.closest('[data-study-tag]');
+      if (chip) {
+        var t2 = chip.getAttribute('data-study-tag');
+        if (selectedStudyTags[t2]) delete selectedStudyTags[t2]; else selectedStudyTags[t2] = true;
+        updateStudySubject(); renderStudyTagRow();
+      }
     });
-    if (studyLogBtn) studyLogBtn.addEventListener('click', function () {
-      const mins = Math.round(studyElapsed / 60000);
-      if (mins < 1) { showToast('至少 1 分钟才能计入'); return; }
-      const ds = ymd(new Date());
-      const baseId = ds + '|study';
-      const rec = store[baseId] || { id: baseId, date: ds, module: 'study', fields: {}, updatedAt: Date.now() };
-      const prev = parseInt((rec.fields['学习计时'] || '0').match(/\d+/) || [0], 10);
-      rec.fields['学习计时'] = (prev + mins) + ' 分钟';
-      rec.updatedAt = Date.now();
-      store[baseId] = rec;
-      dbPut(rec).then(function () {
-        renderHistory('study'); renderStudyPeriod(); renderStudyTimeCard(); renderCal(); renderDetail(ds); renderStreakBadges(); renderGoalProgress();
-        studyElapsed = 0; if (studyTimerEl) studyTimerEl.textContent = '00:00';
-        studyLogBtn.style.display = 'none'; studyStartBtn.style.display = '';
-        showToast('已计入今日 ' + mins + ' 分钟');
-      });
+    var studyAddTagBtn = document.getElementById('studyAddTag');
+    if (studyAddTagBtn) studyAddTagBtn.addEventListener('click', function () {
+      var inp = document.getElementById('studyNewTag');
+      var v = inp ? inp.value.trim() : '';
+      if (!v) { showToast('请输入标签名'); return; }
+      if (studyTags.indexOf(v) < 0) studyTags.push(v);
+      selectedStudyTags[v] = true;
+      saveStudyTags();
+      if (inp) inp.value = '';
+      updateStudySubject(); renderStudyTagRow();
     });
+
     let studyPeriodMode = 'month';
     function renderStudyPeriod(period) {
       if (period) studyPeriodMode = period;
@@ -1876,43 +1924,8 @@ function fmtMoney(n) {
       const ds = ymd(new Date());
       const rec = store[ds + '|study'];
       const f = rec ? rec.fields : {};
-      const focusMins = f['学习计时'] ? (parseInt((String(f['学习计时']).match(/\d+/) || [0])[0], 10) || 0) : 0;
-      const selfMins = f['自主时长'] ? (parseInt((String(f['自主时长']).match(/\d+/) || [0])[0], 10) || 0) : 0;
-      const focusEl = document.getElementById('studyFocusTotal');
-      if (focusEl) focusEl.textContent = focusMins + ' 分钟';
-      const selfTotalEl = document.getElementById('studySelfTotal');
-      if (selfTotalEl) selfTotalEl.textContent = selfMins + ' 分钟';
-      setSelfMins(selfMins);
+      setStudyDuration(studyMinsOf(f));
     }
-    function setSelfMins(v) {
-      v = Math.max(0, Math.min(600, Math.round(v / 5) * 5));
-      const inp = document.getElementById('selfStudyInput');
-      if (inp) inp.value = v;
-      const vEl = document.getElementById('selfStudyVal');
-      if (vEl) vEl.textContent = v + ' 分钟';
-      const slider = document.getElementById('selfStudySlider');
-      if (slider) slider.value = v;
-      const wrap = document.getElementById('selfStudyPresets');
-      if (wrap) wrap.querySelectorAll('.preset-pill').forEach(function (x) { x.classList.toggle('active', parseInt(x.dataset.min, 10) === v); });
-      // 同步更新「学习时长」汇总面板的显示
-      const focusEl = document.getElementById('studyFocusTotal');
-      let fm = 0;
-      if (focusEl) { const m = (focusEl.textContent || '0').match(/\d+/); fm = m ? parseInt(m[0], 10) : 0; }
-      const selfTotalEl = document.getElementById('studySelfTotal');
-      if (selfTotalEl) selfTotalEl.textContent = v + ' 分钟';
-      const totalEl = document.getElementById('studyDayTotal');
-      if (totalEl) totalEl.textContent = (fm + v) + ' 分钟';
-    }
-    const selfPresets = document.getElementById('selfStudyPresets');
-    if (selfPresets) selfPresets.querySelectorAll('.preset-pill').forEach(function (p) {
-      p.addEventListener('click', function () { setSelfMins(parseInt(p.dataset.min, 10) || 0); });
-    });
-    const selfSlider = document.getElementById('selfStudySlider');
-    if (selfSlider) selfSlider.addEventListener('input', function () { setSelfMins(parseInt(selfSlider.value, 10) || 0); });
-    const selfMinus = document.getElementById('selfMinus');
-    if (selfMinus) selfMinus.addEventListener('click', function () { const inp = document.getElementById('selfStudyInput'); setSelfMins((parseInt(inp ? inp.value : 0, 10) || 0) - 5); });
-    const selfPlus = document.getElementById('selfPlus');
-    if (selfPlus) selfPlus.addEventListener('click', function () { const inp = document.getElementById('selfStudyInput'); setSelfMins((parseInt(inp ? inp.value : 0, 10) || 0) + 5); });
 
     // 学习时间卡片：日/周/月 tab 切换
     document.querySelectorAll('.study-period-tab').forEach(function (t) {
@@ -2022,6 +2035,62 @@ function fmtMoney(n) {
         const key = sh.getAttribute('data-shiti');
         document.querySelectorAll('[data-shiti]').forEach(function (el) { el.classList.toggle('active', el.getAttribute('data-shiti') === key); });
         document.querySelectorAll('[data-shiti-panel]').forEach(function (p) { p.classList.toggle('hidden', p.getAttribute('data-shiti-panel') !== key); });
+      }
+    });
+
+    // 退出登录：断开云端同步（保留本机数据）
+    document.addEventListener('click', function (e) {
+      var lo = e.target.closest('[data-logout]');
+      if (lo) {
+        if (window.confirm('确定退出登录吗？将断开云端同步，本机数据会保留。')) {
+          cloudDisconnect();
+          showToast('已退出登录');
+        }
+      }
+    });
+
+    // ============ 体温记录（实体感录模块） ============
+    function getTempArr() {
+      var inp = document.getElementById('tempDataInput');
+      if (!inp || !inp.value) return [];
+      try { var a = JSON.parse(inp.value); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+    }
+    function setTempArr(arr) {
+      var inp = document.getElementById('tempDataInput');
+      if (inp) inp.value = JSON.stringify(arr);
+      renderTempList();
+    }
+    function renderTempList() {
+      var box = document.getElementById('tempList');
+      if (!box) return;
+      var arr = getTempArr();
+      if (!arr.length) { box.innerHTML = '<div style="font-size:12px;color:var(--text-light);padding:4px 0;">暂无记录</div>'; return; }
+      box.innerHTML = arr.map(function (it, i) {
+        return '<div class="temp-item"><span class="temp-item-time">' + escapeHtml(it.t || '--:--') + '</span><span class="temp-item-val">' + escapeHtml(it.v) + '℃</span><span class="temp-item-del" data-temp-del="' + i + '">×</span></div>';
+      }).join('');
+    }
+    var tempAddBtn = document.getElementById('tempAddBtn');
+    if (tempAddBtn) tempAddBtn.addEventListener('click', function () {
+      var tInp = document.getElementById('tempTimeInput');
+      var vInp = document.getElementById('tempValueInput');
+      var t = tInp && tInp.value ? tInp.value : (function () { var d = new Date(); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); })();
+      var v = vInp ? parseFloat(vInp.value) : NaN;
+      if (isNaN(v) || v < 34 || v > 43) { showToast('请输入 34~43 之间的体温'); return; }
+      var arr = getTempArr();
+      arr.push({ t: t, v: v });
+      arr.sort(function (a, b) { return (a.t || '').localeCompare(b.t || ''); });
+      setTempArr(arr);
+      if (vInp) vInp.value = '';
+      if (tInp) tInp.value = '';
+      showToast('已记录体温 ' + v + '℃');
+    });
+    var tempListEl = document.getElementById('tempList');
+    if (tempListEl) tempListEl.addEventListener('click', function (e) {
+      var del = e.target.closest('[data-temp-del]');
+      if (del) {
+        var idx = parseInt(del.getAttribute('data-temp-del'), 10);
+        var arr = getTempArr();
+        if (idx >= 0 && idx < arr.length) { arr.splice(idx, 1); setTempArr(arr); showToast('已删除'); }
       }
     });
 
@@ -2939,10 +3008,19 @@ function fmtMoney(n) {
         });
         return vals.length ? vals[vals.length - 1] : 0;
       });
+      var tempData = dates.map(function (ds) {
+        var last = null;
+        recordsForDay(ds, 'shiti').forEach(function (r) {
+          var raw = r.fields['体温'];
+          if (raw) { try { var a = JSON.parse(raw); if (Array.isArray(a) && a.length) last = parseFloat(a[a.length - 1].v) || null; } catch (e) {} }
+        });
+        return last || 0;
+      });
       renderTrendChart('trendStudy', studyData, dates, '分钟', 'var(--purple-main)');
       renderTrendChart('trendExpense', expData, dates, '¥', '#c44569');
       renderTrendChart('trendSleep', sleepData, dates, '分', '#6f9fd8');
       renderTrendChart('trendBowel', bowelData, dates, '次', '#5cb87f');
+      renderTrendChart('trendTemp', tempData, dates, '℃', '#e07b39');
     }
     function renderTrendChart(containerId, data, dates, unit, color) {
       var el = document.getElementById(containerId);
@@ -3445,7 +3523,12 @@ function fmtMoney(n) {
         var r = store[id];
         if (r.module === FAV_MODULE && !isEnc(r)) out.push(r);
       });
-      out.sort(function (a, b) { if ((a.date || '') !== (b.date || '')) return (a.date || '') < (b.date || '') ? 1 : -1; var ia = a.id || '', ib = b.id || ''; return ia < ib ? 1 : -1; });
+      out.sort(function (a, b) {
+        var pa = a.pinned ? 1 : 0, pb = b.pinned ? 1 : 0;
+        if (pa !== pb) return pb - pa;
+        if ((a.date || '') !== (b.date || '')) return (a.date || '') < (b.date || '') ? 1 : -1;
+        var ia = a.id || '', ib = b.id || ''; return ia < ib ? 1 : -1;
+      });
       return out;
     }
 
@@ -3491,6 +3574,9 @@ function fmtMoney(n) {
       if (delBtn) delBtn.classList.remove('hidden');
       var actionBar = document.getElementById('favEditActionBar');
       if (actionBar) actionBar.remove();
+
+      var fpBtn = document.getElementById('favPinBtn');
+      if (fpBtn) fpBtn.textContent = r.pinned ? '📌 已置顶' : '📌 置顶';
 
       var typeMap = { note:'摘抄', link:'链接', text:'记录', image:'图片', file:'文件' };
       var dt = document.getElementById('favDTitle');
@@ -3692,6 +3778,21 @@ function fmtMoney(n) {
 
     var favEditBtn = document.getElementById('favEditBtn');
     if (favEditBtn) favEditBtn.addEventListener('click', enterFavEditMode);
+
+    // 收藏置顶：详情页按钮 + 切换函数
+    var favPinBtn = document.getElementById('favPinBtn');
+    if (favPinBtn) favPinBtn.addEventListener('click', function () { if (currentFavId) toggleFavPin(currentFavId); });
+    function toggleFavPin(id) {
+      var rec = store[id];
+      if (!rec) return;
+      rec.pinned = !rec.pinned;
+      rec.updatedAt = Date.now();
+      dbPut(rec).then(function () {
+        renderFavGrid();
+        if (currentFavId === id && favPinBtn) favPinBtn.textContent = rec.pinned ? '📌 已置顶' : '📌 置顶';
+        showToast(rec.pinned ? '已置顶' : '已取消置顶');
+      });
+    }
 
     var favSearchInput = document.getElementById('favSearchInput');
     if (favSearchInput) favSearchInput.addEventListener('input', function () { renderFavGrid(this.value); });
@@ -4497,6 +4598,11 @@ function fmtMoney(n) {
       }
       var allPending = loadTodo().filter(function (t) { return !t.done; });
       var allDone = loadTodo().filter(function (t) { return t.done; });
+      // 按类型（短期 / 长期）筛选
+      if (todoTypeFilter !== 'all') {
+        allPending = allPending.filter(function (t) { return (t.type || 'short') === todoTypeFilter; });
+        allDone = allDone.filter(function (t) { return (t.type || 'short') === todoTypeFilter; });
+      }
       // 按标签筛选
       var pending = todoFilterTag === '全部' ? allPending : allPending.filter(function (t) { return (t.tag || '') === todoFilterTag || (todoFilterTag === '无' && !t.tag); });
       var done = todoFilterTag === '全部' ? allDone : allDone.filter(function (t) { return (t.tag || '') === todoFilterTag || (todoFilterTag === '无' && !t.tag); });
@@ -4519,15 +4625,38 @@ function fmtMoney(n) {
     var todoInput = document.getElementById('todoInput');
     var selectedTodoTag = '';
     var todoFilterTag = '全部';
+    var todoTypeFilter = 'all';
+    var selectedTodoAddType = 'short';
     var TODO_FILTER_TAGS = ['全部', '生活', '工作', '学习', '无'];
     var todoTagRow = document.getElementById('todoTagRow');
     if (todoAdd) todoAdd.addEventListener('click', function () {
       var v = todoInput.value.trim();
       if (!v) { showToast('请输入内容'); return; }
       var arr = loadTodo();
-      arr.unshift({ id: 't_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6), text: v, done: false, tag: selectedTodoTag });
-      saveTodo(arr); renderTodo(); todoInput.value = ''; selectedTodoTag = ''; updateTodoTagUI(); renderStreakBadges(); renderGoalProgress();
+      arr.unshift({ id: 't_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6), text: v, done: false, tag: selectedTodoTag, type: selectedTodoAddType });
+      saveTodo(arr); renderTodo(); todoInput.value = ''; selectedTodoTag = ''; selectedTodoAddType = 'short'; updateTodoTagUI(); updateTodoTypeUI(); renderStreakBadges(); renderGoalProgress();
     });
+    // 待办类型（短期 / 长期）筛选 tab
+    var todoTypeTabsEl = document.getElementById('todoTypeTabs');
+    if (todoTypeTabsEl) todoTypeTabsEl.querySelectorAll('.todo-type-tab').forEach(function (sp) {
+      sp.addEventListener('click', function () {
+        todoTypeFilter = sp.getAttribute('data-todo-type') || 'all';
+        todoTypeTabsEl.querySelectorAll('.todo-type-tab').forEach(function (x) { x.classList.toggle('active', x === sp); });
+        renderTodo();
+      });
+    });
+    var todoTypeRowEl = document.getElementById('todoTypeRow');
+    if (todoTypeRowEl) todoTypeRowEl.querySelectorAll('.todo-type-chip').forEach(function (sp) {
+      sp.addEventListener('click', function () {
+        selectedTodoAddType = sp.getAttribute('data-todo-addtype') || 'short';
+        todoTypeRowEl.querySelectorAll('.todo-type-chip').forEach(function (x) { x.classList.toggle('active', x === sp); });
+      });
+    });
+    function updateTodoTypeUI() {
+      if (!todoTypeRowEl) return;
+      todoTypeRowEl.querySelectorAll('.todo-type-chip').forEach(function (sp) { sp.classList.toggle('active', (sp.getAttribute('data-todo-addtype') || 'short') === selectedTodoAddType); });
+    }
+    updateTodoTypeUI();
     if (todoInput) todoInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') todoAdd.click(); });
     if (todoTagRow) {
       todoTagRow.querySelectorAll('.todo-tag').forEach(function (sp) {
@@ -4567,6 +4696,14 @@ function fmtMoney(n) {
         var arr = loadTodo();
         var it = arr.filter(function (t) { return t.id === id; })[0];
         if (it) { it.done = !it.done; saveTodo(arr); renderTodo(); }
+        return;
+      }
+      var pinc = e.target.closest('[data-todo-pin]');
+      if (pinc) {
+        var pid = pinc.getAttribute('data-todo-pin');
+        var arrP = loadTodo();
+        var itP = arrP.filter(function (t) { return t.id === pid; })[0];
+        if (itP) { itP.pinned = !itP.pinned; saveTodo(arrP); renderTodo(); showToast(itP.pinned ? '已置顶' : '已取消置顶'); }
         return;
       }
       var ed = e.target.closest('[data-todo-edit]');
@@ -4753,7 +4890,7 @@ function fmtMoney(n) {
         if (cardField === '__weather_mood__') {
           var wm = [];
           if (r.fields && r.fields['天气']) wm.push('天气:' + r.fields['天气']);
-          if (r.fields && r.fields['今日心情']) wm.push('心情:' + r.fields['今日心情']);
+          if (r.fields && r.fields['心情']) wm.push('心情:' + r.fields['心情']);
           return wm.length ? wm.join('；') : '(无)';
         }
         if (cardField === '__duration__') {
