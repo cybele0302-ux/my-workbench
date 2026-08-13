@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.30';
+const APP_VERSION = 'wobench-v29.31';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -1444,7 +1444,7 @@ function fmtMoney(n) {
         }
         return '<div class="history-item hi-empty-day" data-fill-date="' + ds + '"><div class="hi-main"><div class="hi-date">' + ds.slice(5) + ' · ' + lm + '</div><div class="hi-sum hi-empty-sum">— 无记录，点击补录 —</div></div><div class="hi-actions"><span class="hi-fill" data-fill-date="' + ds + '">补录</span></div></div>';
       });
-      renderPaged('hist:study', c, items);
+      renderPaged('hist:study', c, items.reverse());
     }
     function goFillStudyDate(ds) {
       editingId = null;
