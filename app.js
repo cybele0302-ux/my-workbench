@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.31';
+const APP_VERSION = 'wobench-v29.32';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -858,7 +858,7 @@ function fmtMoney(n) {
           var r = new FileReader();
           r.onload = function () {
             try { localStorage.setItem('zqdd:avatar', r.result); } catch (e) {}
-            try { schedulePush(); } catch (e2) {}
+            try { markProfileDirty(); } catch (e2) {}
             av.style.backgroundImage = 'url(' + r.result + ')';
             av.style.backgroundSize = 'cover';
             av.style.backgroundPosition = 'center';
@@ -2499,6 +2499,30 @@ function fmtMoney(n) {
       const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
       return Array.from(new Uint8Array(buf)).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
     }
+    // ===== 头像/阅读等「个人资料字段」整包同步（增量通道只传 records，故需走整包）=====
+    const PROFILE_HASH_KEY = 'zqdd:profile_hash';
+    let profileDirty = false;
+    async function profileHash() {
+      try {
+        var a = localStorage.getItem('zqdd:avatar') || '';
+        var r = localStorage.getItem('readingList') || '';
+        return await sha256Hex(a + '\u0000' + r);
+      } catch (e) { return ''; }
+    }
+    // 标记个人资料需上推（下次 push 强制走整包，确保头像/阅读进入云端）
+    function markProfileDirty() {
+      profileDirty = true;
+      try { if (cloudCfg && cloudSpaceKey && !cloudPulling) schedulePush(); } catch (e) {}
+    }
+    // 启动时：本地已有头像/阅读但云端可能从未同步过 → 标记需上推（抢救 v29.30 前的数据）
+    async function syncProfileIfNeeded() {
+      try {
+        if (localStorage.getItem('zqdd:avatar') || localStorage.getItem('readingList')) {
+          var h = localStorage.getItem(PROFILE_HASH_KEY) || '';
+          if (h !== await profileHash()) profileDirty = true;
+        }
+      } catch (e) {}
+    }
     const CLOUD_SALT = 'zqdd-cloud-sync-v1';
     async function deriveCloudKey(pass, iter) {
       const salt = new TextEncoder().encode(CLOUD_SALT);
@@ -2662,6 +2686,8 @@ function fmtMoney(n) {
     async function cloudPush() {
       if (!cloudCfg || !cloudSpaceKey) return;
       if (cloudPulling) { console.warn('cloudPush 跳过：正在拉取云端数据'); return; }
+      // 个人资料（头像/阅读）有变更 → 必须走整包，确保进入云端
+      if (profileDirty) { await cloudPushFull(); return; }
       // 优先走增量通道（仅上传变更记录）；不可用则回退整包
       try { await cloudPushIncremental(); return; } catch (e) { console.warn('增量上传不可用，回退整包', e); }
       await cloudPushFull();
@@ -2670,7 +2696,7 @@ function fmtMoney(n) {
       if (!cloudCfg || !cloudSpaceKey) return;
       if (cloudPulling) { console.warn('cloudPushFull 跳过：正在拉取云端数据'); return; }
       var recCount = Object.keys(store).length;
-      if (recCount === 0) { console.warn('cloudPush 跳过：本地无数据，避免覆盖云端'); return; }
+      if (recCount === 0 && !profileDirty) { console.warn('cloudPush 跳过：本地无数据，避免覆盖云端'); return; }
       if (lastPullRecordCount > 0 && recCount < lastPullRecordCount * 0.5) {
         console.warn('cloudPush 跳过：本地记录数仅为上次的 ' + recCount + '/' + lastPullRecordCount + '，疑似异常');
         showToast('数据异常，已阻止上传');
@@ -2685,6 +2711,9 @@ function fmtMoney(n) {
         await cloudUpsert(payload, pushedAt, obj ? obj.id : null);
         lastKnownCloudAt = pushedAt;
         saveLastCloudAt(pushedAt);
+        // 整包已含头像/阅读 → 记录其特征值，避免重复上推
+        try { localStorage.setItem(PROFILE_HASH_KEY, await profileHash()); } catch (e) {}
+        profileDirty = false;
       } catch (e) {
         console.error('cloudPush 失败', e);
       }
@@ -2693,10 +2722,19 @@ function fmtMoney(n) {
       if (!cloudCfg || !cloudSpaceKey) return;
       cloudPulling = true;
       try {
-        // 优先走增量通道（仅拉取/解密自上次同步后变更的记录）；异常或需引导时回退整包
-        let usedInc = false;
-        try { usedInc = await cloudPullIncremental(); } catch (e) { usedInc = false; }
-        if (!usedInc) { await cloudPullFull(); }
+        // 新设备或本机个人资料待上推 → 必须走整包，才能拉到头像/阅读等整包字段
+        if (lastKnownCloudAt === 0 || profileDirty) {
+          await cloudPullFull();
+          // 本地有头像/阅读但云端整包仍缺（旧数据未上推）→ 触发一次上推，使云端补齐
+          if (profileDirty && (localStorage.getItem('zqdd:avatar') || localStorage.getItem('readingList'))) {
+            try { schedulePush(); } catch (e) {}
+          }
+        } else {
+          // 优先走增量通道（仅拉取/解密自上次同步后变更的记录）；异常或需引导时回退整包
+          let usedInc = false;
+          try { usedInc = await cloudPullIncremental(); } catch (e) { usedInc = false; }
+          if (!usedInc) { await cloudPullFull(); }
+        }
       } catch (e) {
         console.error('cloudPull 失败', e);
       } finally {
@@ -2877,6 +2915,7 @@ function fmtMoney(n) {
       await persistCloudPass();
       setCloudStatus('连接中…', false);
       try {
+        await syncProfileIfNeeded();
         var localCount = Object.keys(store).length;
         var cloudObj = await cloudFind();
         if (!cloudObj || !cloudObj.payload) {
@@ -2925,6 +2964,7 @@ function fmtMoney(n) {
       lastKnownCloudAt = loadLastCloudAt();
       setCloudStatus('同步中…', false);
       try {
+        await syncProfileIfNeeded();
         await cloudPull();
         setCloudStatus('已同步', true);
         if (cloudTimer) clearInterval(cloudTimer);
@@ -3363,6 +3403,7 @@ function fmtMoney(n) {
     }
     function saveReadingData(arr) {
       try { localStorage.setItem(READING_KEY, JSON.stringify(arr)); } catch (e) {}
+      try { markProfileDirty(); } catch (e2) {}
     }
     var READING_EDIT_SVG = '<svg viewBox="0 0 24 24" width="14" height="14"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
     var READING_RESTORE_SVG = '<svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>';
