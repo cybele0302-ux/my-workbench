@@ -2245,3 +2245,26 @@
 .back-btn svg { width: 20px; height: 20px; }
 .phone-frame.has-back .module-header-card .mhc-top { padding-left: 44px; }
 .phone-frame.has-back .module-title { padding-left: 44px; }
+
+/* ===== 学习标签（可编辑/删减） ===== */
+.study-tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+.study-tag-chip { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--card-border); background: rgba(var(--accent-rgb), 0.05); font-size: 13px; color: var(--text-main); cursor: pointer; -webkit-tap-highlight-color: transparent; transition: all .15s; }
+.study-tag-chip.active { background: var(--purple-main); color: #fff; border-color: var(--purple-main); }
+.study-tag-x { margin-left: 2px; font-size: 14px; line-height: 1; opacity: 0.55; }
+.study-tag-chip.active .study-tag-x { opacity: 0.85; }
+.study-tag-x:active { opacity: 1; }
+
+/* ===== 体温记录 ===== */
+.temp-record-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.temp-time-input { flex: 0 0 auto; width: 110px; }
+.temp-list { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.temp-item { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 10px; background: rgba(var(--accent-rgb), 0.05); border: 1px solid var(--card-border); font-size: 14px; }
+.temp-item-time { color: var(--text-sub); font-variant-numeric: tabular-nums; }
+.temp-item-val { font-weight: 700; color: var(--purple-deep); margin-left: auto; }
+.temp-item-del { margin-left: 4px; cursor: pointer; color: var(--text-light); font-size: 16px; padding: 0 4px; }
+.temp-item-del:active { color: #c0392b; }
+
+/* ===== 收藏置顶 ===== */
+.fav-card { position: relative; }
+.fav-card-pin { position: absolute; top: 8px; right: 8px; font-size: 11px; padding: 3px 8px; border-radius: 999px; background: rgba(212,160,23,0.14); color: #b8860b; border: 1px solid rgba(212,160,23,0.4); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.fav-card-pin.active { background: #d4a017; color: #fff; border-color: #d4a017; }
