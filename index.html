@@ -252,15 +252,12 @@
                 <input class="field-input" id="todoInput" placeholder="输入待办内容…" style="flex:1;">
                 <button class="ghost-btn" id="todoAdd" style="width:auto; padding:10px 18px;">添加</button>
               </div>
+              <div class="field-label">🏷️ 标签 <button class="manage-trigger card-fold-btn" type="button" id="manageTodoTagsBtn" title="管理标签">⚙</button></div>
               <div class="todo-tag-row" id="todoTagRow"></div>
-              <div class="todo-type-row" id="todoTypeRow" style="margin-top:8px;">
+              <div class="todo-type-row" id="todoTypeRow" style="margin-top:10px;">
                 <span style="font-size:12px;color:var(--text-sub);margin-right:4px;">类型</span>
                 <span class="todo-type-chip active" data-todo-addtype="short">短期</span>
                 <span class="todo-type-chip" data-todo-addtype="long">长期</span>
-              </div>
-              <div style="display:flex; gap:6px; margin-top:8px;">
-                <input class="field-input" id="todoNewTag" placeholder="新增标签名" style="flex:1;">
-                <button class="ghost-btn" id="todoAddTag" style="width:auto; padding:6px 12px;">+ 标签</button>
               </div>
             </div>
 
@@ -471,7 +468,7 @@
                 </div>
               </div>
               <div class="field" style="margin-top:12px;">
-                <div class="field-label">分类 <button class="manage-trigger sm" type="button" id="manageTxCatsBtn">管理</button></div>
+                <div class="field-label">分类 <button class="manage-trigger card-fold-btn" type="button" id="manageTxCatsBtn" title="管理分类">⚙</button></div>
                 <div class="choice-row" data-save="分类" id="txCatChoices"></div>
               </div>
               <input class="field-input" data-save="金额" type="number" placeholder="金额（元）" step="0.01" style="margin-top:12px;">
@@ -615,13 +612,15 @@
           </div>
 
           <div class="tab-panel today-panel" data-panel="study">
-            <div class="card" id="studyTimerCard">
-              <div class="card-title">学习时长</div>
-              <div style="text-align:center; padding:6px 0;">
-                <div id="studyDurationVal" style="font-size:38px; font-weight:800; color:var(--purple-deep); font-variant-numeric:tabular-nums;">0 分钟</div>
-                <div class="study-self-ctrl" style="justify-content:center; margin-top:10px; gap:10px;">
-                  <div class="study-fine">
+              <div class="card" id="studyTimerCard">
+                <div class="card-title">学习时长</div>
+                <div class="study-dur">
+                  <div class="study-dur-sliderline">
                     <button class="stepper-btn" type="button" id="studyDurMinus">−15</button>
+                    <div class="study-dur-sliderwrap">
+                      <div id="studyDurationVal" class="study-dur-val">0 分钟</div>
+                      <input type="range" id="studyDurationSlider" class="study-slider" min="0" max="600" step="5" value="0">
+                    </div>
                     <button class="stepper-btn" type="button" id="studyDurPlus">+15</button>
                   </div>
                   <div class="study-presets" id="studyDurPresets">
@@ -631,11 +630,9 @@
                     <button class="preset-pill" type="button" data-min="120">120</button>
                     <button class="preset-pill" type="button" data-min="180">180</button>
                   </div>
+                  <input type="hidden" id="studyDurationInput" data-save="学习时长" value="0">
                 </div>
-                <input type="range" id="studyDurationSlider" class="study-slider" min="0" max="600" step="5" value="0" style="width:100%; margin-top:14px;">
-                <input type="hidden" id="studyDurationInput" data-save="学习时长" value="0">
               </div>
-            </div>
 
           <div class="card-tab-strip" data-card-tabs></div>
 
@@ -689,13 +686,9 @@
             <div class="card" data-card-title="今日学习">
               <div class="card-title">今日学习</div>
               <div class="field">
-                <div class="field-label">🏷️ 学习标签</div>
+                <div class="field-label">🏷️ 学习标签 <button class="manage-trigger card-fold-btn" type="button" id="manageStudyTagsBtn" title="管理标签">⚙</button></div>
                 <div class="study-tag-row" id="studyTagRow"></div>
                 <input type="hidden" id="studySubjectHidden" data-save="学习科目" value="">
-                <div style="display:flex; gap:6px; margin-top:8px;">
-                  <input class="field-input" id="studyNewTag" placeholder="新增标签名" style="flex:1;">
-                  <button class="ghost-btn" id="studyAddTag" style="width:auto; padding:6px 12px;">+ 标签</button>
-                </div>
               </div>
               <div class="field">
                 <div class="field-label">📚 学习内容</div>
