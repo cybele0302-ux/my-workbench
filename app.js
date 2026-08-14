@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.43';
+const APP_VERSION = 'wobench-v29.44';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -4316,7 +4316,17 @@ function fmtMoney(n) {
     // 解密落库必须用它，否则会被包装层重新加密，导致刷新后记录又变密文而不可见。
     var rawDbPut = null;
 
-    function buf2b64(buf) { return btoa(String.fromCharCode.apply(null, new Uint8Array(buf))); }
+    // v29.44：修复 buf2b64 大 buffer 栈溢出。
+    // String.fromCharCode.apply(null, largeUint8Array) 在数组超过引擎参数栈上限时崩溃
+    // （AES-GCM 密文约=明文大小，78条记录 payload 加密后超限）。
+    // 改用逐字符拼接，兼容任意大小 buffer。
+    function buf2b64(buf) {
+      var bytes = new Uint8Array(buf);
+      var len = bytes.length;
+      var chars = new Array(len);
+      for (var i = 0; i < len; i++) chars[i] = String.fromCharCode(bytes[i]);
+      return btoa(chars.join(''));
+    }
     function b642buf(b64) { return Uint8Array.from(atob(b64), function (c) { return c.charCodeAt(0); }).buffer; }
     const PBKDF2_ITER = 600000;
     function deriveKey(password, saltBuf, iter) {
