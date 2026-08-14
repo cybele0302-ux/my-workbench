@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.38';
+const APP_VERSION = 'wobench-v29.39';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -2705,6 +2705,7 @@ function fmtMoney(n) {
         aiCfg: localStorage.getItem('zqdd:ai_cfg'),
         avatar: localStorage.getItem('zqdd:avatar'),
         readingList: localStorage.getItem('readingList'),
+        readingDeleted: JSON.stringify(readingDeleted),
         deleted: deletedIds
       };
     }
@@ -2758,7 +2759,9 @@ function fmtMoney(n) {
       // pull-merge-push：先把云端最新整包合并进本地，避免用本地整包直接覆盖、丢掉对端独有记录
       try {
         const probe = await cloudFind();
-        if (probe && (probe.pushed_at || 0) > lastKnownCloudAt) {
+        // 预合并：云端有更新 或 本地 store 为空（新链接/新 origin 加载时 IndexedDB 还没灌满）→ 先拉合并再推，
+        // 避免用空本地覆盖云端、丢失对端记录（v29.39 修复「空推送覆盖云端」）
+        if (probe && ((probe.pushed_at || 0) > lastKnownCloudAt || Object.keys(store).length === 0)) {
           const data = await cloudDecrypt(probe.payload, cloudPass);
           await mergeCloudData(data);
           lastKnownCloudAt = probe.pushed_at || Date.now();
@@ -2767,11 +2770,7 @@ function fmtMoney(n) {
       } catch (e) { console.warn('push 前预合并失败，直接上推', e); }
       var recCount = Object.keys(store).length;
       if (recCount === 0 && !profileDirty) { console.warn('cloudPush 跳过：本地无数据，避免覆盖云端'); return; }
-      if (lastPullRecordCount > 0 && recCount < lastPullRecordCount * 0.5) {
-        console.warn('cloudPush 跳过：本地记录数仅为上次的 ' + recCount + '/' + lastPullRecordCount + '，疑似异常');
-        showToast('数据异常，已阻止上传');
-        return;
-      }
+      // （已移除 v29.38 的 recCount < lastPullRecordCount*0.5 拦截：新链接加载时本地 store 尚未灌满会误杀正常推送，导致对端收不到数据）
       try {
         const pass = cloudPass;
         const payload = await cloudEncrypt(cloudBuildPayload(), pass);
@@ -2888,7 +2887,43 @@ function fmtMoney(n) {
       if (data.goals != null) localStorage.setItem(GOAL_KEY, data.goals);
       if (data.aiCfg != null) { localStorage.setItem('zqdd:ai_cfg', data.aiCfg); refreshAiCfgCache(); }
       if (data.avatar != null) { localStorage.setItem('zqdd:avatar', data.avatar); refreshAvatar(); }
-      if (data.readingList != null) { localStorage.setItem('readingList', data.readingList); renderReadingList(); }
+      // 阅读列表：按 id 并集合并（本地新增保留、同 id 取 updatedAt 较大者），不再整串覆盖（v29.39 修复「加书丢失/变成1和2」）
+      if (data.readingList != null) {
+        try {
+          var cloudRL = JSON.parse(data.readingList);
+          if (Array.isArray(cloudRL)) {
+            var localRL = getReadingData();
+            var byId = {};
+            localRL.forEach(function (r) { if (r && r.id) byId[r.id] = r; });
+            cloudRL.forEach(function (r) {
+              if (!r || !r.id) return;
+              if (readingDeleted.indexOf(r.id) >= 0) return; // 本地已删，云端不复活
+              var l = byId[r.id];
+              if (!l) byId[r.id] = r;
+              else if ((r.updatedAt || 0) >= (l.updatedAt || 0)) byId[r.id] = r;
+            });
+            Object.keys(byId).forEach(function (id) { if (readingDeleted.indexOf(id) >= 0) delete byId[id]; }); // 清理本地已删项
+            var mergedRL = Object.keys(byId).map(function (k) { return byId[k]; });
+            localStorage.setItem(READING_KEY, JSON.stringify(mergedRL));
+          }
+        } catch (e2) {}
+        renderReadingList();
+      }
+      // 阅读删除墓碑也同步：合并云端已删集合，避免某端删除后另一端又复活
+      if (data.readingDeleted != null) {
+        try {
+          var cloudDel = JSON.parse(data.readingDeleted);
+          if (Array.isArray(cloudDel)) {
+            cloudDel.forEach(function (id) { if (readingDeleted.indexOf(id) < 0) readingDeleted.push(id); });
+            localStorage.setItem(READING_DEL_KEY, JSON.stringify(readingDeleted));
+            // 顺手把本地列表中仍在的已删项清掉
+            try {
+              var cur = getReadingData().filter(function (r) { return readingDeleted.indexOf(r.id) < 0; });
+              localStorage.setItem(READING_KEY, JSON.stringify(cur));
+            } catch (e3) {}
+          }
+        } catch (e4) {}
+      }
       loadGoals();
       // 存在本地更新或墓碑变更时统一回传一次，使云端 blob 与本地一致（彻底清除幽灵记录）
       if (localWins || resurrected > 0 || deletedIds.length) schedulePush();
@@ -3492,6 +3527,9 @@ function fmtMoney(n) {
 
     // ============ 正在阅读 / 已阅读（学习模块） ============
     var READING_KEY = 'readingList';  // localStorage key for today's reading list
+    var READING_DEL_KEY = 'readingDeleted';  // 已删阅读项墓碑（防云端复活）
+    var readingDeleted = [];
+    try { readingDeleted = JSON.parse(localStorage.getItem(READING_DEL_KEY) || '[]'); } catch (e) {}
     function getReadingData() {
       try { return JSON.parse(localStorage.getItem(READING_KEY) || '[]'); } catch (e) { return []; }
     }
@@ -3568,7 +3606,12 @@ function fmtMoney(n) {
       if (rl) rl.querySelectorAll('.reading-del').forEach(function (btn) {
         btn.addEventListener('click', function () {
           var rec = findRec(this.getAttribute('data-rid'));
-          if (rec && confirm('删除「' + rec.title + '」？')) { data = data.filter(function (r) { return r.id !== rec.id; }); saveReadingData(data); schedulePush(); renderReadingList(); }
+          if (rec && confirm('删除「' + rec.title + '」？')) {
+            data = data.filter(function (r) { return r.id !== rec.id; });
+            if (readingDeleted.indexOf(rec.id) < 0) readingDeleted.push(rec.id);
+            try { localStorage.setItem(READING_DEL_KEY, JSON.stringify(readingDeleted)); } catch (e) {}
+            saveReadingData(data); schedulePush(); renderReadingList();
+          }
         });
       });
       if (rl) rl.querySelectorAll('.reading-edit').forEach(function (btn) {
@@ -3631,10 +3674,10 @@ function fmtMoney(n) {
       var isEdit = !!readingEditId;
       if (readingEditId) {
         var rec = data.find(function (r) { return r.id === readingEditId; });
-        if (rec) { rec.title = title; rec.page = page; rec.total = total; }
+        if (rec) { rec.title = title; rec.page = page; rec.total = total; rec.updatedAt = Date.now(); }
         readingEditId = null;
       } else {
-        data.push({ id: 'r' + Date.now() + Math.floor(Math.random() * 1000), title: title, page: page, total: total, done: false, addedDate: todayStr });
+        data.push({ id: 'r' + Date.now() + Math.floor(Math.random() * 1000), title: title, page: page, total: total, done: false, addedDate: todayStr, updatedAt: Date.now() });
       }
       saveReadingData(data);
       schedulePush();
