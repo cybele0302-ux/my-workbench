@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.44';
+const APP_VERSION = 'wobench-v29.45';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -1268,6 +1268,8 @@ function fmtMoney(n) {
         else if (inp.classList.contains('pick-grid')) inp.querySelectorAll('.pick-item').forEach(function (p) { p.classList.toggle('active', p.querySelector('.pick-label').textContent === val); });
       });
       updateSleepUI();
+      // v29.45：实体感录表单填充时，把记录里的体温数组写回隐藏 input，使体温随记录同步显示（拉取后可见对端记录的体温）
+      if (el && el.id === 'shiti') { try { setTempArr(fields['体温'] || []); } catch (e) {} }
     }
 
     // ---- 日记类模块（实体感录 / 学习提升 / 致虚极）：每日一条，可编辑历史 ----
@@ -1302,6 +1304,8 @@ function fmtMoney(n) {
       const el = document.getElementById(key);
       if (!el) return;
       const fields = readFields(el);
+      // v29.45：实体感录的「体温」存在隐藏 input(tempDataInput)，readFields 不读它；显式并入记录字段，使其随 store 同步（修复"体温两端不同步"）
+      if (key === 'shiti') { try { fields['体温'] = getTempArr(); } catch (e) {} }
       const ds = editingDate || ymd(new Date());
       let id;
       if (editingId) id = editingId;
@@ -1567,6 +1571,7 @@ function fmtMoney(n) {
     // ---- 理财：交易流水 + 概览（日/周/月/年）+ 分类图表 ----
     let financePeriod = 'month';
     let txHistPeriod = 'month';
+    var txCatFilter = '';
     const FINANCE_PERIODS = {
       day: { label: '今日', dayKey: function () { return ymd(new Date()); } },
       week: { label: '本周', dayKey: function () { const d = new Date(); d.setDate(d.getDate() - 6); return ymd(d); } },
@@ -1839,6 +1844,18 @@ function fmtMoney(n) {
         + editor
         + '</div>';
     }
+    function populateTxCatFilter() {
+      var sel = document.getElementById('txCatFilterSel');
+      if (!sel) return;
+      var cats = {};
+      try { getTxCats('支出').forEach(function (c) { cats[c] = 1; }); } catch (e) {}
+      try { getTxCats('收入').forEach(function (c) { cats[c] = 1; }); } catch (e) {}
+      var sig = Object.keys(cats).sort().join('|');
+      if (sel.getAttribute('data-sig') === sig) return; // 分类未变则不重建，避免下拉闪烁
+      sel.setAttribute('data-sig', sig);
+      var cur = txCatFilter;
+      sel.innerHTML = '<option value="">全部分类</option>' + Object.keys(cats).map(function (c) { return '<option value="' + escapeAttr(c) + '"' + (c === cur ? ' selected' : '') + '>' + escapeHtml(c) + '</option>'; }).join('');
+    }
     function renderTransactions(period) {
       if (period) txHistPeriod = period;
       document.querySelectorAll('[data-tx-filter]').forEach(function (t) { t.classList.toggle('active', t.dataset.txFilter === txHistPeriod); });
@@ -1851,6 +1868,8 @@ function fmtMoney(n) {
         return ia < ib ? 1 : -1;
       });
       if (txHistPeriod !== 'all') recs = recs.filter(function (r) { return inPeriod(r.date, txHistPeriod); });
+      populateTxCatFilter();
+      if (txCatFilter) recs = recs.filter(function (r) { return (r.fields['分类'] || '') === txCatFilter; });
       if (!recs.length) {
         const lbl = txHistPeriod === 'all' ? '' : (FINANCE_PERIODS[txHistPeriod] ? FINANCE_PERIODS[txHistPeriod].label : '');
         c.innerHTML = '<div class="history-empty">' + (lbl ? lbl : '') + '暂无交易记录</div>'; return;
@@ -1882,6 +1901,8 @@ function fmtMoney(n) {
     document.querySelectorAll('[data-tx-filter]').forEach(function (t) {
       t.addEventListener('click', function () { renderTransactions(t.dataset.txFilter); });
     });
+    var txCatFilterSel = document.getElementById('txCatFilterSel');
+    if (txCatFilterSel) txCatFilterSel.addEventListener('change', function () { txCatFilter = this.value; renderTransactions(); });
     function addTransaction() {
       const el = document.getElementById('zichan');
       if (!el) return;
@@ -2146,6 +2167,7 @@ function fmtMoney(n) {
       arr.push({ t: t, v: v });
       arr.sort(function (a, b) { return (a.t || '').localeCompare(b.t || ''); });
       setTempArr(arr);
+      try { scheduleAutoSave('shiti'); } catch (e) {} // 体温变更后随实体感录记录一起自动保存并同步
       if (vInp) vInp.value = '';
       if (tInp) tInp.value = '';
       showToast('已记录体温 ' + v + '℃');
@@ -2156,7 +2178,7 @@ function fmtMoney(n) {
       if (del) {
         var idx = parseInt(del.getAttribute('data-temp-del'), 10);
         var arr = getTempArr();
-        if (idx >= 0 && idx < arr.length) { arr.splice(idx, 1); setTempArr(arr); showToast('已删除'); }
+        if (idx >= 0 && idx < arr.length) { arr.splice(idx, 1); setTempArr(arr); try { scheduleAutoSave('shiti'); } catch (e) {} showToast('已删除'); }
       }
     });
 
@@ -2747,7 +2769,15 @@ function fmtMoney(n) {
         avatar: (function () { var _av = localStorage.getItem('zqdd:avatar') || ''; return _av.length <= 1572864 ? _av : ''; })(),
         readingList: localStorage.getItem('readingList'),
         readingDeleted: JSON.stringify(readingDeleted),
-        deleted: deletedIds
+        deleted: deletedIds,
+        // v29.45：配置型列表（自定义分类/标签/养护项）此前只存 localStorage、从不进整包 → 两端不同步。
+        // 现一并序列化进整包，使其与记录/待办一致地跨端同步。
+        txCats: localStorage.getItem('zqdd:tx_cats'),
+        txCatsIn: localStorage.getItem('zqdd:tx_cats_in'),
+        txCatsOut: localStorage.getItem('zqdd:tx_cats_out'),
+        yanghuKeys: localStorage.getItem('zqdd:yanghu_keys'),
+        studyTags: localStorage.getItem('zqdd:study_tags'),
+        todoTags: localStorage.getItem('zqdd:todo_tags')
       };
     }
     var _renderAllScheduled = false;
@@ -2960,6 +2990,18 @@ function fmtMoney(n) {
       if (data.goals != null) localStorage.setItem(GOAL_KEY, data.goals);
       if (data.aiCfg != null) { localStorage.setItem('zqdd:ai_cfg', data.aiCfg); refreshAiCfgCache(); }
       if (data.avatar) { localStorage.setItem('zqdd:avatar', data.avatar); refreshAvatar(); }
+      // v29.45：配置型列表（自定义分类/标签/养护项）跨端写回
+      if (data.txCats != null) localStorage.setItem('zqdd:tx_cats', data.txCats);
+      if (data.txCatsIn != null) localStorage.setItem('zqdd:tx_cats_in', data.txCatsIn);
+      if (data.txCatsOut != null) localStorage.setItem('zqdd:tx_cats_out', data.txCatsOut);
+      if (data.yanghuKeys != null) localStorage.setItem('zqdd:yanghu_keys', data.yanghuKeys);
+      if (data.studyTags != null) localStorage.setItem('zqdd:study_tags', data.studyTags);
+      if (data.todoTags != null) localStorage.setItem('zqdd:todo_tags', data.todoTags);
+      try { renderTxCatChoices(); } catch (e) {}
+      try { renderTransactions(); renderTodayTx(); renderAssetSummary(); } catch (e) {}
+      try { renderYanghu(); } catch (e) {}
+      try { renderStudyTagRow(); } catch (e) {}
+      try { renderTodoTagRow(); } catch (e) {}
       // 阅读列表：按 id 并集合并（本地新增保留、同 id 取 updatedAt 较大者），不再整串覆盖（v29.39 修复「加书丢失/变成1和2」）
       if (data.readingList != null) {
         try {
@@ -4875,7 +4917,7 @@ function fmtMoney(n) {
         return arr;
       } catch (e) { return []; }
     }
-    function saveTodo(arr) { localStorage.setItem('zqdd:todo', JSON.stringify(arr)); }
+    function saveTodo(arr) { localStorage.setItem('zqdd:todo', JSON.stringify(arr)); try { if (cloudCfg && cloudSpaceKey) schedulePush(); } catch (e) {} }
     // ---- 待办标签：可编辑 / 可增减，持久化并同步到列表与筛选 ----
     var TODO_TAGS_KEY = 'zqdd:todo_tags';
     function loadTodoTags() {
@@ -4903,6 +4945,7 @@ function fmtMoney(n) {
     }
     var editingTodoId = null;
     var editingTodoTag = '';
+    var editingTodoType = 'short';
     function todoRow(t) {
       if (editingTodoId === t.id) {
         var editTags = [''].concat(loadTodoTags()).map(function (tg) {
@@ -4912,6 +4955,7 @@ function fmtMoney(n) {
         }).join('');
         return '<div class="history-item" style="flex-wrap:wrap;"><div class="hi-main" style="flex:1 1 100%;"><input class="field-input" id="todoEditInput" value="' + escapeAttr(t.text) + '" style="width:100%;"></div>'
           + '<div class="todo-tag-row" id="todoEditTagRow" style="flex:1 1 100%; margin-top:8px;">' + editTags + '</div>'
+          + '<div class="todo-type-row" id="todoEditTypeRow" style="flex:1 1 100%; margin-top:8px;"><span style="font-size:12px;color:var(--text-sub);margin-right:4px;">类型</span><span class="todo-type-chip' + (editingTodoType !== 'long' ? ' active' : '') + '" data-todo-edittype="short">短期</span><span class="todo-type-chip' + (editingTodoType === 'long' ? ' active' : '') + '" data-todo-edittype="long">长期</span></div>'
           + '<div class="hi-actions" style="flex:1 1 100%; justify-content:flex-end; margin-top:8px;"><span class="hi-edit" data-todo-save="' + t.id + '">保存</span><span class="hi-del" data-todo-cancel="' + t.id + '">取消</span></div></div>';
       }
       var tagChip = (t.tag) ? '<span class="todo-tag-chip">' + escapeHtml(t.tag) + '</span>' : '';
@@ -5033,6 +5077,7 @@ function fmtMoney(n) {
         var arrX = loadTodo();
         var itX = arrX.filter(function (t) { return t.id === editingTodoId; })[0];
         editingTodoTag = itX ? (itX.tag || '') : '';
+        editingTodoType = itX ? (itX.type || 'short') : 'short';
         renderTodo();
         var inp = document.getElementById('todoEditInput');
         if (inp) inp.focus();
@@ -5044,6 +5089,12 @@ function fmtMoney(n) {
         renderTodo();
         return;
       }
+      var ety = e.target.closest('[data-todo-edittype]');
+      if (ety) {
+        editingTodoType = ety.getAttribute('data-todo-edittype') || 'short';
+        renderTodo();
+        return;
+      }
       var sv = e.target.closest('[data-todo-save]');
       if (sv) {
         var sid = sv.getAttribute('data-todo-save');
@@ -5052,7 +5103,7 @@ function fmtMoney(n) {
         if (!v) { showToast('内容不能为空'); return; }
         var arr2 = loadTodo();
         var it2 = arr2.filter(function (t) { return t.id === sid; })[0];
-        if (it2) { it2.text = v; it2.tag = editingTodoTag; }
+        if (it2) { it2.text = v; it2.tag = editingTodoTag; it2.type = editingTodoType; }
         saveTodo(arr2);
         editingTodoId = null; editingTodoTag = ''; renderTodo();
         return;
