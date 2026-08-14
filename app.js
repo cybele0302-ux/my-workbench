@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.36';
+const APP_VERSION = 'wobench-v29.37';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -2479,6 +2479,16 @@ function fmtMoney(n) {
       cloudPull().then(function () { return cloudPush(); }).then(function () { renderCloudDiag(); showToast('同步完成'); }).catch(function (e) { lastSyncErr = (e && e.message) ? e.message : String(e); renderCloudDiag(); showToast('同步出错'); });
     });
     if (btnCloudDisconnect) btnCloudDisconnect.addEventListener('click', cloudDisconnect);
+    var btnCloudExport = document.getElementById('btnCloudExport');
+    var btnCloudImport = document.getElementById('btnCloudImport');
+    var btnCloudImportGo = document.getElementById('btnCloudImportGo');
+    if (btnCloudExport) btnCloudExport.addEventListener('click', exportCloudConfig);
+    if (btnCloudImport) btnCloudImport.addEventListener('click', function () {
+      var row = document.getElementById('cloudImportRow'); if (row) row.style.display = '';
+      var er = document.getElementById('cloudExportRow'); if (er) er.style.display = 'none';
+      var inp = document.getElementById('cloudImportStr'); if (inp) inp.focus();
+    });
+    if (btnCloudImportGo) btnCloudImportGo.addEventListener('click', importCloudConfig);
 
     // ============ 云端同步（Supabase · 单人跨设备 · 口令加密） ============
     const CLOUD_CFG_KEY = 'zqdd:cloud', CLOUD_PASS_KEY = 'zqdd:cloudPass';
@@ -2602,6 +2612,44 @@ function fmtMoney(n) {
         cloudPass = raw;
       }
       return cloudPass;
+    }
+    // ===== 云端同步配置一键导出/导入：把空间口令编码成串，跨链接粘贴即连同一空间 =====
+    function b64encUtf8(str) {
+      const bytes = new TextEncoder().encode(str);
+      let bin = '';
+      for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+      return btoa(bin);
+    }
+    function b64decUtf8(b64) {
+      const bin = atob(b64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return new TextDecoder().decode(bytes);
+    }
+    async function exportCloudConfig() {
+      const pass = cloudPass || (document.getElementById('cloudPass') && document.getElementById('cloudPass').value) || '';
+      if (!pass) { showToast('请先输入或连接空间口令再导出'); return; }
+      try {
+        const token = 'wobench-cloud:' + b64encUtf8(JSON.stringify({ v: 1, p: pass }));
+        const out = document.getElementById('cloudExportStr');
+        if (out) { out.value = token; document.getElementById('cloudExportRow').style.display = ''; }
+        const er = document.getElementById('cloudExportRow'); if (er) er.style.display = '';
+        try { await navigator.clipboard.writeText(token); showToast('配置串已复制到剪贴板（含空间口令，请勿泄露）'); }
+        catch (e) { showToast('配置串已生成在下方，请手动复制'); }
+      } catch (e) { showToast('导出失败：' + (e && e.message ? e.message : e)); }
+    }
+    async function importCloudConfig() {
+      const raw = ((document.getElementById('cloudImportStr') && document.getElementById('cloudImportStr').value) || '').trim();
+      if (!raw) { showToast('请粘贴配置串'); return; }
+      try {
+        const b64 = raw.indexOf('wobench-cloud:') === 0 ? raw.slice('wobench-cloud:'.length) : raw;
+        const obj = JSON.parse(b64decUtf8(b64));
+        if (!obj || !obj.p) { showToast('配置串格式不正确'); return; }
+        const pass = obj.p;
+        const inp = document.getElementById('cloudPass'); if (inp) inp.value = pass;
+        showToast('正在连接同一云端空间…');
+        await cloudConnect(pass);
+      } catch (e) { console.error(e); showToast('配置串无效：' + (e && e.message ? e.message : e)); }
     }
     async function cloudFind() {
       if (CLOUD_PROXY) {
