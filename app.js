@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.32';
+const APP_VERSION = 'wobench-v29.33';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -2927,6 +2927,8 @@ function fmtMoney(n) {
           }
         } else {
           await cloudPull();
+          // 连接后把本地存量一并上推，确保双向同步（修复：先录入再连云时本地数据卡在本地、对端看不到）
+          await cloudPush();
         }
         setCloudStatus('已同步', true);
         if (cloudTimer) clearInterval(cloudTimer);
