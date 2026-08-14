@@ -1,1 +1,60 @@
-Y29uc3QgVkVSU0lPTiA9ICd3b2JlbmNoLXYyOS40Mic7CmNvbnN0IFNIRUxMID0gWycuLycsICcuL2luZGV4Lmh0bWwnLCAnLi9hcHAuanMnLCAnLi9zdHlsZS5jc3MnLCAnLi9tYW5pZmVzdC5qc29uJywgJy4vaWNvbi0xOTIucG5nJywgJy4vaWNvbi01MTIucG5nJywgJy4vaWNvbi0xODAucG5nJywgJy4vc3cuanMnXTsKCnNlbGYuYWRkRXZlbnRMaXN0ZW5lcignaW5zdGFsbCcsIGZ1bmN0aW9uIChlKSB7CiAgc2VsZi5za2lwV2FpdGluZygpOwogIGUud2FpdFVudGlsKGNhY2hlcy5vcGVuKFZFUlNJT04pLnRoZW4oZnVuY3Rpb24gKGMpIHsgcmV0dXJuIGMuYWRkQWxsKFNIRUxMKTsgfSkuY2F0Y2goZnVuY3Rpb24gKCkge30pKTsKfSk7CgpzZWxmLmFkZEV2ZW50TGlzdGVuZXIoJ2FjdGl2YXRlJywgZnVuY3Rpb24gKGUpIHsKICBlLndhaXRVbnRpbCgKICAgIGNhY2hlcy5rZXlzKCkudGhlbihmdW5jdGlvbiAoa3MpIHsKICAgICAgcmV0dXJuIFByb21pc2UuYWxsKGtzLmZpbHRlcihmdW5jdGlvbiAoaykgeyByZXR1cm4gayAhPT0gVkVSU0lPTjsgfSkubWFwKGZ1bmN0aW9uIChrKSB7IHJldHVybiBjYWNoZXMuZGVsZXRlKGspOyB9KSk7CiAgICB9KQogICk7CiAgc2VsZi5jbGllbnRzLmNsYWltKCk7Cn0pOwoKc2VsZi5hZGRFdmVudExpc3RlbmVyKCdtZXNzYWdlJywgZnVuY3Rpb24gKGUpIHsKICBpZiAoZS5kYXRhICYmIGUuZGF0YS50eXBlID09PSAnU0tJUF9XQUlUSU5HJykgc2VsZi5za2lwV2FpdGluZygpOwp9KTsKCi8vIOaguOW/g+Wjs+aWh+S7tu+8iGluZGV4Lmh0bWwgLyBhcHAuanMgLyBzdHlsZS5jc3MgLyBtYW5pZmVzdC5qc29u77yJ6LWw44CM57yT5a2Y5LyY5YWI44CN77yaCi8vIOaJk+W8gOeerOmXtOS7juacrOWcsOe8k+WtmOenkuW8gO+8jOWQjuWPsOmdmem7mOiBlOe9keabtOaWsOKAlOKAlOW9u+W6lea2iOmZpOOAjOavj+asoeaJk+W8gOmDveWFiOetiee9kee7nCDihpIg55m95bGP44CN55qE6Zeu6aKY44CCCi8vIOaWsOeJiOacrOS7jeS8mumAmui/hyBWRVJTSU9OIOWNh+e6pyArIHNraXBXYWl0aW5nL2NsaWVudHMuY2xhaW0g6Kem5Y+RIGNvbnRyb2xsZXJjaGFuZ2Ug6Ieq5Yqo5Yi35paw77yM5LiN5Lya5Y2h5Zyo5pen54mI44CCCnZhciBTSEVMTF9QQVRIUyA9IFsnLycsICcvaW5kZXguaHRtbCcsICcvYXBwLmpzJywgJy9zdHlsZS5jc3MnLCAnL21hbmlmZXN0Lmpzb24nXTsKCnNlbGYuYWRkRXZlbnRMaXN0ZW5lcignZmV0Y2gnLCBmdW5jdGlvbiAoZSkgewogIC8vIOWPquWkhOeQhuWQjOa6kCBHRVTvvJvot6jln5/vvIjlpoIgU3VwYWJhc2XvvInnm7TmjqXmlL7ooYzvvIzpgb/lhY3lkJ7mjonnnJ/lrp7plJnor68KICBpZiAoZS5yZXF1ZXN0Lm1ldGhvZCAhPT0gJ0dFVCcpIHJldHVybjsKICBjb25zdCB1cmwgPSBuZXcgVVJMKGUucmVxdWVzdC51cmwpOwogIGlmICh1cmwub3JpZ2luICE9PSBzZWxmLmxvY2F0aW9uLm9yaWdpbikgcmV0dXJuOwoKICB2YXIgaXNTaGVsbCA9IFNIRUxMX1BBVEhTLnNvbWUoZnVuY3Rpb24gKHApIHsKICAgIHJldHVybiB1cmwucGF0aG5hbWUgPT09IHAgfHwgdXJsLnBhdGhuYW1lLmVuZHNXaXRoKHApOwogIH0pOwoKICBpZiAoaXNTaGVsbCkgewogICAgLy8g57yT5a2Y5LyY5YWIICsg5ZCO5Y+w5pu05paw77yI56a757q/5Lmf6IO95byA77yM6IGU572R5ZCO6Z2Z6buY5Yi35paw57yT5a2Y77yJCiAgICBlLnJlc3BvbmRXaXRoKChhc3luYyBmdW5jdGlvbiAoKSB7CiAgICAgIGNvbnN0IGNhY2hlID0gYXdhaXQgY2FjaGVzLm9wZW4oVkVSU0lPTik7CiAgICAgIGNvbnN0IGNhY2hlZCA9IGF3YWl0IGNhY2hlLm1hdGNoKGUucmVxdWVzdCk7CiAgICAgIGNvbnN0IG5ldHdvcmsgPSBmZXRjaChlLnJlcXVlc3QsIHsgY2FjaGU6ICduby1jYWNoZScgfSkudGhlbihmdW5jdGlvbiAocmVzKSB7CiAgICAgICAgaWYgKHJlcyAmJiByZXMub2spIGNhY2hlLnB1dChlLnJlcXVlc3QsIHJlcy5jbG9uZSgpKTsKICAgICAgICByZXR1cm4gcmVzOwogICAgICB9KS5jYXRjaChmdW5jdGlvbiAoKSB7IHJldHVybiBudWxsOyB9KTsKICAgICAgcmV0dXJuIGNhY2hlZCB8fCBuZXR3b3JrIHx8IFJlc3BvbnNlLmVycm9yKCk7CiAgICB9KSgpKTsKICB9IGVsc2UgewogICAgLy8g6LWE5rqQL+Wbvuagh++8mnN0YWxlLXdoaWxlLXJldmFsaWRhdGXvvIjlhYjov5Tlm57nvJPlrZjvvIzlkI7lj7DpnZnpu5jmm7TmlrDvvIkKICAgIGUucmVzcG9uZFdpdGgoKGFzeW5jIGZ1bmN0aW9uICgpIHsKICAgICAgY29uc3QgY2FjaGUgPSBhd2FpdCBjYWNoZXMub3BlbihWRVJTSU9OKTsKICAgICAgY29uc3QgY2FjaGVkID0gYXdhaXQgY2FjaGUubWF0Y2goZS5yZXF1ZXN0KTsKICAgICAgY29uc3QgbmV0d29yayA9IGZldGNoKGUucmVxdWVzdCwgeyBjYWNoZTogJ25vLWNhY2hlJyB9KS50aGVuKGZ1bmN0aW9uIChyZXMpIHsKICAgICAgICBpZiAocmVzICYmIHJlcy5vaykgY2FjaGUucHV0KGUucmVxdWVzdCwgcmVzLmNsb25lKCkpOwogICAgICAgIHJldHVybiByZXM7CiAgICAgIH0pLmNhdGNoKGZ1bmN0aW9uICgpIHsgcmV0dXJuIGNhY2hlZDsgfSk7CiAgICAgIHJldHVybiBjYWNoZWQgfHwgbmV0d29yazsKICAgIH0pKCkpOwogIH0KfSk7Cg==
+const VERSION = 'wobench-v29.43';
+const SHELL = ['./', './index.html', './app.js', './style.css', './manifest.json', './icon-192.png', './icon-512.png', './icon-180.png', './sw.js'];
+
+self.addEventListener('install', function (e) {
+  self.skipWaiting();
+  e.waitUntil(caches.open(VERSION).then(function (c) { return c.addAll(SHELL); }).catch(function () {}));
+});
+
+self.addEventListener('activate', function (e) {
+  e.waitUntil(
+    caches.keys().then(function (ks) {
+      return Promise.all(ks.filter(function (k) { return k !== VERSION; }).map(function (k) { return caches.delete(k); }));
+    })
+  );
+  self.clients.claim();
+});
+
+self.addEventListener('message', function (e) {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
+// 核心壳文件（index.html / app.js / style.css / manifest.json）走「缓存优先」：
+// 打开瞬间从本地缓存秒开，后台静默联网更新——彻底消除「每次打开都先等网络 → 白屏」的问题。
+// 新版本仍会通过 VERSION 升级 + skipWaiting/clients.claim 触发 controllerchange 自动刷新，不会卡在旧版。
+var SHELL_PATHS = ['/', '/index.html', '/app.js', '/style.css', '/manifest.json'];
+
+self.addEventListener('fetch', function (e) {
+  // 只处理同源 GET；跨域（如 Supabase）直接放行，避免吞掉真实错误
+  if (e.request.method !== 'GET') return;
+  const url = new URL(e.request.url);
+  if (url.origin !== self.location.origin) return;
+
+  var isShell = SHELL_PATHS.some(function (p) {
+    return url.pathname === p || url.pathname.endsWith(p);
+  });
+
+  if (isShell) {
+    // 缓存优先 + 后台更新（离线也能开，联网后静默刷新缓存）
+    e.respondWith((async function () {
+      const cache = await caches.open(VERSION);
+      const cached = await cache.match(e.request);
+      const network = fetch(e.request, { cache: 'no-cache' }).then(function (res) {
+        if (res && res.ok) cache.put(e.request, res.clone());
+        return res;
+      }).catch(function () { return null; });
+      return cached || network || Response.error();
+    })());
+  } else {
+    // 资源/图标：stale-while-revalidate（先返回缓存，后台静默更新）
+    e.respondWith((async function () {
+      const cache = await caches.open(VERSION);
+      const cached = await cache.match(e.request);
+      const network = fetch(e.request, { cache: 'no-cache' }).then(function (res) {
+        if (res && res.ok) cache.put(e.request, res.clone());
+        return res;
+      }).catch(function () { return cached; });
+      return cached || network;
+    })());
+  }
+});
