@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.40';
+const APP_VERSION = 'wobench-v29.41';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -2566,14 +2566,20 @@ function fmtMoney(n) {
     async function cloudEncrypt(obj, pass) {
       const key = await deriveCloudKey(pass, PBKDF2_ITER);
       const iv = crypto.getRandomValues(new Uint8Array(12));
-      const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, key, new TextEncoder().encode(JSON.stringify(obj)));
+      let plain;
+      try { plain = JSON.stringify(obj); }
+      catch (se) { throw new Error('序列化同步包失败（数据可能含循环引用或过大）：' + (se && se.message)); }
+      const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, key, new TextEncoder().encode(plain));
       return JSON.stringify({ iv: buf2b64(iv), ct: buf2b64(ct), it: PBKDF2_ITER });
     }
     async function cloudDecrypt(payload, pass) {
-      const o = JSON.parse(payload);
+      let o;
+      try { o = JSON.parse(payload); }
+      catch (pe) { throw new Error('云端密文解析失败（包可能损坏/被截断）：' + (pe && pe.message)); }
       const key = await deriveCloudKey(pass, o.it || 200000);
       const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b642buf(o.iv) }, key, b642buf(o.ct));
-      return JSON.parse(new TextDecoder().decode(pt));
+      try { return JSON.parse(new TextDecoder().decode(pt)); }
+      catch (pe) { throw new Error('解密后数据解析失败（包过大或嵌套过深导致 JSON 溢出）：' + (pe && pe.message)); }
     }
     // ===== 方案 C：云端读写经 Edge Function 中转（服务端 service_role + space_key 隔离）=====
     // 客户端只发 auth_proof（口令的哈希），服务端据此校验空间归属；数据密钥不出本机，云端仍是密文。
@@ -2710,7 +2716,9 @@ function fmtMoney(n) {
         verifier: localStorage.getItem(VERIFIER_KEY),
         goals: localStorage.getItem(GOAL_KEY),
         aiCfg: localStorage.getItem('zqdd:ai_cfg'),
-        avatar: localStorage.getItem('zqdd:avatar'),
+        // 头像可能为数 MB 的 base64，整包塞入会让 JSON 解析溢出栈（v29.41 修复"拉取崩溃"根因之一）。
+        // 超 1.5MB 时不进整包（头像同步频率极低，缺失可手动在两端各设一次；记录/阅读等核心数据不受影响）。
+        avatar: (function () { var _av = localStorage.getItem('zqdd:avatar') || ''; return _av.length <= 1572864 ? _av : ''; })(),
         readingList: localStorage.getItem('readingList'),
         readingDeleted: JSON.stringify(readingDeleted),
         deleted: deletedIds
@@ -2793,7 +2801,7 @@ function fmtMoney(n) {
         profileDirty = false;
       } catch (e) {
         console.error('cloudPush 失败', e);
-        lastSyncErr = (e && e.message) ? e.message : String(e); renderCloudDiag();
+        lastSyncErr = (e && e.stack) ? ('[push] ' + e.stack.slice(0, 600)) : ((e && e.message) ? e.message : String(e)); renderCloudDiag();
         try { showToast('上传云端失败：' + lastSyncErr); } catch (e2) {}
       }
     }
@@ -2822,11 +2830,21 @@ function fmtMoney(n) {
         if (!force && (obj.pushed_at || 0) <= lastKnownCloudAt) { cloudPulling = false; return; } // force=true 时忽略跳过，强制刷新（用户主动同步/打开即连，解除卡死的 lastKnownCloudAt）
         const pass = cloudPass;
         const data = await cloudDecrypt(obj.payload, pass);
-        await mergeCloudData(data);
+        // v29.41：解密成功后立即推进 lastKnownCloudAt，避免「解密成功但合并抛错」时每 60 秒自动拉取
+        // 反复重试同一坏包、永久卡死（用户反馈"拉取崩溃后再也收不到新数据"的根因）。
+        // 即便合并失败，force=true 的「立即双向同步」仍可重拉，不会丢数据。
         lastKnownCloudAt = obj.pushed_at || Date.now();
         saveLastCloudAt(lastKnownCloudAt);
+        try {
+          await mergeCloudData(data);
+        } catch (me) {
+          // 合并单环节异常不放弃整包：已解密数据尽量落地，错误继续上报并保留 stack 供定位
+          console.error('cloudPull 合并异常（已尽量保留已解密数据）', me);
+          lastSyncErr = '合并异常：' + ((me && me.stack) ? me.stack.slice(0, 400) : ((me && me.message) || String(me)));
+          renderCloudDiag();
+        }
         lastPullRecordCount = Object.keys(store).length;
-        lastPullTs = Date.now(); lastSyncErr = ''; renderCloudDiag();
+        lastPullTs = Date.now(); renderCloudDiag();
         // 桥接旧增量通道：旧版沙箱可能仍在向 sync_records 写记录，每 5 分钟补拉一次，避免跨设备漏同步
         if (Date.now() - lastLegacyMigrate > 300000) {
           lastLegacyMigrate = Date.now();
@@ -2834,11 +2852,12 @@ function fmtMoney(n) {
         }
         if (hasPassword() && !cryptoKey) { isLocked = true; showLock('unlock'); }
         else if (hasPassword() && cryptoKey) { await decryptAllFromStore(cryptoKey); }
-        renderAllCloud();
-        showToast('已从云端同步');
+        try { renderAllCloud(); } catch (re) { console.error('renderAllCloud 异常（已忽略，不阻断同步）', re); }
+        if (!lastSyncErr) showToast('已从云端同步');
       } catch (e) {
         console.error('cloudPull 失败', e);
-        lastSyncErr = (e && e.message) ? e.message : String(e); renderCloudDiag();
+        lastSyncErr = (e && e.stack) ? ('[pull] ' + e.stack.slice(0, 600)) : ((e && e.message) ? e.message : String(e));
+        renderCloudDiag();
       } finally {
         cloudPulling = false;
       }
@@ -2895,7 +2914,7 @@ function fmtMoney(n) {
       if (data.verifier != null) localStorage.setItem(VERIFIER_KEY, data.verifier);
       if (data.goals != null) localStorage.setItem(GOAL_KEY, data.goals);
       if (data.aiCfg != null) { localStorage.setItem('zqdd:ai_cfg', data.aiCfg); refreshAiCfgCache(); }
-      if (data.avatar != null) { localStorage.setItem('zqdd:avatar', data.avatar); refreshAvatar(); }
+      if (data.avatar) { localStorage.setItem('zqdd:avatar', data.avatar); refreshAvatar(); }
       // 阅读列表：按 id 并集合并（本地新增保留、同 id 取 updatedAt 较大者），不再整串覆盖（v29.39 修复「加书丢失/变成1和2」）
       if (data.readingList != null) {
         try {
@@ -4394,6 +4413,20 @@ function fmtMoney(n) {
         // 切回/聚焦该标签页时立即拉取一次，确保从另一设备录入的数据及时出现（无需等 60s 计时器）
         document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && cloudCfg && cloudSpaceKey && !cloudPulling) cloudPull(); });
         window.addEventListener('focus', function () { if (cloudCfg && cloudSpaceKey && !cloudPulling) cloudPull(); });
+        // v29.41：全局捕获未被 try/catch 包住的溢出/异常（如 rAF 渲染回调、未处理 Promise），
+        // 把堆栈写入诊断面板，便于精准定位"Maximum call stack size exceeded"等崩溃的真实出错行。
+        window.addEventListener('error', function (ev) {
+          try {
+            var msg = '[global] ' + ((ev && ev.error && ev.error.stack) ? ev.error.stack.slice(0, 600) : ((ev && ev.message) || '未知错误'));
+            lastSyncErr = msg; renderCloudDiag();
+          } catch (e2) {}
+        });
+        window.addEventListener('unhandledrejection', function (ev) {
+          try {
+            var r = ev && ev.reason;
+            lastSyncErr = '[unhandled] ' + ((r && r.stack) ? r.stack.slice(0, 600) : ((r && r.message) || String(r))); renderCloudDiag();
+          } catch (e2) {}
+        });
       }).catch(function () {
         att++;
         localStorage.setItem(LOCK_ATT_KEY, String(att));
