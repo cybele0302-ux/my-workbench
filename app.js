@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.34';
+const APP_VERSION = 'wobench-v29.35';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -2893,6 +2893,23 @@ function fmtMoney(n) {
       await cloudProxyCall('put-batch', { rows });
       saveLastPushAt(Date.now());
     }
+    // 一次性迁移：v29.34 废弃增量通道后，旧代码写在 sync_records 的记录不会被整包通道读到。
+    // 连接时主动把增量表里残留的记录合并进本地（按 id+updatedAt 并集），随后整包上推即补回云端，避免历史数据丢失。
+    async function migrateLegacyIncremental() {
+      try {
+        const j = await cloudProxyCall('since', { since: 0 });
+        if (!j || !Array.isArray(j.rows) || !j.rows.length) return;
+        const recs = [], tomb = [];
+        for (const row of j.rows) {
+          if (row.deleted) { tomb.push(row.rec_id); continue; }
+          try { recs.push(await cloudDecrypt(row.payload, cloudPass)); } catch (e) {}
+        }
+        if (recs.length || tomb.length) {
+          await mergeCloudRecords(recs, tomb);
+          showToast('已从旧同步通道恢复 ' + recs.length + ' 条记录');
+        }
+      } catch (e) { console.warn('旧增量迁移跳过（通道不可用）', e); }
+    }
     function schedulePush() {
       if (!cloudCfg || !cloudSpaceKey) return;
       if (pushTimer) clearTimeout(pushTimer);
@@ -2917,6 +2934,7 @@ function fmtMoney(n) {
       setCloudStatus('连接中…', false);
       try {
         await syncProfileIfNeeded();
+        await migrateLegacyIncremental();
         var localCount = Object.keys(store).length;
         var cloudObj = await cloudFind();
         if (!cloudObj || !cloudObj.payload) {
@@ -2968,6 +2986,7 @@ function fmtMoney(n) {
       setCloudStatus('同步中…', false);
       try {
         await syncProfileIfNeeded();
+        await migrateLegacyIncremental();
         await cloudPull();
         setCloudStatus('已同步', true);
         if (cloudTimer) clearInterval(cloudTimer);
