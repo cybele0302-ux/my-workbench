@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.37';
+const APP_VERSION = 'wobench-v29.38';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -2476,7 +2476,7 @@ function fmtMoney(n) {
       if (!cloudCfg) { showToast('请先连接'); return; }
       if (cloudPulling) { showToast('正在拉取数据，请稍候'); return; }
       showToast('正在同步…');
-      cloudPull().then(function () { return cloudPush(); }).then(function () { renderCloudDiag(); showToast('同步完成'); }).catch(function (e) { lastSyncErr = (e && e.message) ? e.message : String(e); renderCloudDiag(); showToast('同步出错'); });
+      cloudPull(true).then(function () { return cloudPush(); }).then(function () { renderCloudDiag(); showToast('同步完成'); }).catch(function (e) { lastSyncErr = (e && e.message) ? e.message : String(e); renderCloudDiag(); showToast('同步出错'); });
     });
     if (btnCloudDisconnect) btnCloudDisconnect.addEventListener('click', cloudDisconnect);
     var btnCloudExport = document.getElementById('btnCloudExport');
@@ -2775,7 +2775,7 @@ function fmtMoney(n) {
       try {
         const pass = cloudPass;
         const payload = await cloudEncrypt(cloudBuildPayload(), pass);
-        const pushedAt = Date.now();
+        const pushedAt = Math.max(Date.now(), lastKnownCloudAt + 1); // 单调：保证每推严格晚于本设备已知时间戳，防跨链接/跨设备本地时钟偏差使云端 pushed_at 回退、对端 lastKnownCloudAt 永久跳过拉取（v29.38 修复）
         let obj = null;
         try { obj = await cloudFind(); } catch (e) { obj = null; }
         await cloudUpsert(payload, pushedAt, obj ? obj.id : null);
@@ -2789,12 +2789,12 @@ function fmtMoney(n) {
         console.error('cloudPush 失败', e);
       }
     }
-    async function cloudPull() {
+    async function cloudPull(force) {
       if (!cloudCfg || !cloudSpaceKey) return;
       cloudPulling = true;
       try {
         // 单一整包通道：永远整包拉取并合并（含头像/阅读/配置等所有字段）
-        await cloudPullFull();
+        await cloudPullFull(force);
         // 本地有头像/阅读但云端整包仍缺（旧数据未上推）→ 触发一次上推，使云端补齐
         if (profileDirty && (localStorage.getItem('zqdd:avatar') || localStorage.getItem('readingList'))) {
           try { schedulePush(); } catch (e) {}
@@ -2805,13 +2805,13 @@ function fmtMoney(n) {
         cloudPulling = false;
       }
     }
-    async function cloudPullFull() {
+    async function cloudPullFull(force) {
       if (!cloudCfg || !cloudSpaceKey) return;
       cloudPulling = true;
       try {
         const obj = await cloudFind();
         if (!obj) { cloudPulling = false; return; }
-        if ((obj.pushed_at || 0) <= lastKnownCloudAt) { cloudPulling = false; return; }
+        if (!force && (obj.pushed_at || 0) <= lastKnownCloudAt) { cloudPulling = false; return; } // force=true 时忽略跳过，强制刷新（用户主动同步/打开即连，解除卡死的 lastKnownCloudAt）
         const pass = cloudPass;
         const data = await cloudDecrypt(obj.payload, pass);
         await mergeCloudData(data);
@@ -3015,7 +3015,7 @@ function fmtMoney(n) {
             showToast('云端暂无数据');
           }
         } else {
-          await cloudPull();
+          await cloudPull(true);
           // 连接后把本地存量一并上推，确保双向同步（修复：先录入再连云时本地数据卡在本地、对端看不到）
           await cloudPush();
         }
@@ -3059,7 +3059,7 @@ function fmtMoney(n) {
       try {
         await syncProfileIfNeeded();
         await migrateLegacyIncremental();
-        await cloudPull();
+        await cloudPull(true);
         setCloudStatus('已同步', true);
         if (cloudTimer) clearInterval(cloudTimer);
         startCloudTimer();
