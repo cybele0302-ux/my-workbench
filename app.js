@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.33';
+const APP_VERSION = 'wobench-v29.34';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -2686,15 +2686,23 @@ function fmtMoney(n) {
     async function cloudPush() {
       if (!cloudCfg || !cloudSpaceKey) return;
       if (cloudPulling) { console.warn('cloudPush 跳过：正在拉取云端数据'); return; }
-      // 个人资料（头像/阅读）有变更 → 必须走整包，确保进入云端
-      if (profileDirty) { await cloudPushFull(); return; }
-      // 优先走增量通道（仅上传变更记录）；不可用则回退整包
-      try { await cloudPushIncremental(); return; } catch (e) { console.warn('增量上传不可用，回退整包', e); }
+      // 单一整包通道：永远整包上推（pull-merge-push，避免覆盖对端独有记录）。
+      // 增量通道（sync_records）已废弃——它与整包通道（sync 表）互不合并，会导致跨设备只看到部分数据。
       await cloudPushFull();
     }
     async function cloudPushFull() {
       if (!cloudCfg || !cloudSpaceKey) return;
       if (cloudPulling) { console.warn('cloudPushFull 跳过：正在拉取云端数据'); return; }
+      // pull-merge-push：先把云端最新整包合并进本地，避免用本地整包直接覆盖、丢掉对端独有记录
+      try {
+        const probe = await cloudFind();
+        if (probe && (probe.pushed_at || 0) > lastKnownCloudAt) {
+          const data = await cloudDecrypt(probe.payload, cloudPass);
+          await mergeCloudData(data);
+          lastKnownCloudAt = probe.pushed_at || Date.now();
+          saveLastCloudAt(lastKnownCloudAt);
+        }
+      } catch (e) { console.warn('push 前预合并失败，直接上推', e); }
       var recCount = Object.keys(store).length;
       if (recCount === 0 && !profileDirty) { console.warn('cloudPush 跳过：本地无数据，避免覆盖云端'); return; }
       if (lastPullRecordCount > 0 && recCount < lastPullRecordCount * 0.5) {
@@ -2722,18 +2730,11 @@ function fmtMoney(n) {
       if (!cloudCfg || !cloudSpaceKey) return;
       cloudPulling = true;
       try {
-        // 新设备或本机个人资料待上推 → 必须走整包，才能拉到头像/阅读等整包字段
-        if (lastKnownCloudAt === 0 || profileDirty) {
-          await cloudPullFull();
-          // 本地有头像/阅读但云端整包仍缺（旧数据未上推）→ 触发一次上推，使云端补齐
-          if (profileDirty && (localStorage.getItem('zqdd:avatar') || localStorage.getItem('readingList'))) {
-            try { schedulePush(); } catch (e) {}
-          }
-        } else {
-          // 优先走增量通道（仅拉取/解密自上次同步后变更的记录）；异常或需引导时回退整包
-          let usedInc = false;
-          try { usedInc = await cloudPullIncremental(); } catch (e) { usedInc = false; }
-          if (!usedInc) { await cloudPullFull(); }
+        // 单一整包通道：永远整包拉取并合并（含头像/阅读/配置等所有字段）
+        await cloudPullFull();
+        // 本地有头像/阅读但云端整包仍缺（旧数据未上推）→ 触发一次上推，使云端补齐
+        if (profileDirty && (localStorage.getItem('zqdd:avatar') || localStorage.getItem('readingList'))) {
+          try { schedulePush(); } catch (e) {}
         }
       } catch (e) {
         console.error('cloudPull 失败', e);
