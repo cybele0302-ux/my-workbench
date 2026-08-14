@@ -838,6 +838,18 @@
               <button class="ghost-btn" id="btnCloudConnect">从云端同步</button>
               <button class="ghost-btn" id="btnCloudDisconnect">断开</button>
             </div>
+            <div class="backup-actions" style="margin-top:8px;">
+              <button class="ghost-btn" id="btnCloudExport">导出配置串</button>
+              <button class="ghost-btn" id="btnCloudImport">导入配置串</button>
+            </div>
+            <div id="cloudExportRow" style="margin-top:8px; display:none;">
+              <input class="field-input" id="cloudExportStr" type="text" readonly style="margin-top:4px; font-size:12px;">
+              <div class="backup-hint" style="margin-top:4px;">复制上面这串，到另一链接粘贴「导入配置串」即可连同一空间（含空间口令，勿泄露）。</div>
+            </div>
+            <div id="cloudImportRow" style="margin-top:8px; display:none;">
+              <input class="field-input" id="cloudImportStr" type="text" placeholder="粘贴从另一链接导出的配置串" style="margin-top:4px; font-size:12px;">
+              <button class="ghost-btn" id="btnCloudImportGo" style="margin-top:6px;">应用并连接</button>
+            </div>
             <div id="cloudDiag" class="backup-hint" style="margin-top:10px; font-size:12px; line-height:1.7;"></div>
           </div>
 
