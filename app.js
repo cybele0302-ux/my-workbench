@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.35';
+const APP_VERSION = 'wobench-v29.36';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -2475,8 +2475,8 @@ function fmtMoney(n) {
     if (btnCloudPush) btnCloudPush.addEventListener('click', function () {
       if (!cloudCfg) { showToast('请先连接'); return; }
       if (cloudPulling) { showToast('正在拉取数据，请稍候'); return; }
-      if (Object.keys(store).length === 0) { showToast('本地无数据，无法上传'); return; }
-      cloudPush(); showToast('已触发同步');
+      showToast('正在同步…');
+      cloudPull().then(function () { return cloudPush(); }).then(function () { renderCloudDiag(); showToast('同步完成'); }).catch(function (e) { lastSyncErr = (e && e.message) ? e.message : String(e); renderCloudDiag(); showToast('同步出错'); });
     });
     if (btnCloudDisconnect) btnCloudDisconnect.addEventListener('click', cloudDisconnect);
 
@@ -2484,6 +2484,20 @@ function fmtMoney(n) {
     const CLOUD_CFG_KEY = 'zqdd:cloud', CLOUD_PASS_KEY = 'zqdd:cloudPass';
     let cloudCfg = null, cloudSpaceKey = '', lastKnownCloudAt = 0, pushTimer = null, cloudTimer = null;
     let cloudPulling = false, lastPullRecordCount = 0, suppressDirty = false, cloudPass = '';
+    // 同步诊断状态（用于「云端同步」面板实时显示，便于排查为何不同步）
+    let lastPushTs = 0, lastPullTs = 0, lastSyncErr = '', lastLegacyMigrate = 0;
+    function renderCloudDiag() {
+      var el = document.getElementById('cloudDiag');
+      if (!el) return;
+      var sk = cloudSpaceKey ? ('空间#' + cloudSpaceKey.slice(0, 8)) : '未配置';
+      var lp = lastPushTs ? new Date(lastPushTs).toLocaleString('zh-CN') : '从未';
+      var lpl = lastPullTs ? new Date(lastPullTs).toLocaleString('zh-CN') : '从未';
+      var localN = Object.keys(store).length;
+      var errLine = lastSyncErr ? ('<br>⚠️ 上次错误：' + lastSyncErr) : '';
+      el.innerHTML = '状态：' + (cloudCfg ? '已连接' : '未连接') + ' ｜ ' + sk +
+        '<br>本地记录数：' + localN +
+        '<br>上次上传：' + lp + ' ｜ 上次下载：' + lpl + errLine;
+    }
     // 持久化「上次成功同步的云端时间戳」：云端 pushed_at 未超过它则跳过整包拉取+解密，避免每次打开都解密（数据越多越慢）
     function loadLastCloudAt() { return cloudSpaceKey ? (parseInt(localStorage.getItem('zqdd:cloud_at_' + cloudSpaceKey) || '0', 10) || 0) : 0; }
     function saveLastCloudAt(v) { if (cloudSpaceKey) localStorage.setItem('zqdd:cloud_at_' + cloudSpaceKey, String(v)); }
@@ -2685,7 +2699,7 @@ function fmtMoney(n) {
     }
     async function cloudPush() {
       if (!cloudCfg || !cloudSpaceKey) return;
-      if (cloudPulling) { console.warn('cloudPush 跳过：正在拉取云端数据'); return; }
+      if (cloudPulling) { pushTimer = setTimeout(cloudPush, 1500); return; } // 拉取中：重排而非丢弃，避免保存的记录丢失
       // 单一整包通道：永远整包上推（pull-merge-push，避免覆盖对端独有记录）。
       // 增量通道（sync_records）已废弃——它与整包通道（sync 表）互不合并，会导致跨设备只看到部分数据。
       await cloudPushFull();
@@ -2719,6 +2733,7 @@ function fmtMoney(n) {
         await cloudUpsert(payload, pushedAt, obj ? obj.id : null);
         lastKnownCloudAt = pushedAt;
         saveLastCloudAt(pushedAt);
+        lastPushTs = pushedAt; lastSyncErr = ''; renderCloudDiag();
         // 整包已含头像/阅读 → 记录其特征值，避免重复上推
         try { localStorage.setItem(PROFILE_HASH_KEY, await profileHash()); } catch (e) {}
         profileDirty = false;
@@ -2755,12 +2770,19 @@ function fmtMoney(n) {
         lastKnownCloudAt = obj.pushed_at || Date.now();
         saveLastCloudAt(lastKnownCloudAt);
         lastPullRecordCount = Object.keys(store).length;
+        lastPullTs = Date.now(); lastSyncErr = ''; renderCloudDiag();
+        // 桥接旧增量通道：旧版沙箱可能仍在向 sync_records 写记录，每 5 分钟补拉一次，避免跨设备漏同步
+        if (Date.now() - lastLegacyMigrate > 300000) {
+          lastLegacyMigrate = Date.now();
+          try { await migrateLegacyIncremental(); } catch (e) {}
+        }
         if (hasPassword() && !cryptoKey) { isLocked = true; showLock('unlock'); }
         else if (hasPassword() && cryptoKey) { await decryptAllFromStore(cryptoKey); }
         renderAllCloud();
         showToast('已从云端同步');
       } catch (e) {
         console.error('cloudPull 失败', e);
+        lastSyncErr = (e && e.message) ? e.message : String(e); renderCloudDiag();
       } finally {
         cloudPulling = false;
       }
@@ -2950,6 +2972,7 @@ function fmtMoney(n) {
           await cloudPush();
         }
         setCloudStatus('已同步', true);
+        lastSyncErr = ''; renderCloudDiag();
         if (cloudTimer) clearInterval(cloudTimer);
         startCloudTimer();
       } catch (e) {
@@ -2963,6 +2986,7 @@ function fmtMoney(n) {
         else if (msg.indexOf('Failed to fetch') >= 0 || msg.indexOf('NetworkError') >= 0) hint = '网络无法连接Supabase';
         else hint = '连接失败: ' + msg;
         setCloudStatus('连接失败', false);
+        lastSyncErr = hint; renderCloudDiag();
         showToast(hint);
       }
     }
@@ -4266,7 +4290,10 @@ function fmtMoney(n) {
         refreshAiCfgCache();
         markDirty();
         showToast('已解锁');
-        loadCloudPass().then(function () { cloudAutoStart(); }).catch(function () {});
+        loadCloudPass().then(function () { cloudAutoStart(); renderCloudDiag(); }).catch(function () {});
+        // 切回/聚焦该标签页时立即拉取一次，确保从另一设备录入的数据及时出现（无需等 60s 计时器）
+        document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && cloudCfg && cloudSpaceKey && !cloudPulling) cloudPull(); });
+        window.addEventListener('focus', function () { if (cloudCfg && cloudSpaceKey && !cloudPulling) cloudPull(); });
       }).catch(function () {
         att++;
         localStorage.setItem(LOCK_ATT_KEY, String(att));
