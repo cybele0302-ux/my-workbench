@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.39';
+const APP_VERSION = 'wobench-v29.40';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -2489,6 +2489,13 @@ function fmtMoney(n) {
       var inp = document.getElementById('cloudImportStr'); if (inp) inp.focus();
     });
     if (btnCloudImportGo) btnCloudImportGo.addEventListener('click', importCloudConfig);
+    // v29.40：立即双向同步——强制 pull(true)+push，绕过所有自动跳过/缓存，一键打通两链接
+    var btnCloudSyncNow = document.getElementById('btnCloudSyncNow');
+    if (btnCloudSyncNow) btnCloudSyncNow.addEventListener('click', function () {
+      if (!cloudCfg) { showToast('请先连接云端'); return; }
+      showToast('正在双向同步…');
+      cloudPull(true).then(function () { return cloudPush(); }).then(function () { renderCloudDiag(); showToast('双向同步完成'); }).catch(function (e) { lastSyncErr = (e && e.message) ? e.message : String(e); renderCloudDiag(); showToast('同步出错：' + lastSyncErr); });
+    });
 
     // ============ 云端同步（Supabase · 单人跨设备 · 口令加密） ============
     const CLOUD_CFG_KEY = 'zqdd:cloud', CLOUD_PASS_KEY = 'zqdd:cloudPass';
@@ -2768,8 +2775,8 @@ function fmtMoney(n) {
           saveLastCloudAt(lastKnownCloudAt);
         }
       } catch (e) { console.warn('push 前预合并失败，直接上推', e); }
-      var recCount = Object.keys(store).length;
-      if (recCount === 0 && !profileDirty) { console.warn('cloudPush 跳过：本地无数据，避免覆盖云端'); return; }
+      // v29.40：移除「本地无记录则跳过推送」拦截——push 前已 pull-merge-push 预合并云端（云端有更新时先拉合并），整包幂等，空推不会丢对端数据；
+      // 该拦截会导致「只有阅读/头像等 localStorage 数据、IndexedDB 记录为空」时阅读列表被永久卡住不上推（正是用户「变1和2」的元凶之一）。
       // （已移除 v29.38 的 recCount < lastPullRecordCount*0.5 拦截：新链接加载时本地 store 尚未灌满会误杀正常推送，导致对端收不到数据）
       try {
         const pass = cloudPass;
@@ -2786,6 +2793,8 @@ function fmtMoney(n) {
         profileDirty = false;
       } catch (e) {
         console.error('cloudPush 失败', e);
+        lastSyncErr = (e && e.message) ? e.message : String(e); renderCloudDiag();
+        try { showToast('上传云端失败：' + lastSyncErr); } catch (e2) {}
       }
     }
     async function cloudPull(force) {
