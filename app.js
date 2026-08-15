@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.45';
+const APP_VERSION = 'wobench-v29.46';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -90,7 +90,6 @@ function fmtMoney(n) {
         renderHistory(target);
         if (target === 'xiushen') { renderXiushenDaily(todayStr); renderYanghuList(); renderYanghuHistory(); }
         if (target === 'study') { renderStudyPeriod(); renderTcm(); renderStudyTimeCard(); renderTcmHistory(); renderReadingList(); renderStudyTagRow(); }
-        if (target === 'shiti') { renderTempList(); }
       }
       else if (target === 'todo') { renderTodo(); renderTodoTagRow(); }
       else if (target === 'favorite') { renderFavGrid(); renderReadingList(); }
@@ -1268,8 +1267,8 @@ function fmtMoney(n) {
         else if (inp.classList.contains('pick-grid')) inp.querySelectorAll('.pick-item').forEach(function (p) { p.classList.toggle('active', p.querySelector('.pick-label').textContent === val); });
       });
       updateSleepUI();
-      // v29.45：实体感录表单填充时，把记录里的体温数组写回隐藏 input，使体温随记录同步显示（拉取后可见对端记录的体温）
-      if (el && el.id === 'shiti') { try { setTempArr(fields['体温'] || []); } catch (e) {} }
+      // v29.46：实体感录表单填充时，把记录里的体温（兼容数组/字符串/对象）写回时间+温度两个输入框
+      if (el && el.id === 'shiti') { try { var _t = normalizeTemp(fields['体温']); var _ti = document.getElementById('tempTimeInput'); var _vi = document.getElementById('tempValueInput'); if (_ti) _ti.value = (_t && _t.t) ? _t.t : ''; if (_vi) _vi.value = (_t && _t.v != null) ? _t.v : ''; } catch (e) {} }
     }
 
     // ---- 日记类模块（实体感录 / 学习提升 / 致虚极）：每日一条，可编辑历史 ----
@@ -1304,8 +1303,8 @@ function fmtMoney(n) {
       const el = document.getElementById(key);
       if (!el) return;
       const fields = readFields(el);
-      // v29.45：实体感录的「体温」存在隐藏 input(tempDataInput)，readFields 不读它；显式并入记录字段，使其随 store 同步（修复"体温两端不同步"）
-      if (key === 'shiti') { try { fields['体温'] = getTempArr(); } catch (e) {} }
+      // v29.46：实体感录的「体温」由时间+温度两个输入框组成（非 data-save 字段），显式并入记录字段 {t, v}，随 store 同步
+      if (key === 'shiti') { try { fields['体温'] = readTempInputs(); } catch (e) {} }
       const ds = editingDate || ymd(new Date());
       let id;
       if (editingId) id = editingId;
@@ -1485,7 +1484,12 @@ function fmtMoney(n) {
       });
       if (!recsFiltered.length) { c.innerHTML = '<div class="history-empty">还没有记录</div>'; return; }
       const items = recsFiltered.map(function (r) {
-        const sum = Object.keys(r.fields).map(function (k) { return k + '：' + r.fields[k]; }).join(' · ') || '（空）';
+        const sum = Object.keys(r.fields).map(function (k) {
+          if (k === '体温') return '体温：' + formatTemp(r.fields[k]);
+          var v = r.fields[k];
+          if (v && typeof v === 'object') v = JSON.stringify(v);
+          return k + '：' + v;
+        }).join(' · ') || '（空）';
         const lm = lunarCn(r.date).replace(/^.+?年/, '');
         return '<div class="history-item"><div class="hi-main"><div class="hi-date">' + r.date.slice(5) + ' · ' + lm + '</div><div class="hi-sum">' + escapeHtml(sum) + '</div></div><div class="hi-actions"><span class="hi-edit" data-edit-id="' + r.id + '" data-edit-mod="' + mod + '">编辑</span><span class="hi-del" data-del="' + r.id + '">×</span></div></div>';
       });
@@ -2136,51 +2140,41 @@ function fmtMoney(n) {
       }
     });
 
-    // ============ 体温记录（实体感录模块） ============
-    function getTempArr() {
-      var inp = document.getElementById('tempDataInput');
-      if (!inp || !inp.value) return [];
-      try { var a = JSON.parse(inp.value); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+    // ============ 体温记录（实体感录模块，每天一次，修改即自动保存） ============
+    // 数据形状：fields['体温'] = { t: '08:00', v: 36.5 } 单个对象（兼容旧版数组/字符串/对象三种历史形状）
+    function normalizeTemp(raw) {
+      if (!raw) return null;
+      if (typeof raw === 'object') {
+        if (Array.isArray(raw)) return raw.length ? raw[raw.length - 1] : null;
+        return raw;
+      }
+      if (typeof raw === 'string') {
+        try { var a = JSON.parse(raw); return normalizeTemp(a); } catch (e) { return null; }
+      }
+      return null;
     }
-    function setTempArr(arr) {
-      var inp = document.getElementById('tempDataInput');
-      if (inp) inp.value = JSON.stringify(arr);
-      renderTempList();
+    function formatTemp(raw) {
+      var t = normalizeTemp(raw);
+      if (!t || t.v == null || isNaN(parseFloat(t.v))) return '—';
+      return parseFloat(t.v) + '℃' + (t.t ? '（' + t.t + '）' : '');
     }
-    function renderTempList() {
-      var box = document.getElementById('tempList');
-      if (!box) return;
-      var arr = getTempArr();
-      if (!arr.length) { box.innerHTML = '<div style="font-size:12px;color:var(--text-light);padding:4px 0;">暂无记录</div>'; return; }
-      box.innerHTML = arr.map(function (it, i) {
-        return '<div class="temp-item"><span class="temp-item-time">' + escapeHtml(it.t || '--:--') + '</span><span class="temp-item-val">' + escapeHtml(it.v) + '℃</span><span class="temp-item-del" data-temp-del="' + i + '">×</span></div>';
-      }).join('');
-    }
-    var tempAddBtn = document.getElementById('tempAddBtn');
-    if (tempAddBtn) tempAddBtn.addEventListener('click', function () {
+    function readTempInputs() {
       var tInp = document.getElementById('tempTimeInput');
       var vInp = document.getElementById('tempValueInput');
-      var t = tInp && tInp.value ? tInp.value : (function () { var d = new Date(); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); })();
       var v = vInp ? parseFloat(vInp.value) : NaN;
-      if (isNaN(v) || v < 34 || v > 43) { showToast('请输入 34~43 之间的体温'); return; }
-      var arr = getTempArr();
-      arr.push({ t: t, v: v });
-      arr.sort(function (a, b) { return (a.t || '').localeCompare(b.t || ''); });
-      setTempArr(arr);
-      try { scheduleAutoSave('shiti'); } catch (e) {} // 体温变更后随实体感录记录一起自动保存并同步
-      if (vInp) vInp.value = '';
-      if (tInp) tInp.value = '';
-      showToast('已记录体温 ' + v + '℃');
-    });
-    var tempListEl = document.getElementById('tempList');
-    if (tempListEl) tempListEl.addEventListener('click', function (e) {
-      var del = e.target.closest('[data-temp-del]');
-      if (del) {
-        var idx = parseInt(del.getAttribute('data-temp-del'), 10);
-        var arr = getTempArr();
-        if (idx >= 0 && idx < arr.length) { arr.splice(idx, 1); setTempArr(arr); try { scheduleAutoSave('shiti'); } catch (e) {} showToast('已删除'); }
-      }
-    });
+      if (isNaN(v)) return null;
+      var t = tInp && tInp.value ? tInp.value : (function () { var d = new Date(); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); })();
+      return { t: t, v: v };
+    }
+    function saveTempAuto() {
+      try { scheduleAutoSave('shiti'); } catch (e) {}
+      var obj = readTempInputs();
+      if (obj) showToast('已记录体温 ' + obj.v + '℃');
+    }
+    var tempTimeInput = document.getElementById('tempTimeInput');
+    if (tempTimeInput) tempTimeInput.addEventListener('change', saveTempAuto);
+    var tempValueInput = document.getElementById('tempValueInput');
+    if (tempValueInput) tempValueInput.addEventListener('change', saveTempAuto);
 
     // 旧 localStorage 数据迁移到 IndexedDB
     function migrateFromLocalStorage() {
@@ -3258,7 +3252,12 @@ function fmtMoney(n) {
       Object.keys(grouped).forEach(function (modName) {
         html += '<div class="search-group"><div class="search-group-title">' + escapeHtml(modName) + ' <span class="search-group-count">(' + grouped[modName].length + ')</span></div>';
         html += grouped[modName].slice(0, 5).map(function (r) {
-          var sum = Object.keys(r.fields).map(function (k) { return k + '：' + r.fields[k]; }).join(' · ');
+          var sum = Object.keys(r.fields).map(function (k) {
+            if (k === '体温') return '体温：' + formatTemp(r.fields[k]);
+            var v = r.fields[k];
+            if (v && typeof v === 'object') v = JSON.stringify(v);
+            return k + '：' + v;
+          }).join(' · ');
           return '<div class="search-result-item" data-search-mod="' + r.modKey + '"><span class="search-date">' + r.date.slice(5) + '</span><span class="search-sum">' + escapeHtml(sum.slice(0, 80)) + '</span></div>';
         }).join('');
         if (grouped[modName].length > 5) html += '<div class="search-more">还有 ' + (grouped[modName].length - 5) + ' 条，进入' + escapeHtml(modName) + '查看</div>';
@@ -3364,8 +3363,8 @@ function fmtMoney(n) {
       var tempData = dates.map(function (ds) {
         var last = null;
         recordsForDay(ds, 'shiti').forEach(function (r) {
-          var raw = r.fields['体温'];
-          if (raw) { try { var a = JSON.parse(raw); if (Array.isArray(a) && a.length) last = parseFloat(a[a.length - 1].v) || null; } catch (e) {} }
+          var t = normalizeTemp(r.fields['体温']);
+          if (t && t.v != null) { var n = parseFloat(t.v); if (!isNaN(n)) last = n; }
         });
         return last || 0;
       });
