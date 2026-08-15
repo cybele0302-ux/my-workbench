@@ -2307,7 +2307,7 @@
 
 /* ===== 体温记录 ===== */
 .temp-record-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.temp-time-input { flex: 0 0 auto; width: 110px; }
+.temp-time-input { flex: 1 1 0; width: auto; min-width: 0; }
 .temp-list { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
 .temp-item { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 10px; background: rgba(var(--accent-rgb), 0.05); border: 1px solid var(--card-border); font-size: 14px; }
 .temp-item-time { color: var(--text-sub); font-variant-numeric: tabular-nums; }
