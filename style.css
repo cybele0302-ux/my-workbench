@@ -1124,8 +1124,8 @@
     }
 
     /* 首页快捷图标 */
-    .quick-icons { display: flex; flex-wrap: wrap; gap: 10px 16px; margin: 2px 0 16px; justify-content: flex-start; }
-    .quick-icon { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .quick-icons { display: flex; flex-wrap: wrap; gap: 10px 16px; margin: 2px 0 16px; justify-content: center; }
+    .quick-icon { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; -webkit-tap-highlight-color: transparent; max-width: 72px; }
     .quick-icon .qi-emoji {
       width: 48px; height: 48px; border-radius: 50%;
       background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.16), rgba(var(--accent-deep-rgb), 0.22));
@@ -1885,6 +1885,8 @@
     .goal-name { font-size: 13px; color: var(--text-main); flex: 1; }
     .goal-unit { font-size: 11px; color: var(--text-light); flex: none; width: 30px; }
     .goal-input { width: 70px !important; padding: 6px 8px !important; font-size: 13px !important; }
+    .goal-progress { margin: 4px 0 8px; padding-left: 2px; }
+    .goal-progress .goal-bar { margin-top: 4px; }
 
     /* ===== 习惯连击 ===== */
     .streak-badge { font-size: 11px; font-weight: 600; color: #ff7a45; background: rgba(255, 122, 69, 0.1); padding: 2px 8px; border-radius: 999px; margin-left: 6px; white-space: nowrap; }
