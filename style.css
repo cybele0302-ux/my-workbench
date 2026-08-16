@@ -419,7 +419,7 @@
     .mhc-top {
       display: flex;
       align-items: flex-start;
-      justify-content: flex-start;
+      justify-content: flex-start !important;
       gap: 12px;
       position: relative;
       z-index: 1;
@@ -2325,3 +2325,9 @@
 .fav-card { position: relative; }
 .fav-card-pin { position: absolute; top: 8px; right: 8px; font-size: 11px; padding: 3px 8px; border-radius: 999px; background: rgba(212,160,23,0.14); color: #b8860b; border: 1px solid rgba(212,160,23,0.4); cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .fav-card-pin.active { background: #d4a017; color: #fff; border-color: #d4a017; }
+
+/* ===== v29.53 终极防御：模块 banner 强制居左 ===== */
+.module-header-card > .mhc-top { justify-content: flex-start !important; }
+.module-header-card > .mhc-top > .mhc-info { text-align: left !important; }
+.module-header-card > .mhc-top > .mhc-info > .mhc-title { text-align: left !important; }
+.module-header-card > .mhc-top > .mhc-info > .mhc-sub { text-align: left !important; }
