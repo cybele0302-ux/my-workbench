@@ -419,6 +419,7 @@
     .mhc-top {
       display: flex;
       align-items: flex-start;
+      justify-content: flex-start;
       gap: 12px;
       position: relative;
       z-index: 1;
@@ -453,6 +454,7 @@
     .mhc-info {
       flex: 1;
       min-width: 0;
+      text-align: left;
     }
 
     .mhc-title {
