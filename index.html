@@ -71,31 +71,35 @@
 
           <div class="card-tab-strip" data-card-tabs></div>
 
-          <div class="card" id="goalsCard" data-card-title="目标设置">
-            <div class="card-title card-title--foldable">目标设置<button class="fold-btn card-fold-btn" type="button" data-fold="goals" aria-label="收起">▾</button></div>
+          <div class="card" id="goalsCard" data-card-title="目标">
+            <div class="card-title card-title--foldable">目标<button class="fold-btn card-fold-btn" type="button" data-fold="goals" aria-label="收起">▾</button></div>
             <div class="fold-body open" id="foldGoals">
             <div class="backup-hint">为各模块设周/月目标，模块顶部会显示进度条。</div>
             <div class="goal-list" id="goalList">
-              <div class="goal-row">
+              <div class="goal-row" data-goal-row="study">
                 <span class="goal-name">📚 学习（每周）</span>
                 <span class="goal-unit">小时</span>
                 <input class="field-input goal-input" type="number" data-goal="study" placeholder="10" min="0">
               </div>
-              <div class="goal-row">
+              <div class="goal-progress" id="goalProgressStudy"></div>
+              <div class="goal-row" data-goal-row="tcm">
                 <span class="goal-name">🌿 中医打卡（每周）</span>
                 <span class="goal-unit">天</span>
                 <input class="field-input goal-input" type="number" data-goal="tcm" placeholder="5" min="0" max="7">
               </div>
-              <div class="goal-row">
+              <div class="goal-progress" id="goalProgressTcm"></div>
+              <div class="goal-row" data-goal-row="yanghu">
                 <span class="goal-name">🪷 养护打卡（每天）</span>
                 <span class="goal-unit">项</span>
                 <input class="field-input goal-input" type="number" data-goal="yanghu" placeholder="8" min="0">
               </div>
-              <div class="goal-row">
+              <div class="goal-progress" id="goalProgressYanghu"></div>
+              <div class="goal-row" data-goal-row="budget">
                 <span class="goal-name">💰 理财月支出上限</span>
                 <span class="goal-unit">元</span>
                 <input class="field-input goal-input" type="number" data-goal="budget" placeholder="3000" min="0" step="0.01">
               </div>
+              <div class="goal-progress" id="goalProgressBudget"></div>
             </div>
             </div>
           </div>
