@@ -1,11 +1,18 @@
 
     
-const APP_VERSION = 'wobench-v29.48';
+const APP_VERSION = 'wobench-v29.49';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
   v = Math.round(v * 100) / 100;
   return v.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+// v29.49：理财概览支出/收入/结余取整显示（避免小数溢出），其他地方仍保留两位小数
+function fmtMoneyInt(n) {
+  var v = Number(n);
+  if (!isFinite(v)) v = 0;
+  v = Math.round(v);
+  return v.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
     const ICONS = {
@@ -1284,7 +1291,7 @@ function fmtMoney(n) {
       if (b) { b.classList.remove('hidden'); b.querySelector('b').textContent = editingDate + ' · ' + lunarCn(editingDate).replace(/^.+?年/, ''); }
       const btn = document.querySelector('[data-save-btn="' + mod + '"]'); if (btn) btn.textContent = '更新 · ' + editingDate.slice(5);
       if (mod === 'xiushen') { renderYanghu(); renderYanghuHistory(); }
-      if (mod === 'study') { renderTcm(); renderTcmHistory(); }
+      if (mod === 'study') { renderTcm(); renderTcmHistory(); if (typeof buildCardTabs === 'function') buildCardTabs(); }
     }
     function exitEdit(mod) {
       editingId = null; editingDate = null;
@@ -1457,6 +1464,8 @@ function fmtMoney(n) {
       switchModuleTab('study', 'today');
       var el = document.getElementById('study');
       if (el && typeof clearForm === 'function') clearForm(el);
+      // v29.49：补录模式确保学习子tab（阅读记录/今日学习/中医打卡）显示
+      if (typeof buildCardTabs === 'function') buildCardTabs();
       var b = document.querySelector('[data-edit-banner="study"]');
       if (b) { b.classList.remove('hidden'); var bb = b.querySelector('b'); if (bb) bb.textContent = ds + ' · ' + lunarCn(ds).replace(/^.+?年/, ''); }
       var btn = document.querySelector('[data-save-btn="study"]'); if (btn) btn.textContent = '保存 · ' + ds.slice(5);
@@ -1607,9 +1616,9 @@ function fmtMoney(n) {
           else { exp += amt; const c = r.fields['分类'] || '其他'; cats[c] = (cats[c] || 0) + amt; }
         }
       });
-      setText('expThisMonth', '¥' + fmtMoney(exp));
-      setText('incThisMonth', '¥' + fmtMoney(inc));
-      setText('balThisMonth', '¥' + fmtMoney(inc - exp));
+      setText('expThisMonth', '¥' + fmtMoneyInt(exp));
+      setText('incThisMonth', '¥' + fmtMoneyInt(inc));
+      setText('balThisMonth', '¥' + fmtMoneyInt(inc - exp));
       // 月度预算目标（目标设置 goal=budget）：以自然月支出衡量，超支高亮
       var budgetBar = document.getElementById('budgetBar');
       if (budgetBar) {
