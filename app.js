@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.49';
+const APP_VERSION = 'wobench-v29.50';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -1073,9 +1073,9 @@ function fmtMoneyInt(n) {
     }
     function buildCardTabs() {
       document.querySelectorAll('[data-card-tabs]').forEach(function (strip) {
-        const mod = strip.closest('.module');
-        if (!mod) return;
-        const cards = mod.querySelectorAll('[data-card-title]');
+        const panel = strip.closest('.tab-panel') || strip.closest('.module');
+        if (!panel) return;
+        const cards = panel.querySelectorAll('[data-card-title]');
         if (!cards.length) { strip.style.display = 'none'; return; }
         strip.innerHTML = '';
         cards.forEach(function (card, i) {
@@ -1083,10 +1083,10 @@ function fmtMoneyInt(n) {
           const btn = document.createElement('div');
           btn.className = 'card-tab' + (i === 0 ? ' active' : '');
           btn.textContent = title;
-          btn.addEventListener('click', function () { activateCardTab(mod, card); });
+          btn.addEventListener('click', function () { activateCardTab(panel, card); });
           strip.appendChild(btn);
         });
-        activateCardTab(mod, cards[0]);
+        activateCardTab(panel, cards[0]);
       });
     }
     buildCardTabs();
@@ -1466,6 +1466,10 @@ function fmtMoneyInt(n) {
       if (el && typeof clearForm === 'function') clearForm(el);
       // v29.49：补录模式确保学习子tab（阅读记录/今日学习/中医打卡）显示
       if (typeof buildCardTabs === 'function') buildCardTabs();
+      // v29.50：点过「历史记录」tab 会把今日面板的 tab 条设成 display:none，
+      // 这里显式复位，确保补录时三个子卡片 tab 一定可见
+      var tp = el.querySelector('.today-panel');
+      if (tp) { var ts = tp.querySelector('[data-card-tabs]'); if (ts) ts.style.display = ''; }
       var b = document.querySelector('[data-edit-banner="study"]');
       if (b) { b.classList.remove('hidden'); var bb = b.querySelector('b'); if (bb) bb.textContent = ds + ' · ' + lunarCn(ds).replace(/^.+?年/, ''); }
       var btn = document.querySelector('[data-save-btn="study"]'); if (btn) btn.textContent = '保存 · ' + ds.slice(5);
