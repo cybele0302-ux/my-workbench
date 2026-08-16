@@ -1,4 +1,4 @@
-const VERSION = 'wobench-v29.50';
+const VERSION = 'wobench-v29.51';
 const SHELL = ['./', './index.html', './app.js', './style.css', './manifest.json', './icon-192.png', './icon-512.png', './icon-180.png', './sw.js'];
 
 self.addEventListener('install', function (e) {
@@ -19,9 +19,9 @@ self.addEventListener('message', function (e) {
   if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
-// 核心壳文件（index.html / app.js / style.css / manifest.json）走「缓存优先」：
-// 打开瞬间从本地缓存秒开，后台静默联网更新——彻底消除「每次打开都先等网络 → 白屏」的问题。
-// 新版本仍会通过 VERSION 升级 + skipWaiting/clients.claim 触发 controllerchange 自动刷新，不会卡在旧版。
+// 核心壳文件（index.html / app.js / style.css / manifest.json）走「网络优先 + 离线回退」：
+// 联网时每次都拉最新（cache:'reload' 绕过 HTTP 缓存），确保 CSS/JS 改动立即生效，不再被旧缓存卡住；
+// 离线时回退到本地缓存，仍可打开。新版本经 VERSION 升级 + skipWaiting/clients.claim 自动激活。
 var SHELL_PATHS = ['/', '/index.html', '/app.js', '/style.css', '/manifest.json'];
 
 self.addEventListener('fetch', function (e) {
@@ -35,15 +35,17 @@ self.addEventListener('fetch', function (e) {
   });
 
   if (isShell) {
-    // 缓存优先 + 后台更新（离线也能开，联网后静默刷新缓存）
+    // 网络优先 + 离线回退缓存（联网时永远拉最新 CSS/JS，杜绝旧 style.css 卡住不更新）
     e.respondWith((async function () {
       const cache = await caches.open(VERSION);
       const cached = await cache.match(e.request);
-      const network = fetch(e.request, { cache: 'no-cache' }).then(function (res) {
-        if (res && res.ok) cache.put(e.request, res.clone());
-        return res;
-      }).catch(function () { return null; });
-      return cached || network || Response.error();
+      try {
+        const network = await fetch(e.request, { cache: 'reload' });
+        if (network && network.ok) cache.put(e.request, network.clone());
+        return network;
+      } catch (err) {
+        return cached || Response.error();
+      }
     })());
   } else {
     // 资源/图标：stale-while-revalidate（先返回缓存，后台静默更新）
