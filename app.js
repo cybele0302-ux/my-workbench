@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.51';
+const APP_VERSION = 'wobench-v29.52';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -3459,7 +3459,11 @@ function fmtMoneyInt(n) {
         });
         var targetMins = goals.study * 60;
         var pct = Math.min(100, Math.round(studyMins / targetMins * 100));
-        updateGoalBadge('study', pct, Math.round(studyMins / 60 * 10) / 10 + 'h/' + goals.study + 'h');
+        var studyLabel = Math.round(studyMins / 60 * 10) / 10 + 'h / ' + goals.study + 'h';
+        updateGoalBadge('study', pct, studyLabel);
+        renderHomeGoalBar('goalProgressStudy', pct, studyLabel, false);
+      } else {
+        clearHomeGoalBar('goalProgressStudy');
       }
       // 中医周目标
       if (goals.tcm) {
@@ -3469,7 +3473,11 @@ function fmtMoneyInt(n) {
           if (r.module === 'tcm' && !isEnc(r) && r.date >= weekStartStr && Object.keys(r.fields).length) tcmDays++;
         });
         var pct2 = Math.min(100, Math.round(tcmDays / goals.tcm * 100));
-        updateGoalBadge('tcm', pct2, tcmDays + '天/' + goals.tcm + '天');
+        var tcmLabel = tcmDays + '天 / ' + goals.tcm + '天';
+        updateGoalBadge('tcm', pct2, tcmLabel);
+        renderHomeGoalBar('goalProgressTcm', pct2, tcmLabel, false);
+      } else {
+        clearHomeGoalBar('goalProgressTcm');
       }
       // 修身养性 / 养护打卡 共用：今日打卡几项（养护打卡勾选项物理上位于修身养性模块内）
       var ygRec = store[todayStr + '|yanghu'];
@@ -3480,7 +3488,11 @@ function fmtMoneyInt(n) {
       // 养护打卡目标进度（今日打卡几项 / 养护打卡目标几项）
       if (goals.yanghu) {
         var pctY = Math.min(100, Math.round(ygDone / goals.yanghu * 100));
-        updateGoalBadge('yanghu', pctY, ygDone + '项/' + goals.yanghu + '项', pctY >= 100);
+        var ygLabel = ygDone + '项 / ' + goals.yanghu + '项';
+        updateGoalBadge('yanghu', pctY, ygLabel, pctY >= 100);
+        renderHomeGoalBar('goalProgressYanghu', pctY, ygLabel, pctY >= 100);
+      } else {
+        clearHomeGoalBar('goalProgressYanghu');
       }
       // 修身养性进度条：与养护打卡同逻辑（今日打卡几项 / 养护打卡目标几项）
       if (goals.yanghu) {
@@ -3497,8 +3509,27 @@ function fmtMoneyInt(n) {
           if (r.module === 'zichan' && !isEnc(r) && r.date.indexOf(ym) === 0 && (r.fields['交易类型'] || '支出') !== '收入') exp += parseFloat(r.fields['金额']) || 0;
         });
         var pct3 = Math.min(100, Math.round(exp / goals.budget * 100));
-        updateGoalBadge('zichan', pct3, '¥' + fmtMoney(exp) + '/¥' + fmtMoney(goals.budget), pct3 >= 100);
+        var budgetLabel = '¥' + fmtMoney(exp) + ' / ¥' + fmtMoney(goals.budget);
+        updateGoalBadge('zichan', pct3, budgetLabel, pct3 >= 100);
+        renderHomeGoalBar('goalProgressBudget', pct3, budgetLabel, pct3 >= 100);
+      } else {
+        clearHomeGoalBar('goalProgressBudget');
       }
+    }
+    // 首页目标卡片进度条渲染
+    function renderHomeGoalBar(elId, pct, label, over) {
+      var el = document.getElementById(elId);
+      if (!el) return;
+      if (!el.querySelector('.goal-bar')) {
+        el.innerHTML = '<div class="goal-bar"><div class="goal-bar-track"><div class="goal-bar-fill"></div></div><span class="goal-bar-label"></span></div>';
+      }
+      el.querySelector('.goal-bar-fill').style.width = pct + '%';
+      el.querySelector('.goal-bar-fill').style.background = over ? 'linear-gradient(90deg,#ff8fa3,#ff4d67)' : 'linear-gradient(90deg,var(--purple-soft),var(--purple-main),var(--purple-deep))';
+      el.querySelector('.goal-bar-label').textContent = label;
+    }
+    function clearHomeGoalBar(elId) {
+      var el = document.getElementById(elId);
+      if (el) el.innerHTML = '';
     }
     function updateGoalBadge(mod, pct, label, over) {
       var card = document.querySelector('[data-module-header="' + mod + '"] .mhc-info');
