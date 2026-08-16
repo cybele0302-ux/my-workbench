@@ -417,7 +417,7 @@
     }
 
     .mhc-top {
-      display: flex;
+      display: flex !important;
       align-items: flex-start;
       justify-content: flex-start !important;
       gap: 12px;
