@@ -2304,7 +2304,8 @@
 }
 .back-btn.hidden { display: none; }
 .back-btn svg { width: 20px; height: 20px; }
-.phone-frame.has-back .module-header-card .mhc-top { padding-left: 44px; }
+/* 图标恒为 55px，返回键(.back-btn left:9px 占 9–41px) 不重叠，无需右移 */
+.phone-frame.has-back .module-header-card .mhc-top { padding-left: 0; }
 .phone-frame.has-back .module-title { padding-left: 44px; }
 
 /* ===== 学习标签（可编辑/删减） ===== */
