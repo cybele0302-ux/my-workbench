@@ -2283,6 +2283,12 @@
   box-shadow: 0 3px 10px rgba(111, 79, 184, .25);
 }
 
+/* v29.63：学习/修行历史面板 tab 化 + 卡片占满剩余高度（列表卡内滚动） */
+.module { display: flex; flex-direction: column; min-height: 100%; }
+.history-panel.active { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.history-panel.active > .card[data-card-title] { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.history-panel.active .history-list { flex: 1 1 auto; min-height: 0; max-height: none; overflow-y: auto; }
+
 /* ===== 返回上一级按钮（主流 APP 风格：顶部左箭头 + 右滑返回） ===== */
 .back-btn {
   position: absolute;
