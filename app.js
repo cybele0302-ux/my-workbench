@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.54';
+const APP_VERSION = 'wobench-v29.55';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -924,7 +924,10 @@ function fmtMoneyInt(n) {
         if (recs.length) {
           html += '<div class="detail-items">';
           recs.forEach(function (r) {
-            Object.keys(r.fields).forEach(function (k) { html += '<span class="detail-chip">' + k + '：' + escapeHtml(r.fields[k]) + '</span>'; });
+            Object.keys(r.fields).forEach(function (k) {
+              var v = (k === '体温') ? formatTemp(r.fields[k]) : escapeHtml(r.fields[k]);
+              html += '<span class="detail-chip">' + k + '：' + v + '</span>';
+            });
           });
           html += '</div>';
         } else {
