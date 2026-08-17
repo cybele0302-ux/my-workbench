@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.62';
+const APP_VERSION = 'wobench-v29.63';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
