@@ -418,9 +418,10 @@
 
     .mhc-top {
       display: flex !important;
+      flex-direction: column !important;
       align-items: flex-start;
       justify-content: flex-start !important;
-      gap: 12px;
+      gap: 8px;
       position: relative;
       z-index: 1;
       margin-bottom: 16px;
