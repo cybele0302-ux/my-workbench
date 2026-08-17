@@ -418,10 +418,9 @@
 
     .mhc-top {
       display: flex !important;
-      flex-direction: column !important;
       align-items: flex-start;
       justify-content: flex-start !important;
-      gap: 8px;
+      gap: 12px;
       position: relative;
       z-index: 1;
       margin-bottom: 16px;
@@ -437,10 +436,14 @@
       justify-content: center;
       flex-shrink: 0;
       font-size: 22px;
+      overflow: hidden;
+      line-height: 0;
     }
 
     .mhc-icon::before {
       content: "📦";
+      line-height: normal;
+      font-size: 22px;
     }
 
     .mhc-icon[data-icon="sparkle"]::before { content: "✨"; }
