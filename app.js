@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.57';
+const APP_VERSION = 'wobench-v29.57-debug';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -4327,6 +4327,87 @@ function fmtMoneyInt(n) {
           console.error(e); renderHomepage(); renderCal(); renderDetail(todayStr); renderHomeSummary(); renderReport('month'); renderTrend(7); renderReview('week'); renderStreakBadges(); renderGoalProgress(); renderTxCatChoices();
           ['lingguang', 'todo', 'shiti', 'study', 'xiushen', 'zichan', 'favorite', 'home', 'mine'].forEach(function (m) { updateModuleHeaderDate(m); switchModuleTab(m, 'today'); });
         });
+    })();
+
+    // ============ Banner 居中诊断（v29.57-debug） ============
+    (function diagBanner() {
+      var panel = document.createElement('div');
+      panel.id = 'bannerDiag';
+      panel.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:rgba(220,0,0,0.95);color:#fff;font-size:12px;padding:8px;font-family:monospace;max-height:40vh;overflow:auto;';
+      document.body.appendChild(panel);
+
+      function snap() {
+        var lines = [];
+        var now = new Date().toLocaleTimeString();
+        lines.push('[' + now + '] BANNER DIAG');
+        document.querySelectorAll('.mhc-top').forEach(function(el, i) {
+          var cs = getComputedStyle(el);
+          var mod = el.closest('.module');
+          lines.push('  mhc-top#' + i + ' (module=' + (mod?mod.id:'?') + '):');
+          lines.push('    justify-content: ' + cs.justifyContent);
+          lines.push('    display: ' + cs.display);
+          lines.push('    inline style: ' + (el.getAttribute('style') || '(none)'));
+          var info = el.querySelector('.mhc-info');
+          if (info) {
+            var ci = getComputedStyle(info);
+            lines.push('    mhc-info text-align: ' + ci.textAlign);
+            lines.push('    mhc-info inline: ' + (info.getAttribute('style') || '(none)'));
+          }
+          // 检测实际位置
+          var r = el.getBoundingClientRect();
+          lines.push('    bounds: L=' + Math.round(r.left) + ' T=' + Math.round(r.top) + ' W=' + Math.round(r.width));
+          var parent = el.parentElement;
+          if (parent) {
+            var pr = parent.getBoundingClientRect();
+            lines.push('    parent W=' + Math.round(pr.width) + ' left-gap=' + Math.round(r.left - pr.left));
+          }
+        });
+        panel.textContent = lines.join('\n');
+      }
+
+      // 初始快照
+      snap();
+
+      // 每 2 秒刷新
+      setInterval(snap, 2000);
+
+      // MutationObserver 监听所有 mhc 相关元素的变化
+      var targets = document.querySelectorAll('.module-header-card, .mhc-top, .mhc-info');
+      targets.forEach(function(t) {
+        var mo = new MutationObserver(function(mutations) {
+          var relevant = mutations.filter(function(m) {
+            return m.type === 'attributes' && (m.attributeName === 'style' || m.attributeName === 'class');
+          });
+          if (relevant.length > 0) {
+            console.log('[DIAG] Mutation on #' + (t.id || t.className), relevant.map(function(m){ return m.attributeName+':'+(t.getAttribute(m.attributeName)||'(removed)'); }).join(', '));
+            snap();
+          }
+        });
+        mo.observe(t, { attributes: true, attributeFilter: ['style', 'class'] });
+      });
+
+      // 监听 showModule 调用（通过拦截 hidden 类变化）
+      var modObserver = new MutationObserver(function(mutations) {
+        mutations.forEach(function(m) {
+          if (m.type === 'attributes' && m.attributeName === 'class') {
+            var el = m.target;
+            if (el.classList.contains('module')) {
+              var wasHidden = m.oldValue && m.oldValue.indexOf('hidden') >= 0;
+              var nowHidden = el.classList.contains('hidden');
+              if (wasHidden && !nowHidden) {
+                console.log('[DIAG] Module shown: ' + el.id);
+                setTimeout(snap, 100);  // 延迟一点等渲染完成
+              }
+            }
+          }
+        });
+      });
+      document.querySelectorAll('.module').forEach(function(m) {
+        modObserver.observe(m, { attributes: true, attributeOldValue: true, attributeFilter: ['class'] });
+      });
+
+      // 拦截 switchTo/showModule 调用
+      console.log('[DIAG] Banner diagnostic active. Watching ' + document.querySelectorAll('.mhc-top').length + ' mhc-top elements.');
     })();
 
     // ============ 主题换肤 ============
