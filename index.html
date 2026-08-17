@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>我的工作台</title>
   <meta name="theme-color" content="#6f4fb8">
-  <link rel="manifest" href="manifest.json?v=29.62">
+  <link rel="manifest" href="manifest.json?v=29.63">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="apple-touch-icon" href="icon-180.png">
   <script>try{var t=localStorage.getItem('zqdd:theme');if(t&&t!=='purple')document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
-  <link rel="stylesheet" href="style.css?v=29.62">
+  <link rel="stylesheet" href="style.css?v=29.63">
 
 </head>
 <body>
@@ -720,7 +720,8 @@
           </div>
 
           <div class="tab-panel history-panel" data-panel="study">
-            <div class="card">
+            <div class="card-tab-strip" data-card-tabs></div>
+            <div class="card" data-card-title="学习时间">
               <div class="card-title">学习时间</div>
               <div class="study-period-tabs">
                 <span class="study-period-tab" data-period="day">日</span>
@@ -733,13 +734,13 @@
               </div>
             </div>
 
-            <div class="card">
+            <div class="card" data-card-title="历史记录">
               <div class="card-title">历史记录</div>
               <div class="edit-banner hidden" data-edit-banner="study">正在编辑 <b></b> · <span class="exit-edit">返回今天</span></div>
               <div class="history-list" data-history="study"></div>
             </div>
 
-            <div class="card">
+            <div class="card" data-card-title="中医学习打卡记录">
               <div class="card-title">中医学习打卡记录</div>
               <div class="history-list" data-history="tcm"></div>
             </div>
@@ -812,11 +813,14 @@
           </div>
 
           <div class="tab-panel history-panel" data-panel="xiushen">
-            <div class="card">
+            <div class="card-tab-strip" data-card-tabs></div>
+            <div class="card" data-card-title="历史记录">
               <div class="card-title">历史记录</div>
               <div class="edit-banner hidden" data-edit-banner="xiushen">正在编辑 <b></b> · <span class="exit-edit">返回今天</span></div>
               <div class="history-list" data-history="xiushen"></div>
-              <div class="history-subtitle">每日养护打卡</div>
+            </div>
+            <div class="card" data-card-title="每日养护打卡">
+              <div class="card-title">每日养护打卡</div>
               <div class="history-list" data-history="yanghu"></div>
             </div>
           </div>
@@ -1095,7 +1099,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=29.62"></script>
+  <script src="app.js?v=29.63"></script>
 
 </body>
 </html>
