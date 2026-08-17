@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.55';
+const APP_VERSION = 'wobench-v29.56';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -4349,6 +4349,8 @@ function fmtMoneyInt(n) {
       // updateViaCache:'none' → 浏览器永远绕过 HTTP 缓存去拉 sw.js，新版本即时生效
       navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function (reg) {
         swReg = reg;
+        // 主动触发一次更新检查（iOS 经常不会自动去拉新 SW，必须显式 update）
+        try { reg.update().catch(function () {}); } catch (e) {}
         reg.addEventListener('updatefound', function () {
           const newWorker = reg.installing;
           if (newWorker) {
@@ -4361,6 +4363,10 @@ function fmtMoneyInt(n) {
         });
       }).catch(function (e) { console.error('SW 注册失败', e); });
       navigator.serviceWorker.addEventListener('controllerchange', function () { window.location.reload(); });
+      // 每次页面重新可见都再触发一次更新检查，逼 iOS 尽快接管新 SW（根治「旧 SW 一直吐旧 CSS」）
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden && swReg && swReg.update) { try { swReg.update().catch(function () {}); } catch (e) {} }
+      });
     }
     // 页面隐藏 / 卸载前强制落盘未保存的表单，杜绝「填完即退出」导致的数据丢失
     ['visibilitychange', 'pagehide'].forEach(function (ev) {
