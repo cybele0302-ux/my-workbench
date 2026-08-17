@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.61';
+const APP_VERSION = 'wobench-v29.62';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -38,7 +38,8 @@ function fmtMoneyInt(n) {
       star: '<path d="M12 3 L14.6 8.6 L20.5 9.4 L16 13.6 L17.3 19.5 L12 16.4 L6.7 19.5 L8 13.6 L3.5 9.4 L9.4 8.6 Z"/>'
     };
 
-    document.querySelectorAll('[data-icon]').forEach(function (el) {
+    // 仅给导航/其它图标注入线稿 SVG；模块头 .mhc-icon 保留 CSS ::before 的彩色 emoji（避免双图标）
+    document.querySelectorAll('[data-icon]:not(.mhc-icon)').forEach(function (el) {
       var k = el.getAttribute('data-icon');
       el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + (ICONS[k] || '') + '</svg>';
     });
