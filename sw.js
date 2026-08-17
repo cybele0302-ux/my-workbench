@@ -1,4 +1,4 @@
-const VERSION = 'wobench-v29.56';
+const VERSION = 'wobench-v29.57';
 // 稳定资源（图标 / manifest）在 install 时预缓存；壳文件（/、index.html、app.js、style.css）不在此预缓存，
 // 改由下方「网络优先」fetch handler 在【首次成功请求时】才写入缓存——这样缓存里只可能存到真正从网络拉到的最新版，
 // 杜绝「部署后 CDN 尚未同步 → install 预缓存到旧版 style.css → 之后网络闪断回退吐旧 CSS」导致 banner 先左后居中的竞态。
