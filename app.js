@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.65';
+const APP_VERSION = 'wobench-v29.66';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -1091,6 +1091,10 @@ function fmtMoneyInt(n) {
           strip.appendChild(btn);
         });
         activateCardTab(panel, cards[0]);
+        // v29.66：建完 tab 即把条复位为可见。否则点过「历史」tab 后今日 tab 条被
+        // switchModuleTab 的点击处理设成 display:none（app.js:1063），编辑/补录切回
+        // 今日时 buildCardTabs 只重建 innerHTML、不清内联 none，导致今日 3 个 tab 不显示。
+        strip.style.display = '';
       });
     }
     buildCardTabs();
