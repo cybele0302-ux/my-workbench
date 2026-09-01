@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>我的工作台</title>
   <meta name="theme-color" content="#6f4fb8">
-  <link rel="manifest" href="manifest.json?v=29.66">
+  <link rel="manifest" href="manifest.json?v=29.67">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="apple-touch-icon" href="icon-180.png">
   <script>try{var t=localStorage.getItem('zqdd:theme');if(t&&t!=='purple')document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
-  <link rel="stylesheet" href="style.css?v=29.66">
+  <link rel="stylesheet" href="style.css?v=29.67">
 
 </head>
 <body>
@@ -491,7 +491,10 @@
                 <span class="report-tab active" data-tx-filter="month">月</span>
                 <span class="report-tab" data-tx-filter="year">年</span>
               </div>
-              <div class="tx-cat-filter" style="margin-bottom:12px;">
+              <div class="tx-cat-filter" style="margin-bottom:12px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <select id="txMonthSel" class="field-input" style="width:auto;" title="选择查看某个月份的历史">
+                  <option value="all">全部月份</option>
+                </select>
                 <select id="txCatFilterSel" class="field-input" style="width:auto;">
                   <option value="">全部分类</option>
                 </select>
@@ -1097,7 +1100,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=29.66"></script>
+  <script src="app.js?v=29.67"></script>
 
 </body>
 </html>

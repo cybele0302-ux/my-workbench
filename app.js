@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.66';
+const APP_VERSION = 'wobench-v29.67';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -1597,6 +1597,7 @@ function fmtMoneyInt(n) {
     let financePeriod = 'month';
     let txHistPeriod = 'month';
     var txCatFilter = '';
+    var txCustomMonth = ''; // 选择查看「某个月份」时存 'YYYY-MM'，为空表示不限定到具体月
     const FINANCE_PERIODS = {
       day: { label: '今日', dayKey: function () { return ymd(new Date()); } },
       week: { label: '本周', dayKey: function () { const d = new Date(); d.setDate(d.getDate() - 6); return ymd(d); } },
@@ -1881,6 +1882,30 @@ function fmtMoneyInt(n) {
       var cur = txCatFilter;
       sel.innerHTML = '<option value="">全部分类</option>' + Object.keys(cats).map(function (c) { return '<option value="' + escapeAttr(c) + '"' + (c === cur ? ' selected' : '') + '>' + escapeHtml(c) + '</option>'; }).join('');
     }
+    // 月份选择器：列出所有「有交易记录」的月份（含当前月），降序；选中项驱动「查看某个月份」
+    function populateTxMonthSel() {
+      var sel = document.getElementById('txMonthSel');
+      if (!sel) return;
+      var set = {};
+      recordsForModule('zichan').forEach(function (r) {
+        if (isEnc(r)) return;
+        var ym = (r.date || '').slice(0, 7);
+        if (/^\d{4}-\d{2}$/.test(ym)) set[ym] = true;
+      });
+      var cur = ymd(new Date()).slice(0, 7);
+      set[cur] = true; // 始终含本月，便于回到本月
+      var months = Object.keys(set).sort().reverse();
+      // 默认选中：若当前下拉已是具体月份则保留；否则在「月」周期下默认选本月，其余默认「全部月份」
+      var def = sel.value || 'all';
+      if ((def === 'all' || def === '') && txHistPeriod === 'month') def = cur;
+      if (def !== 'all' && months.indexOf(def) === -1) def = 'all';
+      var sig = months.join(',') + '#' + def;
+      if (sel.getAttribute('data-sig') === sig) return; // 月份列表与选中项未变则不重建，避免下拉闪烁
+      sel.setAttribute('data-sig', sig);
+      sel.innerHTML = '<option value="all">全部月份</option>' + months.map(function (m) {
+        return '<option value="' + m + '"' + (m === def ? ' selected' : '') + '>' + m.slice(0, 4) + ' 年 ' + parseInt(m.slice(5, 7), 10) + ' 月</option>';
+      }).join('');
+    }
     function renderTransactions(period) {
       if (period) txHistPeriod = period;
       document.querySelectorAll('[data-tx-filter]').forEach(function (t) { t.classList.toggle('active', t.dataset.txFilter === txHistPeriod); });
@@ -1892,11 +1917,16 @@ function fmtMoneyInt(n) {
         var ia = a.id || '', ib = b.id || '';
         return ia < ib ? 1 : -1;
       });
-      if (txHistPeriod !== 'all') recs = recs.filter(function (r) { return inPeriod(r.date, txHistPeriod); });
+      if (txHistPeriod === 'custom') recs = recs.filter(function (r) { return (r.date || '').slice(0, 7) === txCustomMonth; });
+      else if (txHistPeriod !== 'all') recs = recs.filter(function (r) { return inPeriod(r.date, txHistPeriod); });
       populateTxCatFilter();
+      populateTxMonthSel();
       if (txCatFilter) recs = recs.filter(function (r) { return (r.fields['分类'] || '') === txCatFilter; });
       if (!recs.length) {
-        const lbl = txHistPeriod === 'all' ? '' : (FINANCE_PERIODS[txHistPeriod] ? FINANCE_PERIODS[txHistPeriod].label : '');
+        let lbl;
+        if (txHistPeriod === 'all') lbl = '';
+        else if (txHistPeriod === 'custom') lbl = txCustomMonth.slice(0, 4) + ' 年 ' + parseInt(txCustomMonth.slice(5, 7), 10) + ' 月';
+        else lbl = FINANCE_PERIODS[txHistPeriod] ? FINANCE_PERIODS[txHistPeriod].label : '';
         c.innerHTML = '<div class="history-empty">' + (lbl ? lbl : '') + '暂无交易记录</div>'; return;
       }
       const items = recs.map(function (r) { return txItemHtml(r, true); });
@@ -1924,10 +1954,23 @@ function fmtMoneyInt(n) {
       });
     }
     document.querySelectorAll('[data-tx-filter]').forEach(function (t) {
-      t.addEventListener('click', function () { renderTransactions(t.dataset.txFilter); });
+      t.addEventListener('click', function () {
+        var p = t.dataset.txFilter;
+        renderTransactions(p);
+        // 切回日/周/年时，月份筛选复位为「全部月份」；切到「月」时定位到本月，保持下拉与列表一致
+        var ms = document.getElementById('txMonthSel');
+        if (ms) ms.value = (p === 'month') ? ymd(new Date()).slice(0, 7) : 'all';
+      });
     });
     var txCatFilterSel = document.getElementById('txCatFilterSel');
     if (txCatFilterSel) txCatFilterSel.addEventListener('change', function () { txCatFilter = this.value; renderTransactions(); });
+    var txMonthSel = document.getElementById('txMonthSel');
+    if (txMonthSel) txMonthSel.addEventListener('change', function () {
+      var v = this.value;
+      if (v === 'all') { txHistPeriod = 'all'; txCustomMonth = ''; }
+      else { txHistPeriod = 'custom'; txCustomMonth = v; }
+      renderTransactions();
+    });
     function addTransaction() {
       const el = document.getElementById('zichan');
       if (!el) return;
