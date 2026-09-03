@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.72';
+const APP_VERSION = 'wobench-v29.73';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -512,7 +512,7 @@ function fmtMoneyInt(n) {
       list.innerHTML = YANGHU_KEYS.map(function (name, i) {
         const cb = '<label class="check-item"><input type="checkbox" data-yanghu="' + i + '"><span class="check-box"></span><span class="check-text">' + escapeHtml(name) + '</span></label>';
         const preset = hasPresetLink(name);
-        const subStatic = YANGHU_SUB[name] ? YANGHU_SUB[name].replace(/<a\s+[^>]*>.*?<\/a>/gi, '') : '';
+        const subStatic = YANGHU_SUB[name] || '';
         let linksBlock = '';
         if (preset) {
           // 原已有写死链接：恢复「更换/删除」图标（✎/🗑），默认隐藏 + 添加 行（v29.70 意图），链接删光后自动出现；复用下方隐藏编辑表单
@@ -605,6 +605,15 @@ function fmtMoneyInt(n) {
       if (saveBtn) { saveYhLinkForm(saveBtn); return; }
       const cancelBtn = e.target.closest('.yh-link-cancel');
       if (cancelBtn) { cancelBtn.closest('.yh-link-form').style.display = 'none'; return; }
+    });
+    // 养护链接点击强制在新标签打开平台（覆盖预设抖音/B站链接 + 用户自加链接，PWA/预览 iframe 兜底）
+    document.addEventListener('click', function (e) {
+      const a = e.target.closest && e.target.closest('#yanghuList a');
+      if (!a) return;
+      const href = a.getAttribute('href');
+      if (!href) return;
+      e.preventDefault();
+      window.open(href, '_blank', 'noopener');
     });
     function yanghuActiveDs() { return editingDate || todayStr; }
     function loadYanghu(ds) {
