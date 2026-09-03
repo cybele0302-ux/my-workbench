@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.69';
+const APP_VERSION = 'wobench-v29.70';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -500,18 +500,29 @@ function fmtMoneyInt(n) {
       }).join('');
       return head + rows;
     }
+    // 某项是否自带写死链接（原说明里含 <a href>）：这类项不渲染可编辑「我的链接」，避免冗余添加行
+    function hasPresetLink(name) {
+      return !!(YANGHU_SUB[name] && /<a\s+[^>]*href=/i.test(YANGHU_SUB[name]));
+    }
     // 动态渲染养护打卡清单（顺序即存储顺序；每项均可展开：原说明 + 我的链接）
     function renderYanghuList() {
       const list = document.getElementById('yanghuList');
       if (!list) return;
       list.innerHTML = YANGHU_KEYS.map(function (name, i) {
         const cb = '<label class="check-item"><input type="checkbox" data-yanghu="' + i + '"><span class="check-box"></span><span class="check-text">' + escapeHtml(name) + '</span></label>';
+        const preset = hasPresetLink(name);
         const subStatic = YANGHU_SUB[name] ? YANGHU_SUB[name].replace(/<a\s+[^>]*>.*?<\/a>/gi, '') : '';
-        return '<div class="check-fold"><div class="check-head">' + cb +
-          '<button class="fold-btn" type="button" data-fold="yhsub_' + i + '" aria-label="展开">▾</button></div>' +
-          '<div class="fold-body" id="yhsub_' + i + '">' +
-            (subStatic ? '<div class="zhuyan-sub">' + subStatic + '</div>' : '') +
-            '<div class="yh-links" data-yh-name="' + escapeAttr(name) + '">' + renderYanghuLinksHtml(name) + '</div>' +
+        let linksBlock = '';
+        if (preset) {
+          // 原已有链接：展示其（可能已编辑过的）链接，只读，不显示「我的链接」添加 / 编辑 / 删除
+          const rlinks = getYanghuLinks()[name] || [];
+          if (rlinks.length) {
+            linksBlock = '<div class="yh-links yh-links-readonly">' + rlinks.map(function (l) {
+              return '<div class="yh-link-row"><a class="zy-video" href="' + escapeAttr(l.url) + '" target="_blank" rel="noopener">' + escapeHtml(l.title || l.url) + '</a></div>';
+            }).join('') + '</div>';
+          }
+        } else {
+          linksBlock = '<div class="yh-links" data-yh-name="' + escapeAttr(name) + '">' + renderYanghuLinksHtml(name) + '</div>' +
             '<div class="yh-link-form" style="display:none">' +
               '<input class="field-input yh-link-title" type="text" placeholder="链接标题（如：站桩教学·B站）">' +
               '<input class="field-input yh-link-url" type="text" placeholder="链接地址 https://...">' +
@@ -519,7 +530,13 @@ function fmtMoneyInt(n) {
                 '<button class="ghost-btn yh-link-save" type="button">保存</button>' +
                 '<button class="ghost-btn yh-link-cancel" type="button">取消</button>' +
               '</div>' +
-            '</div>' +
+            '</div>';
+        }
+        return '<div class="check-fold"><div class="check-head">' + cb +
+          '<button class="fold-btn" type="button" data-fold="yhsub_' + i + '" aria-label="展开">▾</button></div>' +
+          '<div class="fold-body" id="yhsub_' + i + '">' +
+            (subStatic ? '<div class="zhuyan-sub">' + subStatic + '</div>' : '') +
+            linksBlock +
           '</div></div>';
       }).join('');
       renderYanghu();
@@ -2025,6 +2042,7 @@ function fmtMoneyInt(n) {
       populateTxCatFilter();
       populateTxMonthSel();
       if (txCatFilter) recs = recs.filter(function (r) { return (r.fields['分类'] || '') === txCatFilter; });
+      renderHistoryPie();
       if (!recs.length) {
         let lbl;
         if (txHistPeriod === 'all') lbl = '';
@@ -2034,6 +2052,53 @@ function fmtMoneyInt(n) {
       }
       const items = recs.map(function (r) { return txItemHtml(r, true); });
       renderPaged('tx', c, items);
+    }
+    // 理财历史面板：支出分类占比环形饼图，跟随历史筛选（周期 / 月份 / 分类）实时变化
+    function renderHistoryPie() {
+      const chart = document.getElementById('txCatChart');
+      if (!chart) return;
+      let recs = recordsForModule('zichan').filter(function (r) { return !isEnc(r); });
+      if (txHistPeriod === 'custom') recs = recs.filter(function (r) { return (r.date || '').slice(0, 7) === txCustomMonth; });
+      else if (txHistPeriod !== 'all') recs = recs.filter(function (r) { return inPeriod(r.date, txHistPeriod); });
+      if (txCatFilter) recs = recs.filter(function (r) { return (r.fields['分类'] || '') === txCatFilter; });
+      const cats = {};
+      recs.forEach(function (r) {
+        if ((r.fields['交易类型'] || '支出') === '收入') return;
+        const amt = parseFloat(r.fields['金额']) || 0;
+        if (amt <= 0) return;
+        const c = r.fields['分类'] || '其他';
+        cats[c] = (cats[c] || 0) + amt;
+      });
+      let scope;
+      if (txHistPeriod === 'all') scope = '全部';
+      else if (txHistPeriod === 'custom') scope = txCustomMonth.slice(0, 4) + ' 年 ' + parseInt(txCustomMonth.slice(5, 7), 10) + ' 月';
+      else scope = (FINANCE_PERIODS[txHistPeriod] || {}).label || '';
+      const entries = Object.keys(cats).map(function (k) { return [k, cats[k]]; }).sort(function (a, b) { return b[1] - a[1]; });
+      if (!entries.length) { chart.innerHTML = '<div class="history-empty">' + scope + '暂无支出</div>'; return; }
+      const total = entries.reduce(function (s, e) { return s + e[1]; }, 0) || 1;
+      const COLORS = ['#8b6fe0', '#5ec8c8', '#f6a86b', '#ef8aa6', '#7bcf9b', '#6b8fd0', '#d6a25e', '#c98fd6', '#9aa0e0', '#e08f8f'];
+      const R = 42, C = 2 * Math.PI * R, cx = 54, cy = 54;
+      let acc = 0, segs = '';
+      entries.forEach(function (e, i) {
+        const len = (e[1] / total) * C;
+        segs += '<circle cx="' + cx + '" cy="' + cy + '" r="' + R + '" fill="none" stroke="' + COLORS[i % COLORS.length] + '" stroke-width="16" stroke-dasharray="' + len + ' ' + (C - len) + '" stroke-dashoffset="' + (-acc) + '" transform="rotate(-90 ' + cx + ' ' + cy + ')"></circle>';
+        acc += len;
+      });
+      const donut = '<svg viewBox="0 0 108 108" width="108" height="108" style="flex:none;">'
+        + '<circle cx="' + cx + '" cy="' + cy + '" r="' + R + '" fill="none" stroke="rgba(var(--accent-rgb),0.10)" stroke-width="16"></circle>'
+        + segs
+        + '<text x="' + cx + '" y="' + (cy - 1) + '" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text-main)">¥' + fmtMoney(total) + '</text>'
+        + '<text x="' + cx + '" y="' + (cy + 12) + '" text-anchor="middle" font-size="9" fill="var(--text-sub)">总支出</text></svg>';
+      const legend = '<div style="flex:1; display:flex; flex-direction:column; gap:5px; font-size:12px; min-width:0;">'
+        + entries.map(function (e, i) {
+          const pct = Math.round(e[1] / total * 100);
+          return '<div style="display:flex; align-items:center; gap:6px; min-width:0;">'
+            + '<span style="width:9px; height:9px; border-radius:3px; flex:none; background:' + COLORS[i % COLORS.length] + ';"></span>'
+            + '<span style="color:var(--text-sub); flex:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:60px;">' + escapeHtml(e[0]) + '</span>'
+            + '<span style="margin-left:auto; color:var(--text-main); flex:none;">¥' + fmtMoney(e[1]) + ' · ' + pct + '%</span></div>';
+        }).join('')
+        + '</div>';
+      chart.innerHTML = '<div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">' + donut + legend + '</div>';
     }
     function saveTxEdit(id) {
       const item = document.querySelector('.tx-item[data-tx-id="' + id + '"]');
