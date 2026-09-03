@@ -299,41 +299,36 @@
               <div class="card-title">今日自主记录</div>
 
               <div class="field">
-                <div class="field-label">🌤 天气 · 心情</div>
-                <div class="study-sub-tabs">
-                  <span class="study-sub-tab active" data-shiti="weather">🌤 天气</span>
-                  <span class="study-sub-tab" data-shiti="mood">😊 心情</span>
-                  <span class="study-sub-tab" data-shiti="temp">🌡️ 体温</span>
+                <div class="field-label">🌤 天气</div>
+                <div class="pick-grid weather" data-save="天气">
+                  <div class="pick-item active"><span class="emoji">☀️</span><span class="pick-label">晴</span></div>
+                  <div class="pick-item"><span class="emoji">⛅</span><span class="pick-label">多云</span></div>
+                  <div class="pick-item"><span class="emoji">🌧️</span><span class="pick-label">雨</span></div>
+                  <div class="pick-item"><span class="emoji">❄️</span><span class="pick-label">雪</span></div>
+                  <div class="pick-item"><span class="emoji">🌫️</span><span class="pick-label">雾</span></div>
                 </div>
-                <div class="study-sub-panel" data-shiti-panel="weather">
-                  <div class="pick-grid weather" data-save="天气">
-                    <div class="pick-item active"><span class="emoji">☀️</span><span class="pick-label">晴</span></div>
-                    <div class="pick-item"><span class="emoji">⛅</span><span class="pick-label">多云</span></div>
-                    <div class="pick-item"><span class="emoji">🌧️</span><span class="pick-label">雨</span></div>
-                    <div class="pick-item"><span class="emoji">❄️</span><span class="pick-label">雪</span></div>
-                    <div class="pick-item"><span class="emoji">🌫️</span><span class="pick-label">雾</span></div>
-                  </div>
+              </div>
+
+              <div class="field">
+                <div class="field-label">😊 心情</div>
+                <div class="pick-grid mood" data-save="心情">
+                  <div class="pick-item"><span class="emoji">😊</span><span class="pick-label">愉悦</span></div>
+                  <div class="pick-item active"><span class="emoji">😐</span><span class="pick-label">平淡</span></div>
+                  <div class="pick-item"><span class="emoji">😔</span><span class="pick-label">低落</span></div>
+                  <div class="pick-item"><span class="emoji">😤</span><span class="pick-label">烦躁</span></div>
+                  <div class="pick-item"><span class="emoji">😴</span><span class="pick-label">困倦</span></div>
                 </div>
-                <div class="study-sub-panel hidden" data-shiti-panel="mood">
-                  <div class="pick-grid mood" data-save="心情">
-                    <div class="pick-item"><span class="emoji">😊</span><span class="pick-label">愉悦</span></div>
-                    <div class="pick-item active"><span class="emoji">😐</span><span class="pick-label">平淡</span></div>
-                    <div class="pick-item"><span class="emoji">😔</span><span class="pick-label">低落</span></div>
-                    <div class="pick-item"><span class="emoji">😤</span><span class="pick-label">烦躁</span></div>
-                    <div class="pick-item"><span class="emoji">😴</span><span class="pick-label">困倦</span></div>
-                  </div>
+              </div>
+
+              <div class="field">
+                <div class="field-label">🌡️ 体温记录</div>
+                <div id="tempList" class="temp-list"></div>
+                <div class="temp-record-row">
+                  <input type="time" class="field-input temp-time-input" id="tempTimeInput" style="flex:1 1 0; min-width:0; height:44px; padding:12px 14px; font-size:14px; line-height:1.4; box-sizing:border-box; -webkit-appearance:none; appearance:none;">
+                  <input class="field-input" id="tempValueInput" type="number" step="0.1" min="34" max="43" placeholder="36.5" style="flex:1 1 0; min-width:0; height:44px; padding:12px 14px; font-size:14px; line-height:1.4; box-sizing:border-box;">
+                  <button class="ghost-btn" id="tempAddBtn" type="button">添加</button>
                 </div>
-                <div class="study-sub-panel hidden" data-shiti-panel="temp">
-                  <div class="field">
-                    <div class="field-label">🌡️ 记录体温</div>
-                    <div class="temp-record-row">
-                      <input type="time" class="field-input temp-time-input" id="tempTimeInput" style="flex:1 1 0; min-width:0; height:44px; padding:12px 14px; font-size:14px; line-height:1.4; box-sizing:border-box; -webkit-appearance:none; appearance:none;">
-                      <input class="field-input" id="tempValueInput" type="number" step="0.1" min="34" max="43" placeholder="36.5" style="flex:1 1 0; min-width:0; height:44px; padding:12px 14px; font-size:14px; line-height:1.4; box-sizing:border-box;">
-                      <span style="align-self:center;font-size:13px;color:var(--text-sub);">℃</span>
-                    </div>
-                    <div class="temp-hint" style="font-size:12px;color:var(--text-light);margin-top:6px;">每天记录一次，修改后自动保存</div>
-                  </div>
-                </div>
+                <div class="temp-hint" style="font-size:12px;color:var(--text-light);margin-top:6px;">可多次记录，添加即时保存；首页趋势线取当天平均值</div>
               </div>
 
               <div class="field">
