@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.70';
+const APP_VERSION = 'wobench-v29.71';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -485,11 +485,12 @@ function fmtMoneyInt(n) {
       if (changed) setYanghuLinks(map);
     }
     migrateYanghuSubsToLinks();
-    // 每日养护打卡：单项「我的链接」列表 HTML
-    function renderYanghuLinksHtml(name) {
+    // 每日养护打卡：单项「我的链接」列表 HTML；noAdd=true 时不显示「+ 添加」按钮（预设链接项，仅删光时才出现）
+    function renderYanghuLinksHtml(name, noAdd) {
       var map = getYanghuLinks(), links = map[name] || [];
-      var head = '<div class="yh-links-head"><span class="yh-links-label">我的链接</span><button class="ghost-btn yh-add-link" type="button">+ 添加</button></div>';
-      if (!links.length) return head + '<div class="yh-links-empty">暂无链接，点「+ 添加」可绑定抖音 / B站等平台</div>';
+      var showAdd = !noAdd || links.length === 0;
+      var head = '<div class="yh-links-head"><span class="yh-links-label">我的链接</span>' + (showAdd ? '<button class="ghost-btn yh-add-link" type="button">+ 添加</button>' : '') + '</div>';
+      if (!links.length) return head + (showAdd ? '<div class="yh-links-empty">暂无链接，点「+ 添加」可绑定抖音 / B站等平台</div>' : '<div class="yh-links-empty">暂无链接</div>');
       var rows = links.map(function (l, idx) {
         return '<div class="yh-link-row">' +
           '<a class="zy-video" href="' + escapeAttr(l.url) + '" target="_blank" rel="noopener">' + escapeHtml(l.title || l.url) + '</a>' +
@@ -514,13 +515,16 @@ function fmtMoneyInt(n) {
         const subStatic = YANGHU_SUB[name] ? YANGHU_SUB[name].replace(/<a\s+[^>]*>.*?<\/a>/gi, '') : '';
         let linksBlock = '';
         if (preset) {
-          // 原已有链接：展示其（可能已编辑过的）链接，只读，不显示「我的链接」添加 / 编辑 / 删除
-          const rlinks = getYanghuLinks()[name] || [];
-          if (rlinks.length) {
-            linksBlock = '<div class="yh-links yh-links-readonly">' + rlinks.map(function (l) {
-              return '<div class="yh-link-row"><a class="zy-video" href="' + escapeAttr(l.url) + '" target="_blank" rel="noopener">' + escapeHtml(l.title || l.url) + '</a></div>';
-            }).join('') + '</div>';
-          }
+          // 原已有写死链接：恢复「更换/删除」图标（✎/🗑），默认隐藏 + 添加 行（v29.70 意图），链接删光后自动出现；复用下方隐藏编辑表单
+          linksBlock = '<div class="yh-links" data-yh-name="' + escapeAttr(name) + '">' + renderYanghuLinksHtml(name, true) + '</div>' +
+            '<div class="yh-link-form" style="display:none">' +
+              '<input class="field-input yh-link-title" type="text" placeholder="链接标题（如：站桩教学·B站）">' +
+              '<input class="field-input yh-link-url" type="text" placeholder="链接地址 https://...">' +
+              '<div class="yh-link-form-btns">' +
+                '<button class="ghost-btn yh-link-save" type="button">保存</button>' +
+                '<button class="ghost-btn yh-link-cancel" type="button">取消</button>' +
+              '</div>' +
+            '</div>';
         } else {
           linksBlock = '<div class="yh-links" data-yh-name="' + escapeAttr(name) + '">' + renderYanghuLinksHtml(name) + '</div>' +
             '<div class="yh-link-form" style="display:none">' +
@@ -1388,6 +1392,7 @@ function fmtMoneyInt(n) {
         else if (inp.classList.contains('pick-grid')) { inp.querySelectorAll('.pick-item').forEach(function (p) { p.classList.remove('active'); }); var _def = null; inp.querySelectorAll('.pick-item').forEach(function (p) { if (!_def && p.querySelector('.pick-label') && p.querySelector('.pick-label').textContent === '平淡') _def = p; }); if (!_def) _def = inp.querySelector('.pick-item'); if (_def) _def.classList.add('active'); }
       });
       updateSleepUI();
+      var tl = document.getElementById('tempList'); if (tl) { tl.innerHTML = ''; }
     }
     function fillForm(el, fields) {
       el.querySelectorAll('[data-save]').forEach(function (inp) {
@@ -1402,8 +1407,8 @@ function fmtMoneyInt(n) {
         else if (inp.classList.contains('pick-grid')) inp.querySelectorAll('.pick-item').forEach(function (p) { p.classList.toggle('active', p.querySelector('.pick-label').textContent === val); });
       });
       updateSleepUI();
-      // v29.46：实体感录表单填充时，把记录里的体温（兼容数组/字符串/对象）写回时间+温度两个输入框
-      if (el && el.id === 'shiti') { try { var _t = normalizeTemp(fields['体温']); var _ti = document.getElementById('tempTimeInput'); var _vi = document.getElementById('tempValueInput'); if (_ti) _ti.value = (_t && _t.t) ? _t.t : ''; if (_vi) _vi.value = (_t && _t.v != null) ? _t.v : ''; } catch (e) {} }
+      // v29.71：实体感录表单填充时，把记录里的体温（数组/单对象/字符串/历史形状）渲染成记录列表；添加行输入框清空
+      if (el && el.id === 'shiti') { try { renderTempList(fields['体温']); var _ti = document.getElementById('tempTimeInput'); var _vi = document.getElementById('tempValueInput'); if (_ti) _ti.value = ''; if (_vi) _vi.value = ''; } catch (e) {} }
     }
 
     // ---- 日记类模块（实体感录 / 学习提升 / 致虚极）：每日一条，可编辑历史 ----
@@ -2353,12 +2358,6 @@ function fmtMoneyInt(n) {
         document.querySelectorAll('[data-stimer]').forEach(function (el) { el.classList.toggle('active', el.getAttribute('data-stimer') === key); });
         document.querySelectorAll('[data-stimer-panel]').forEach(function (p) { p.classList.toggle('hidden', p.getAttribute('data-stimer-panel') !== key); });
       }
-      const sh = e.target.closest('[data-shiti]');
-      if (sh) {
-        const key = sh.getAttribute('data-shiti');
-        document.querySelectorAll('[data-shiti]').forEach(function (el) { el.classList.toggle('active', el.getAttribute('data-shiti') === key); });
-        document.querySelectorAll('[data-shiti-panel]').forEach(function (p) { p.classList.toggle('hidden', p.getAttribute('data-shiti-panel') !== key); });
-      }
     });
 
     // 退出登录：断开云端同步（保留本机数据）
@@ -2372,41 +2371,95 @@ function fmtMoneyInt(n) {
       }
     });
 
-    // ============ 体温记录（实体感录模块，每天一次，修改即自动保存） ============
-    // 数据形状：fields['体温'] = { t: '08:00', v: 36.5 } 单个对象（兼容旧版数组/字符串/对象三种历史形状）
+    // ============ 体温记录（实体感录模块，可多次记录，添加/删除即时保存） ============
+    // 数据形状：fields['体温'] = [{ t: '08:00', v: 36.5 }, ...] 数组（兼容旧版单对象/字符串/数组三种历史形状）
+    function toTempArr(raw) {
+      if (!raw) return [];
+      if (Array.isArray(raw)) return raw.filter(function (x) { return x && (x.v != null); });
+      if (typeof raw === 'object') return [raw];
+      if (typeof raw === 'string') { try { var a = JSON.parse(raw); return toTempArr(a); } catch (e) { return []; } }
+      return [];
+    }
+    // 兼容旧版：取末位单值（用于单条展示回退）
     function normalizeTemp(raw) {
-      if (!raw) return null;
-      if (typeof raw === 'object') {
-        if (Array.isArray(raw)) return raw.length ? raw[raw.length - 1] : null;
-        return raw;
-      }
-      if (typeof raw === 'string') {
-        try { var a = JSON.parse(raw); return normalizeTemp(a); } catch (e) { return null; }
-      }
-      return null;
+      var arr = toTempArr(raw);
+      return arr.length ? arr[arr.length - 1] : null;
+    }
+    // 当日平均值（多条记录求均值；无记录返回 null）
+    function avgTemp(raw) {
+      var arr = toTempArr(raw);
+      if (!arr.length) return null;
+      var sum = 0, n = 0;
+      arr.forEach(function (x) { var v = parseFloat(x.v); if (!isNaN(v)) { sum += v; n++; } });
+      return n ? sum / n : null;
     }
     function formatTemp(raw) {
-      var t = normalizeTemp(raw);
-      if (!t || t.v == null || isNaN(parseFloat(t.v))) return '—';
-      return parseFloat(t.v) + '℃' + (t.t ? '（' + t.t + '）' : '');
+      var arr = toTempArr(raw);
+      if (!arr.length) return '—';
+      if (arr.length > 1) {
+        var a = avgTemp(raw);
+        return (a != null ? a.toFixed(1) : '—') + '℃ · ' + arr.length + '次';
+      }
+      var t = arr[0];
+      return (t.v != null ? parseFloat(t.v) : '—') + '℃' + (t.t ? '（' + t.t + '）' : '');
     }
+    // 渲染体温记录列表（从数据数组）
+    function renderTempList(arr) {
+      var el = document.getElementById('tempList');
+      if (!el) return;
+      arr = toTempArr(arr);
+      if (!arr.length) { el.innerHTML = '<div class="yh-links-empty" style="margin-top:0;">暂无体温记录，用下方添加</div>'; return; }
+      el.innerHTML = arr.map(function (x) {
+        var t = x.t || '', v = (x.v != null ? x.v : '');
+        return '<div class="temp-item" data-t="' + escapeAttr(t) + '" data-v="' + escapeAttr(String(v)) + '">' +
+          '<span class="temp-item-time">' + escapeHtml(t || '--:--') + '</span>' +
+          '<span class="temp-item-val">' + escapeHtml(String(v)) + '℃</span>' +
+          '<span class="temp-item-del" role="button" aria-label="删除">🗑</span></div>';
+      }).join('');
+    }
+    // 从列表 DOM 读回数组（保存用）
     function readTempInputs() {
-      var tInp = document.getElementById('tempTimeInput');
-      var vInp = document.getElementById('tempValueInput');
-      var v = vInp ? parseFloat(vInp.value) : NaN;
-      if (isNaN(v)) return null;
-      var t = tInp && tInp.value ? tInp.value : (function () { var d = new Date(); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); })();
-      return { t: t, v: v };
+      var list = document.getElementById('tempList');
+      if (!list) return [];
+      var recs = [];
+      list.querySelectorAll('.temp-item').forEach(function (it) {
+        var t = it.getAttribute('data-t') || '';
+        var v = parseFloat(it.getAttribute('data-v'));
+        if (!isNaN(v)) recs.push({ t: t, v: v });
+      });
+      return recs;
     }
-    function saveTempAuto() {
+    function saveTempList() {
       try { scheduleAutoSave('shiti'); } catch (e) {}
-      var obj = readTempInputs();
-      if (obj) showToast('已记录体温 ' + obj.v + '℃');
     }
-    var tempTimeInput = document.getElementById('tempTimeInput');
-    if (tempTimeInput) tempTimeInput.addEventListener('change', saveTempAuto);
-    var tempValueInput = document.getElementById('tempValueInput');
-    if (tempValueInput) tempValueInput.addEventListener('change', saveTempAuto);
+    // 体温：添加 / 删除（事件委托）
+    document.addEventListener('click', function (e) {
+      var addBtn = e.target.closest('#tempAddBtn');
+      if (addBtn) {
+        var tInp = document.getElementById('tempTimeInput');
+        var vInp = document.getElementById('tempValueInput');
+        var v = vInp ? parseFloat(vInp.value) : NaN;
+        if (isNaN(v)) { showToast('请填写体温数值'); return; }
+        var t = tInp && tInp.value ? tInp.value : (function () { var d = new Date(); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); })();
+        var arr = readTempInputs();
+        arr.push({ t: t, v: v });
+        renderTempList(arr);
+        if (tInp) tInp.value = '';
+        if (vInp) vInp.value = '';
+        saveTempList();
+        return;
+      }
+      var delBtn = e.target.closest('.temp-item-del');
+      if (delBtn) {
+        var item = delBtn.closest('.temp-item');
+        if (!item) return;
+        var dt = item.getAttribute('data-t'), dv = item.getAttribute('data-v');
+        var arr = readTempInputs().filter(function (x) { return !(x.t === dt && String(x.v) === dv); });
+        renderTempList(arr);
+        saveTempList();
+        return;
+      }
+    });
 
     // 旧 localStorage 数据迁移到 IndexedDB
     function migrateFromLocalStorage() {
@@ -3595,12 +3648,12 @@ function fmtMoneyInt(n) {
         return vals.length ? vals[vals.length - 1] : 0;
       });
       var tempData = dates.map(function (ds) {
-        var last = null;
+        var sum = 0, cnt = 0;
         recordsForDay(ds, 'shiti').forEach(function (r) {
-          var t = normalizeTemp(r.fields['体温']);
-          if (t && t.v != null) { var n = parseFloat(t.v); if (!isNaN(n)) last = n; }
+          var arr = toTempArr(r.fields['体温']);
+          arr.forEach(function (x) { var n = parseFloat(x.v); if (!isNaN(n)) { sum += n; cnt++; } });
         });
-        return last || 0;
+        return cnt ? (sum / cnt) : 0;
       });
       renderTrendChart('trendStudy', studyData, dates, '分钟', 'var(--purple-main)');
       renderTrendChart('trendExpense', expData, dates, '¥', '#c44569');
