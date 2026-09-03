@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>我的工作台</title>
   <meta name="theme-color" content="#6f4fb8">
-  <link rel="manifest" href="manifest.json?v=29.67">
+  <link rel="manifest" href="manifest.json?v=29.68">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="apple-touch-icon" href="icon-180.png">
   <script>try{var t=localStorage.getItem('zqdd:theme');if(t&&t!=='purple')document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
-  <link rel="stylesheet" href="style.css?v=29.67">
+  <link rel="stylesheet" href="style.css?v=29.68">
 
 </head>
 <body>
@@ -81,12 +81,6 @@
                 <input class="field-input goal-input" type="number" data-goal="study" placeholder="10" min="0">
               </div>
               <div class="goal-progress" id="goalProgressStudy"></div>
-              <div class="goal-row" data-goal-row="tcm">
-                <span class="goal-name">🌿 中医打卡（每周）</span>
-                <span class="goal-unit">天</span>
-                <input class="field-input goal-input" type="number" data-goal="tcm" placeholder="5" min="0" max="7">
-              </div>
-              <div class="goal-progress" id="goalProgressTcm"></div>
               <div class="goal-row" data-goal-row="yanghu">
                 <span class="goal-name">🪷 养护打卡（每天）</span>
                 <span class="goal-unit">项</span>
@@ -706,19 +700,6 @@
               </div>
             </div>
 
-            <div class="card" data-card-title="中医学习打卡">
-              <div class="card-title">中医学习打卡 <span class="privacy-badge" id="tcmProgress">0/7</span></div>
-              <div class="yanghu-list" id="tcmList">
-                <div class="tcm-row"><label class="check-item"><input type="checkbox" data-tcm="0"><span class="check-box"></span><span class="check-text">针灸大成</span></label><input class="field-input tcm-note-input" data-tcmnote="0" placeholder="打卡内容"></div>
-                <div class="tcm-row"><label class="check-item"><input type="checkbox" data-tcm="1"><span class="check-box"></span><span class="check-text">黄帝内经</span></label><input class="field-input tcm-note-input" data-tcmnote="1" placeholder="打卡内容"></div>
-                <div class="tcm-row"><label class="check-item"><input type="checkbox" data-tcm="2"><span class="check-box"></span><span class="check-text">神农本草经</span></label><input class="field-input tcm-note-input" data-tcmnote="2" placeholder="打卡内容"></div>
-                <div class="tcm-row"><label class="check-item"><input type="checkbox" data-tcm="3"><span class="check-box"></span><span class="check-text">伤寒论</span></label><input class="field-input tcm-note-input" data-tcmnote="3" placeholder="打卡内容"></div>
-                <div class="tcm-row"><label class="check-item"><input type="checkbox" data-tcm="4"><span class="check-box"></span><span class="check-text">金匮要略</span></label><input class="field-input tcm-note-input" data-tcmnote="4" placeholder="打卡内容"></div>
-                <div class="tcm-row"><label class="check-item"><input type="checkbox" data-tcm="5"><span class="check-box"></span><span class="check-text">案例解析</span></label><input class="field-input tcm-note-input" data-tcmnote="5" placeholder="打卡内容"></div>
-                <div class="tcm-row"><label class="check-item"><input type="checkbox" data-tcm="6"><span class="check-box"></span><span class="check-text">精一书院</span></label><input class="field-input tcm-note-input" data-tcmnote="6" placeholder="打卡内容"></div>
-                <div class="tcm-row"><label class="check-item"><input type="checkbox" data-tcm="7"><span class="check-box"></span><span class="check-text">实操学习</span></label><input class="field-input tcm-note-input" data-tcmnote="7" placeholder="打卡内容"></div>
-              </div>
-            </div>
           </div>
 
           <div class="tab-panel history-panel" data-panel="study">
@@ -740,11 +721,6 @@
               <div class="card-title">历史记录</div>
               <div class="edit-banner hidden" data-edit-banner="study">正在编辑 <b></b> · <span class="exit-edit">返回今天</span></div>
               <div class="history-list" data-history="study"></div>
-            </div>
-
-            <div class="card" data-card-title="中医学习打卡记录">
-              <div class="card-title">中医学习打卡记录</div>
-              <div class="history-list" data-history="tcm"></div>
             </div>
           </div>
           <div class="save-btn" data-save-btn="study">保存今日学习</div>
@@ -802,14 +778,8 @@
             <div class="card" data-card-title="今日修行感悟">
               <div class="card-title">今日修行感悟</div>
               <textarea class="field-input" rows="5" style="min-height:386px;" data-save="修行感悟" placeholder="学习心得、修行感受……"></textarea>
-            </div>
-
-            <div class="card" data-card-title="功过格">
-              <div class="card-title">功过格</div>
-              <div class="field-hint" style="font-size:12px;color:var(--text-sub);margin-bottom:8px;">记录今日善举与过失，日省吾身，积善成德。</div>
-              <div class="field">
-                <textarea class="field-input" rows="5" data-save="功过格" placeholder="如：帮同事解决问题 / 对人发了一次脾气"></textarea>
-              </div>
+              <div class="field-hint" style="font-size:12px;color:var(--text-sub);margin:12px 0 8px;">记录今日善举与过失，日省吾身，积善成德。</div>
+              <textarea class="field-input" rows="4" data-save="功过格" placeholder="如：帮同事解决问题 / 对人发了一次脾气"></textarea>
             </div>
           </div>
 
@@ -1100,7 +1070,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=29.67"></script>
+  <script src="app.js?v=29.68"></script>
 
 </body>
 </html>

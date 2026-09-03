@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.67';
+const APP_VERSION = 'wobench-v29.68';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -466,22 +466,125 @@ function fmtMoneyInt(n) {
     }
     function setYanghuKeys(arr) { localStorage.setItem('zqdd:yanghu_keys', JSON.stringify(arr)); YANGHU_KEYS = arr; }
     let YANGHU_KEYS = getYanghuKeys();
-    // 动态渲染养护打卡清单（顺序即存储顺序，含自带说明项的折叠子内容）
+    // 每项「我的链接」（可添加 / 更换 / 删除，跨端同步）：name -> [{title, url}]
+    function getYanghuLinks() {
+      try { var v = JSON.parse(localStorage.getItem('zqdd:yanghu_links')); if (v && typeof v === 'object') return v; } catch (e) {}
+      return {};
+    }
+    function setYanghuLinks(map) { localStorage.setItem('zqdd:yanghu_links', JSON.stringify(map)); }
+    // 首次启动：将 YANGHU_SUB 中写死的抖音链接迁移为可编辑链接（原有说明文字保持不变）
+    function migrateYanghuSubsToLinks() {
+      var map = getYanghuLinks(), changed = false;
+      YANGHU_KEYS_DEFAULT.forEach(function (name) {
+        if (YANGHU_SUB[name] && !map[name]) {
+          var links = [], re = /<a\s+[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/gi, m;
+          while ((m = re.exec(YANGHU_SUB[name]))) links.push({ title: m[2].replace(/<[^>]*>/g, '').trim(), url: m[1] });
+          if (links.length) { map[name] = links; changed = true; }
+        }
+      });
+      if (changed) setYanghuLinks(map);
+    }
+    migrateYanghuSubsToLinks();
+    // 每日养护打卡：单项「我的链接」列表 HTML
+    function renderYanghuLinksHtml(name) {
+      var map = getYanghuLinks(), links = map[name] || [];
+      var head = '<div class="yh-links-head"><span class="yh-links-label">我的链接</span><button class="ghost-btn yh-add-link" type="button">+ 添加</button></div>';
+      if (!links.length) return head + '<div class="yh-links-empty">暂无链接，点「+ 添加」可绑定抖音 / B站等平台</div>';
+      var rows = links.map(function (l, idx) {
+        return '<div class="yh-link-row">' +
+          '<a class="zy-video" href="' + escapeAttr(l.url) + '" target="_blank" rel="noopener">' + escapeHtml(l.title || l.url) + '</a>' +
+          '<span class="yh-link-actions">' +
+            '<button class="ghost-btn yh-edit-link" type="button" data-edit-link="' + idx + '" aria-label="编辑">✎</button>' +
+            '<button class="ghost-btn yh-del-link" type="button" data-del-link="' + idx + '" aria-label="删除">🗑</button>' +
+          '</span></div>';
+      }).join('');
+      return head + rows;
+    }
+    // 动态渲染养护打卡清单（顺序即存储顺序；每项均可展开：原说明 + 我的链接）
     function renderYanghuList() {
       const list = document.getElementById('yanghuList');
       if (!list) return;
       list.innerHTML = YANGHU_KEYS.map(function (name, i) {
-        const sub = YANGHU_SUB[name];
         const cb = '<label class="check-item"><input type="checkbox" data-yanghu="' + i + '"><span class="check-box"></span><span class="check-text">' + escapeHtml(name) + '</span></label>';
-        if (sub) {
-          return '<div class="check-fold"><div class="check-head">' + cb +
-            '<button class="fold-btn" type="button" data-fold="yhsub_' + i + '" aria-label="展开">▾</button></div>' +
-            '<div class="fold-body" id="yhsub_' + i + '"><div class="zhuyan-sub">' + sub + '</div></div></div>';
-        }
-        return cb;
+        const subStatic = YANGHU_SUB[name] ? YANGHU_SUB[name].replace(/<a\s+[^>]*>.*?<\/a>/gi, '') : '';
+        return '<div class="check-fold"><div class="check-head">' + cb +
+          '<button class="fold-btn" type="button" data-fold="yhsub_' + i + '" aria-label="展开">▾</button></div>' +
+          '<div class="fold-body" id="yhsub_' + i + '">' +
+            (subStatic ? '<div class="zhuyan-sub">' + subStatic + '</div>' : '') +
+            '<div class="yh-links" data-yh-name="' + escapeAttr(name) + '">' + renderYanghuLinksHtml(name) + '</div>' +
+            '<div class="yh-link-form" style="display:none">' +
+              '<input class="field-input yh-link-title" type="text" placeholder="链接标题（如：站桩教学·B站）">' +
+              '<input class="field-input yh-link-url" type="text" placeholder="链接地址 https://...">' +
+              '<div class="yh-link-form-btns">' +
+                '<button class="ghost-btn yh-link-save" type="button">保存</button>' +
+                '<button class="ghost-btn yh-link-cancel" type="button">取消</button>' +
+              '</div>' +
+            '</div>' +
+          '</div></div>';
       }).join('');
       renderYanghu();
     }
+    function openYhLinkForm(btn, idx) {
+      const fb = btn.closest('.fold-body');
+      const form = fb.querySelector('.yh-link-form');
+      const name = fb.querySelector('.yh-links').getAttribute('data-yh-name');
+      const titleInp = form.querySelector('.yh-link-title');
+      const urlInp = form.querySelector('.yh-link-url');
+      if (idx == null) { titleInp.value = ''; urlInp.value = ''; form._yhIdx = null; }
+      else {
+        const links = getYanghuLinks()[name] || [];
+        const l = links[idx] || { title: '', url: '' };
+        titleInp.value = l.title || ''; urlInp.value = l.url || '';
+        form._yhIdx = idx;
+      }
+      form._yhName = name;
+      form.style.display = 'block';
+      setTimeout(function () { try { urlInp.focus(); } catch (e) {} }, 0);
+    }
+    function saveYhLinkForm(btn) {
+      const form = btn.closest('.yh-link-form');
+      const name = form._yhName, idx = form._yhIdx;
+      const titleInp = form.querySelector('.yh-link-title');
+      const urlInp = form.querySelector('.yh-link-url');
+      const title = titleInp.value.trim(), url = urlInp.value.trim();
+      if (!url) { showToast('请填写链接地址'); return; }
+      if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+      const map = getYanghuLinks();
+      const links = map[name] || [];
+      const entry = { title: title || url, url: url };
+      if (idx == null) links.push(entry); else links[idx] = entry;
+      map[name] = links; setYanghuLinks(map);
+      const fb = form.closest('.fold-body');
+      fb.querySelector('.yh-links').innerHTML = renderYanghuLinksHtml(name);
+      form.style.display = 'none';
+      schedulePush();
+    }
+    // 我的链接：添加 / 编辑 / 删除 / 保存 / 取消（事件委托）
+    document.addEventListener('click', function (e) {
+      const addBtn = e.target.closest('.yh-add-link');
+      if (addBtn) { openYhLinkForm(addBtn, null); return; }
+      const editBtn = e.target.closest('.yh-edit-link');
+      if (editBtn) { openYhLinkForm(editBtn, parseInt(editBtn.getAttribute('data-edit-link'), 10)); return; }
+      const delBtn = e.target.closest('.yh-del-link');
+      if (delBtn) {
+        const fb = delBtn.closest('.fold-body');
+        const name = fb.querySelector('.yh-links').getAttribute('data-yh-name');
+        const idx = parseInt(delBtn.getAttribute('data-del-link'), 10);
+        const arr = getYanghuLinks()[name] || [];
+        const lab = arr[idx] ? (arr[idx].title || arr[idx].url) : '该';
+        if (confirm('确定删除「' + lab + '」链接？')) {
+          const mp = getYanghuLinks(), lk = mp[name] || [];
+          lk.splice(idx, 1); mp[name] = lk; setYanghuLinks(mp);
+          fb.querySelector('.yh-links').innerHTML = renderYanghuLinksHtml(name);
+          schedulePush();
+        }
+        return;
+      }
+      const saveBtn = e.target.closest('.yh-link-save');
+      if (saveBtn) { saveYhLinkForm(saveBtn); return; }
+      const cancelBtn = e.target.closest('.yh-link-cancel');
+      if (cancelBtn) { cancelBtn.closest('.yh-link-form').style.display = 'none'; return; }
+    });
     function yanghuActiveDs() { return editingDate || todayStr; }
     function loadYanghu(ds) {
       const r = store[ds + '|yanghu'];
@@ -704,7 +807,7 @@ function fmtMoneyInt(n) {
         else break;
       }
       setText('streakDays', streak);
-      const mods = ['lingguang', 'todo', 'shiti', 'study', 'xiushen', 'zichan', 'yanghu', 'tcm'];
+      const mods = ['lingguang', 'todo', 'shiti', 'study', 'xiushen', 'zichan', 'yanghu'];
       const tds = ymd(new Date());
       let cnt = 0;
       mods.forEach(function (m) { if (recordsForDay(tds, m).length) cnt++; });
@@ -917,7 +1020,7 @@ function fmtMoneyInt(n) {
       const body = document.getElementById('detailBody');
       if (title) title.textContent = (ds === todayStr ? '今 · ' : '') + ds + ' · ' + lunar + ' · ' + wd;
       if (!body) return;
-      const mods = [['lingguang', '灵光闪现'], ['todo', '待办事项'], ['shiti', '实体感录'], ['study', '学习'], ['xiushen', '修身养性'], ['zichan', '理财'], ['yanghu', '每日养护打卡'], ['tcm', '中医学习打卡']];
+      const mods = [['lingguang', '灵光闪现'], ['todo', '待办事项'], ['shiti', '实体感录'], ['study', '学习'], ['xiushen', '修身养性'], ['zichan', '理财'], ['yanghu', '每日养护打卡']];
       let html = '';
       mods.forEach(function (m) {
         const recs = recordsForDay(ds, m[0]);
@@ -2834,6 +2937,7 @@ function fmtMoneyInt(n) {
         txCatsIn: localStorage.getItem('zqdd:tx_cats_in'),
         txCatsOut: localStorage.getItem('zqdd:tx_cats_out'),
         yanghuKeys: localStorage.getItem('zqdd:yanghu_keys'),
+        yanghuLinks: localStorage.getItem('zqdd:yanghu_links'),
         studyTags: localStorage.getItem('zqdd:study_tags'),
         todoTags: localStorage.getItem('zqdd:todo_tags')
       };
@@ -3053,11 +3157,12 @@ function fmtMoneyInt(n) {
       if (data.txCatsIn != null) localStorage.setItem('zqdd:tx_cats_in', data.txCatsIn);
       if (data.txCatsOut != null) localStorage.setItem('zqdd:tx_cats_out', data.txCatsOut);
       if (data.yanghuKeys != null) localStorage.setItem('zqdd:yanghu_keys', data.yanghuKeys);
+      if (data.yanghuLinks != null) localStorage.setItem('zqdd:yanghu_links', data.yanghuLinks);
       if (data.studyTags != null) localStorage.setItem('zqdd:study_tags', data.studyTags);
       if (data.todoTags != null) localStorage.setItem('zqdd:todo_tags', data.todoTags);
       try { renderTxCatChoices(); } catch (e) {}
       try { renderTransactions(); renderTodayTx(); renderAssetSummary(); } catch (e) {}
-      try { renderYanghu(); } catch (e) {}
+      try { renderYanghuList(); } catch (e) {}
       try { renderStudyTagRow(); } catch (e) {}
       try { renderTodoTagRow(); } catch (e) {}
       // 阅读列表：按 id 并集合并（本地新增保留、同 id 取 updatedAt 较大者），不再整串覆盖（v29.39 修复「加书丢失/变成1和2」）
@@ -3457,7 +3562,11 @@ function fmtMoneyInt(n) {
       var gid = 'grad_' + containerId;
       var dots = pts.map(function (p, i) {
         var label = dates[i].slice(5);
+        var val = data[i];
+        var vt = (unit === '¥' ? '¥' : '') + (Math.round(val * 10) / 10);
+        var ty = Math.max(p[1] - 7, 7);
         return '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3.4" fill="#fff" stroke="' + color + '" stroke-width="2"/>' +
+          '<text x="' + p[0].toFixed(1) + '" y="' + ty.toFixed(1) + '" text-anchor="middle" font-size="7.5" fill="' + color + '">' + vt + '</text>' +
           '<text x="' + p[0].toFixed(1) + '" y="' + (h - 1) + '" text-anchor="middle" font-size="7" fill="var(--text-light)">' + label + '</text>';
       }).join('');
       el.innerHTML = '<div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-sub); margin-bottom:4px;"><span>均值 ' + avg + unit + '</span><span>' + (data.length ? ('最高 ' + max + unit) : '') + '</span></div>' +
@@ -3515,20 +3624,6 @@ function fmtMoneyInt(n) {
         renderHomeGoalBar('goalProgressStudy', pct, studyLabel, false);
       } else {
         clearHomeGoalBar('goalProgressStudy');
-      }
-      // 中医周目标
-      if (goals.tcm) {
-        var tcmDays = 0;
-        Object.keys(store).forEach(function (id) {
-          var r = store[id];
-          if (r.module === 'tcm' && !isEnc(r) && r.date >= weekStartStr && Object.keys(r.fields).length) tcmDays++;
-        });
-        var pct2 = Math.min(100, Math.round(tcmDays / goals.tcm * 100));
-        var tcmLabel = tcmDays + '天 / ' + goals.tcm + '天';
-        updateGoalBadge('tcm', pct2, tcmLabel);
-        renderHomeGoalBar('goalProgressTcm', pct2, tcmLabel, false);
-      } else {
-        clearHomeGoalBar('goalProgressTcm');
       }
       // 修身养性 / 养护打卡 共用：今日打卡几项（养护打卡勾选项物理上位于修身养性模块内）
       var ygRec = store[todayStr + '|yanghu'];
@@ -3609,12 +3704,6 @@ function fmtMoneyInt(n) {
         var r = store[id];
         if (r.module === mod && !isEnc(r) && r.fields && Object.keys(r.fields).length) dates.push(r.date);
       });
-      if (mod === 'tcm') {
-        Object.keys(store).forEach(function (id) {
-          var r = store[id];
-          if (r.module === 'tcm' && !isEnc(r) && Object.keys(r.fields).length) dates.push(r.date);
-        });
-      }
       dates = Array.from(new Set(dates)).sort().reverse();
       if (!dates.length) return 0;
       var today = ymd(new Date());
@@ -3672,7 +3761,7 @@ function fmtMoneyInt(n) {
       }
       var recs = Object.values(store).filter(function (r) { return !isEnc(r) && r.date >= start && r.date <= end; });
       var studyMins = 0, exp = 0, inc = 0;
-      var inspCount = 0, todoDone = 0, shitiCount = 0, xiushenCount = 0, yanghuDays = 0, tcmDays = 0;
+      var inspCount = 0, todoDone = 0, shitiCount = 0, xiushenCount = 0, yanghuDays = 0;
       recs.forEach(function (r) {
         if (r.module === 'study') {
           studyMins += studyMinsOf(r.fields);
@@ -3682,7 +3771,6 @@ function fmtMoneyInt(n) {
         if (r.module === 'shiti') shitiCount++;
         if (r.module === 'xiushen') xiushenCount++;
         if (r.module === 'yanghu' && Object.keys(r.fields).length) yanghuDays++;
-        if (r.module === 'tcm' && Object.keys(r.fields).length) tcmDays++;
       });
       var todoArr = loadTodo().filter(function (t) { return t.done; });
       todoDone = todoArr.length;
@@ -3694,7 +3782,7 @@ function fmtMoneyInt(n) {
       var text = '【' + label + ' 回顾】\n\n';
       text += '📅 本期共记录 ' + totalDays + ' 天。\n';
       text += '📚 学习 ' + Math.round(studyMins / 60 * 10) / 10 + ' 小时（' + studyMins + ' 分钟）。\n';
-      text += '🌿 中医打卡 ' + tcmDays + ' 天 / 养护打卡 ' + yanghuDays + ' 天。\n';
+      text += '🪷 养护打卡 ' + yanghuDays + ' 天。\n';
       text += '🧘 修身养性 ' + xiushenCount + ' 次。\n';
       text += '💡 灵感记录 ' + inspCount + ' 条。\n';
       text += '✅ 待办完成 ' + todoDone + ' 项。\n';
@@ -4698,7 +4786,7 @@ function fmtMoneyInt(n) {
     }
 
     // ============ 数据诊断与修复 ============
-    var MOD_LABEL = { shiti: '实体感录', zichan: '理财', study: '学习', xiushen: '修身', yanghu: '养护', tcm: '中医', inspiration: '灵感' };
+    var MOD_LABEL = { shiti: '实体感录', zichan: '理财', study: '学习', xiushen: '修身', yanghu: '养护', inspiration: '灵感' };
     function modLabel(m) { return MOD_LABEL[m] || m; }
     function encRecords() {
       return Object.keys(store).map(function (k) { return store[k]; })
@@ -5284,7 +5372,6 @@ function fmtMoneyInt(n) {
       { key: 'xiushen', name: '修身养性' },
       { key: 'zichan', name: '理财' },
       { key: 'yanghu', name: '每日养护' },
-      { key: 'tcm', name: '中医打卡' },
       { key: 'fav', name: '收藏夹' }
     ];
     var AI_CARDS = {
@@ -5305,7 +5392,6 @@ function fmtMoneyInt(n) {
       xiushen: [{ label: '每日经文', field: '每日经文' }, { label: '冥想', field: '冥想' }],
       zichan: [{ label: '收支记录', field: '__all__' }],
       yanghu: [{ label: '打卡项', field: '__all__' }],
-      tcm: [{ label: '打卡项', field: '__all__' }, { label: '笔记', field: '笔记' }],
       fav: [{ label: '全部收藏', field: '__all__' }]
     };
 
