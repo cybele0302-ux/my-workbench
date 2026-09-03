@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>我的工作台</title>
   <meta name="theme-color" content="#6f4fb8">
-  <link rel="manifest" href="manifest.json?v=29.69">
+  <link rel="manifest" href="manifest.json?v=29.70">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="apple-touch-icon" href="icon-180.png">
   <script>try{var t=localStorage.getItem('zqdd:theme');if(t&&t!=='purple')document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
-  <link rel="stylesheet" href="style.css?v=29.69">
+  <link rel="stylesheet" href="style.css?v=29.70">
 
 </head>
 <body>
@@ -397,7 +397,7 @@
 
               <div class="field">
                 <div class="field-label">🩺 身体变化</div>
-                <textarea class="field-input" rows="7" style="min-height:234px;" data-save="身体变化" placeholder="记录体重、围度、皮肤状态、精力变化等身体上的细微改变……"></textarea>
+                <textarea class="field-input" rows="3" style="min-height:96px;" data-save="身体变化" placeholder="记录体重、围度、皮肤状态、精力变化等身体上的细微改变……"></textarea>
               </div>
             </div>
 
@@ -477,6 +477,11 @@
           </div>
 
           <div class="tab-panel history-panel" data-panel="zichan">
+            <div class="card">
+              <div class="card-title">支出分类占比（历史）</div>
+              <div id="txCatChart"></div>
+            </div>
+
             <div class="card">
               <div class="card-title">交易明细</div>
               <div class="report-tabs" style="margin-bottom:12px;">
@@ -1065,7 +1070,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=29.69"></script>
+  <script src="app.js?v=29.70"></script>
 
 </body>
 </html>
