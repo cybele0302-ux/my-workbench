@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.73';
+const APP_VERSION = 'wobench-v29.74';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -606,14 +606,14 @@ function fmtMoneyInt(n) {
       const cancelBtn = e.target.closest('.yh-link-cancel');
       if (cancelBtn) { cancelBtn.closest('.yh-link-form').style.display = 'none'; return; }
     });
-    // 养护链接点击强制在新标签打开平台（覆盖预设抖音/B站链接 + 用户自加链接，PWA/预览 iframe 兜底）
+    // 养护链接点击打开平台：优先 window.open；若被拦截（PWA/预览 iframe 常返回 null）则不拦截，退回原生 <a target="_blank"> 跳转（与预设链接一致）
     document.addEventListener('click', function (e) {
       const a = e.target.closest && e.target.closest('#yanghuList a');
       if (!a) return;
       const href = a.getAttribute('href');
       if (!href) return;
-      e.preventDefault();
-      window.open(href, '_blank', 'noopener');
+      const w = window.open(href, '_blank', 'noopener');
+      if (w) e.preventDefault();
     });
     function yanghuActiveDs() { return editingDate || todayStr; }
     function loadYanghu(ds) {
