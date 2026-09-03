@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>我的工作台</title>
   <meta name="theme-color" content="#6f4fb8">
-  <link rel="manifest" href="manifest.json?v=29.68">
+  <link rel="manifest" href="manifest.json?v=29.69">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="apple-touch-icon" href="icon-180.png">
   <script>try{var t=localStorage.getItem('zqdd:theme');if(t&&t!=='purple')document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
-  <link rel="stylesheet" href="style.css?v=29.68">
+  <link rel="stylesheet" href="style.css?v=29.69">
 
 </head>
 <body>
@@ -394,11 +394,11 @@
                   <span class="choice">3 次+</span>
                 </div>
               </div>
-            </div>
 
-            <div class="card" data-card-title="🩺 身体变化">
-              <div class="card-title">🩺 身体变化</div>
-              <textarea class="field-input" rows="7" style="min-height:234px;" data-save="身体变化" placeholder="记录体重、围度、皮肤状态、精力变化等身体上的细微改变……"></textarea>
+              <div class="field">
+                <div class="field-label">🩺 身体变化</div>
+                <textarea class="field-input" rows="7" style="min-height:234px;" data-save="身体变化" placeholder="记录体重、围度、皮肤状态、精力变化等身体上的细微改变……"></textarea>
+              </div>
             </div>
 
             <div class="card" data-card-title="日记随感">
@@ -703,9 +703,7 @@
           </div>
 
           <div class="tab-panel history-panel" data-panel="study">
-            <div class="card-tab-strip" data-card-tabs></div>
-            <div class="card" data-card-title="学习时间">
-              <div class="card-title">学习时间</div>
+            <div class="card">
               <div class="study-period-tabs">
                 <span class="study-period-tab" data-period="day">日</span>
                 <span class="study-period-tab" data-period="week">周</span>
@@ -715,10 +713,7 @@
                 <div id="studyMonthTotal" style="font-size:30px; font-weight:800; color:var(--purple-deep);">0 分钟</div>
                 <div id="studyPeriodLabel" style="font-size:12px; color:var(--text-light); margin-top:4px;">本月已学习</div>
               </div>
-            </div>
-
-            <div class="card" data-card-title="历史记录">
-              <div class="card-title">历史记录</div>
+              <div class="card-title" style="margin-top:14px;">历史记录</div>
               <div class="edit-banner hidden" data-edit-banner="study">正在编辑 <b></b> · <span class="exit-edit">返回今天</span></div>
               <div class="history-list" data-history="study"></div>
             </div>
@@ -1070,7 +1065,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=29.68"></script>
+  <script src="app.js?v=29.69"></script>
 
 </body>
 </html>
