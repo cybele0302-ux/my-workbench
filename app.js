@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.71';
+const APP_VERSION = 'wobench-v29.72';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -517,7 +517,7 @@ function fmtMoneyInt(n) {
         if (preset) {
           // 原已有写死链接：恢复「更换/删除」图标（✎/🗑），默认隐藏 + 添加 行（v29.70 意图），链接删光后自动出现；复用下方隐藏编辑表单
           linksBlock = '<div class="yh-links" data-yh-name="' + escapeAttr(name) + '">' + renderYanghuLinksHtml(name, true) + '</div>' +
-            '<div class="yh-link-form" style="display:none">' +
+            '<div class="yh-link-form" data-no-add="1" style="display:none">' +
               '<input class="field-input yh-link-title" type="text" placeholder="链接标题（如：站桩教学·B站）">' +
               '<input class="field-input yh-link-url" type="text" placeholder="链接地址 https://...">' +
               '<div class="yh-link-form-btns">' +
@@ -567,7 +567,7 @@ function fmtMoneyInt(n) {
       const name = form._yhName, idx = form._yhIdx;
       const titleInp = form.querySelector('.yh-link-title');
       const urlInp = form.querySelector('.yh-link-url');
-      const title = titleInp.value.trim(), url = urlInp.value.trim();
+      let title = titleInp.value.trim(); let url = urlInp.value.trim();
       if (!url) { showToast('请填写链接地址'); return; }
       if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
       const map = getYanghuLinks();
@@ -576,7 +576,7 @@ function fmtMoneyInt(n) {
       if (idx == null) links.push(entry); else links[idx] = entry;
       map[name] = links; setYanghuLinks(map);
       const fb = form.closest('.fold-body');
-      fb.querySelector('.yh-links').innerHTML = renderYanghuLinksHtml(name);
+      fb.querySelector('.yh-links').innerHTML = renderYanghuLinksHtml(name, form.hasAttribute('data-no-add'));
       form.style.display = 'none';
       schedulePush();
     }
