@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.75';
+const APP_VERSION = 'wobench-v29.76';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -562,14 +562,23 @@ function fmtMoneyInt(n) {
       form.style.display = 'block';
       setTimeout(function () { try { urlInp.focus(); } catch (e) {} }, 0);
     }
+    function extractYanghuUrl(raw) {
+      if (!raw) return '';
+      raw = raw.trim();
+      var m = raw.match(/https?:\/\/[^\s\u4e00-\u9fa5"'<>（）()【】\[\]{}，。！？；：、|]+/i);
+      if (m) return m[0].replace(/[.,;:!?)\]}>|]+$/, '');
+      m = raw.match(/(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}(?::\d+)?(?:\/[^\s\u4e00-\u9fa5"'<>（）()【】\[\]{}，。！？；：、|]*)?/i);
+      if (m) return 'https://' + m[0];
+      return '';
+    }
     function saveYhLinkForm(btn) {
       const form = btn.closest('.yh-link-form');
       const name = form._yhName, idx = form._yhIdx;
       const titleInp = form.querySelector('.yh-link-title');
       const urlInp = form.querySelector('.yh-link-url');
-      let title = titleInp.value.trim(); let url = urlInp.value.trim();
-      if (!url) { showToast('请填写链接地址'); return; }
-      if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+      let title = titleInp.value.trim();
+      let url = extractYanghuUrl(urlInp.value);
+      if (!url) { showToast('未识别到有效链接，请粘贴含网址的内容（如 v.douyin.com/xxx 或完整 https:// 链接）'); return; }
       const map = getYanghuLinks();
       const links = map[name] || [];
       const entry = { title: title || url, url: url };
