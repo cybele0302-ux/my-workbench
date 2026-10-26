@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>我的工作台</title>
   <meta name="theme-color" content="#6f4fb8">
-  <link rel="manifest" href="manifest.json?v=29.76">
+  <link rel="manifest" href="manifest.json?v=29.81">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="apple-touch-icon" href="icon-180.png">
   <script>try{var t=localStorage.getItem('zqdd:theme');if(t&&t!=='purple')document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
-  <link rel="stylesheet" href="style.css?v=29.76">
+  <link rel="stylesheet" href="style.css?v=29.81">
 
 </head>
 <body>
@@ -615,24 +615,36 @@
           <div class="tab-panel today-panel" data-panel="study">
               <div class="card" id="studyTimerCard">
                 <div class="card-title">学习时长</div>
-                <div class="study-dur">
-                  <div class="study-dur-sliderline">
-                    <button class="stepper-btn" type="button" id="studyDurMinus">−15</button>
-                    <div class="study-dur-sliderwrap">
-                      <div id="studyDurationVal" class="study-dur-val">0 分钟</div>
-                      <input type="range" id="studyDurationSlider" class="study-slider" min="0" max="600" step="5" value="0">
-                    </div>
-                    <button class="stepper-btn" type="button" id="studyDurPlus">+15</button>
-                  </div>
-                  <div class="study-presets" id="studyDurPresets">
-                    <button class="preset-pill" type="button" data-min="30">30</button>
-                    <button class="preset-pill" type="button" data-min="60">60</button>
-                    <button class="preset-pill" type="button" data-min="90">90</button>
-                    <button class="preset-pill" type="button" data-min="120">120</button>
-                    <button class="preset-pill" type="button" data-min="180">180</button>
-                  </div>
-                  <input type="hidden" id="studyDurationInput" data-save="学习时长" value="0">
+
+                <div class="study-method-head">
+                  <span class="field-label">方式一 · 起止时间</span>
+                  <button type="button" class="ghost-btn study-add-session-btn" id="btnAddStudySession">+ 增加</button>
                 </div>
+                <div id="studySessionList" class="study-session-list">
+                  <div class="study-session-row" data-idx="1">
+                    <div class="ssr-head"><span class="ssr-idx">时段 1</span></div>
+                    <div class="ssr-times">
+                      <div class="ssr-time-item"><span class="ssr-time-label">开始</span>
+                        <input type="time" class="field-input study-session-time" data-role="s" value=""></div>
+                      <span class="study-session-sep">→</span>
+                      <div class="ssr-time-item"><span class="ssr-time-label">结束</span>
+                        <input type="time" class="field-input study-session-time" data-role="e" value=""></div>
+                    </div>
+                    <div class="ssr-actions">
+                      <span class="study-session-dur">—</span>
+                      <button type="button" class="ssr-del" data-del-session="1" title="删除该时段" aria-label="删除该时段">×</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="study-dur-result" id="studyMethod1Total">方式一合计：0 分钟</div>
+
+                <div class="field-label" style="margin-top:14px;">方式二 · 手动填写（分钟）</div>
+                <div class="study-manual-row">
+                  <input type="number" class="field-input" id="studyManualInput" data-save="学习时长(手动)" min="0" step="1" placeholder="例如 60">
+                  <span class="study-manual-unit">分钟</span>
+                </div>
+
+                <div class="study-dur-total" id="studyTotalResult">今日学习合计：0 分钟（方式一 0 + 方式二 0）</div>
               </div>
 
           <div class="card-tab-strip" data-card-tabs></div>
@@ -1065,7 +1077,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=29.76"></script>
+  <script src="app.js?v=29.81"></script>
 
 </body>
 </html>
