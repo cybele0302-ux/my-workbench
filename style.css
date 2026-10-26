@@ -1923,23 +1923,45 @@
 
     .news-empty { font-size: 13px; color: var(--text-light); text-align: center; padding: 26px 12px; line-height: 1.8; }
 
-    /* ===== 学习时长卡片 ===== */
-    .study-duration-grid { display: flex; gap: 12px; }
-    .study-duration-grid .field { flex: 1 1 0; min-width: 0; margin: 0; }
-    .study-focus-total { font-size: 20px; font-weight: 700; color: var(--purple-deep); }
-    .study-self-readout { float: right; font-size: 16px; font-weight: 800; color: var(--purple-deep); }
-    .study-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 8px; margin: 10px 0 12px; border-radius: 999px; background: linear-gradient(90deg, var(--purple-soft), var(--purple-main)); outline: none; cursor: pointer; box-shadow: inset 0 1px 2px rgba(0,0,0,0.12); }
-    .study-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 24px; height: 24px; border-radius: 50%; background: #fff; border: 3px solid var(--purple-main); box-shadow: 0 3px 10px rgba(var(--accent-deep-rgb),0.4); cursor: pointer; transition: transform 0.15s; }
-    .study-slider::-webkit-slider-thumb:active { transform: scale(1.12); }
-    .study-slider::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: #fff; border: 3px solid var(--purple-main); box-shadow: 0 3px 10px rgba(var(--accent-deep-rgb),0.4); cursor: pointer; }
-    .study-self-ctrl { display: flex; align-items: center; gap: 10px; margin-top: 2px; }
-    .study-presets { flex: 1 1 auto; display: flex; gap: 6px; }
-    .preset-pill { flex: 1 1 0; min-width: 0; padding: 9px 0; border: 1px solid var(--card-border); background: rgba(var(--accent-rgb), 0.05); border-radius: 9px; font-size: 13px; color: var(--text-main); cursor: pointer; transition: all .15s; -webkit-tap-highlight-color: transparent; }
-    .preset-pill:active { background: rgba(var(--accent-rgb), 0.12); }
-    .preset-pill.active { background: var(--purple-main); color: #fff; border-color: var(--purple-main); }
-    .study-fine { flex: 0 0 auto; display: flex; gap: 6px; }
-    .stepper-btn { width: 40px; height: 36px; border-radius: 10px; border: none; background: linear-gradient(135deg, var(--purple-main), var(--purple-deep)); color: #fff; font-size: 17px; font-weight: 700; cursor: pointer; line-height: 1; display: flex; align-items: center; justify-content: center; }
-    .stepper-btn:active { transform: scale(0.92); }
+    /* ===== 学习时长卡片：方式一(起止时间,多条) + 方式二(手动) + 自动合计 ===== */
+    .study-method-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 9px; }
+    .study-method-head .field-label { margin-bottom: 0; }
+    .study-add-session-btn { flex: 0 0 auto; font-size: 12px; padding: 4px 12px; line-height: 1.5; white-space: nowrap; }
+    .study-session-list { display: flex; flex-direction: column; gap: 10px; }
+    .study-session-row {
+      display: flex; flex-direction: column; gap: 8px;
+      padding: 10px; border-radius: 14px;
+      min-width: 0; overflow: hidden;
+      background: rgba(var(--accent-rgb), 0.05);
+      border: 1px solid var(--card-border, rgba(181,160,230,0.25));
+    }
+    .ssr-head { display: flex; align-items: center; }
+    .ssr-idx { font-size: 12px; font-weight: 700; color: var(--purple-deep); background: rgba(var(--accent-rgb), 0.10); padding: 2px 9px; border-radius: 999px; }
+    .ssr-times { display: flex; align-items: flex-end; gap: 6px; min-width: 0; }
+    .ssr-time-item { flex: 1 1 0; min-width: 0; max-width: 100%; }
+    .ssr-time-label { display: block; font-size: 11px; color: var(--text-light); margin-bottom: 3px; }
+    .study-session-time {
+      width: 100%; min-width: 0; max-width: 100%;
+      padding: 8px 6px; font-size: 13px; text-align: center;
+      box-sizing: border-box;
+    }
+    .study-session-sep { flex: 0 0 auto; color: var(--text-light); font-weight: 700; padding-bottom: 9px; }
+    .ssr-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .study-session-dur { font-size: 13px; font-weight: 700; color: var(--purple-deep); font-variant-numeric: tabular-nums; }
+    .ssr-del {
+      flex: 0 0 auto; width: 24px; height: 24px; padding: 0;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 50%; cursor: pointer;
+      border: 1px solid var(--card-border, rgba(181,160,230,0.3));
+      background: transparent; color: var(--text-light);
+      font-size: 15px; line-height: 1;
+    }
+    .ssr-del:active { background: rgba(var(--accent-rgb), 0.14); color: var(--purple-deep); }
+    .study-dur-result { margin-top: 12px; font-size: 14px; color: var(--text-sub); }
+    .study-manual-row { display: flex; align-items: center; gap: 8px; }
+    .study-manual-row .field-input { flex: 1 1 0; min-width: 0; }
+    .study-manual-unit { font-size: 13px; color: var(--text-light); white-space: nowrap; }
+    .study-dur-total { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--card-border); font-size: 15px; font-weight: 700; color: var(--purple-deep); }
 
     /* ===== 待办：筛选/类型 tab（与模块内 sub-tab 风格一致） ===== */
     /* 待办筛选 tab：药丸分段控件，与模块头 mhc-tab / 标签 chips 视觉一致 */
@@ -1977,15 +1999,7 @@
       box-shadow: 0 4px 10px rgba(var(--accent-deep-rgb), 0.22);
     }
 
-    /* ===== 学习时长卡片：2 行紧凑重排（滑块行 + 预设行） ===== */
-    .study-dur { padding: 2px 0; }
-    .study-dur-sliderline { display: flex; align-items: center; gap: 10px; }
-    .study-dur-sliderwrap { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
-    .study-dur-val { font-size: 18px; font-weight: 800; color: var(--purple-deep); font-variant-numeric: tabular-nums; line-height: 1; text-align: center; }
-    .study-dur .study-slider { margin: 0; width: 100%; }
-    .study-dur .study-presets { margin-top: 12px; }
-    .study-total-line { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--card-border); font-size: 14px; color: var(--text-sub); }
-    .study-total-line b { color: var(--purple-deep); font-size: 16px; }
+    /* ===== 学习时长卡片：2 行紧凑重排（滑块行 + 预设行）已移除，改为起止时间 + 手动 + 合计 ===== */
 
     /* ===== AI 小助手 ===== */
     .ai-scope-bar { display: flex; gap: 8px; margin: 8px 0 6px; }
