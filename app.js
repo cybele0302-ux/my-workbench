@@ -1,6 +1,6 @@
 
     
-const APP_VERSION = 'wobench-v29.76';
+const APP_VERSION = 'wobench-v29.81';
 function fmtMoney(n) {
   var v = Number(n);
   if (!isFinite(v)) v = 0;
@@ -1402,6 +1402,7 @@ function fmtMoneyInt(n) {
       });
       updateSleepUI();
       var tl = document.getElementById('tempList'); if (tl) { tl.innerHTML = ''; }
+      if (el && el.id === 'study') { try { renderStudySessions([]); } catch (e) {} }
     }
     function fillForm(el, fields) {
       el.querySelectorAll('[data-save]').forEach(function (inp) {
@@ -1418,6 +1419,8 @@ function fmtMoneyInt(n) {
       updateSleepUI();
       // v29.71：实体感录表单填充时，把记录里的体温（数组/单对象/字符串/历史形状）渲染成记录列表；添加行输入框清空
       if (el && el.id === 'shiti') { try { renderTempList(fields['体温']); var _ti = document.getElementById('tempTimeInput'); var _vi = document.getElementById('tempValueInput'); if (_ti) _ti.value = ''; if (_vi) _vi.value = ''; } catch (e) {} }
+      // v29.77：学习表单填充时，把记录里的「学习时段」数组渲染成多条可编辑行
+      if (el && el.id === 'study') { try { renderStudySessions(fields['学习时段']); updateStudyTotals(); } catch (e) {} }
     }
 
     // ---- 日记类模块（实体感录 / 学习提升 / 致虚极）：每日一条，可编辑历史 ----
@@ -1454,6 +1457,8 @@ function fmtMoneyInt(n) {
       const fields = readFields(el);
       // v29.46：实体感录的「体温」由时间+温度两个输入框组成（非 data-save 字段），显式并入记录字段 {t, v}，随 store 同步
       if (key === 'shiti') { try { fields['体温'] = readTempInputs(); } catch (e) {} }
+      // v29.77：学习「方式一」多条起止时段为动态行（非 data-save 字段），显式并入记录字段，随 store 同步
+      if (key === 'study') { try { var _ss = readStudySessions(); if (_ss && _ss.length) fields['学习时段'] = _ss; else delete fields['学习时段']; } catch (e) {} }
       const ds = editingDate || ymd(new Date());
       let id;
       if (editingId) id = editingId;
@@ -1593,7 +1598,11 @@ function fmtMoneyInt(n) {
         const lm = lunarCn(ds).replace(/^.+?年/, '');
         if (r) {
           const flds = r.fields || {};
-          const sum = Object.keys(flds).map(function (k) { return k + '：' + flds[k]; }).join(' · ') || '（空）';
+          const sum = Object.keys(flds).map(function (k) {
+            if (k === '学习时段') { var ss = toStudySessions(flds[k]); return ss.length ? ('时段：' + ss.map(function (x) { return x.s + '~' + x.e; }).join('、')) : ''; }
+            if (k === '学习时长(手动)') return flds[k] ? ('手动：' + flds[k] + ' 分钟') : '';
+            return k + '：' + flds[k];
+          }).filter(Boolean).join(' · ') || '（空）';
           return '<div class="history-item"><div class="hi-main"><div class="hi-date">' + ds.slice(5) + ' · ' + lm + '</div><div class="hi-sum">' + escapeHtml(sum) + '</div></div><div class="hi-actions"><span class="hi-edit" data-edit-id="' + r.id + '" data-edit-mod="study">编辑</span><span class="hi-del" data-del="' + r.id + '">×</span></div></div>';
         }
         return '<div class="history-item hi-empty-day" data-fill-date="' + ds + '"><div class="hi-main"><div class="hi-date">' + ds.slice(5) + ' · ' + lm + '</div><div class="hi-sum hi-empty-sum">— 无记录，点击补录 —</div></div><div class="hi-actions"><span class="hi-fill" data-fill-date="' + ds + '">补录</span></div></div>';
@@ -2166,9 +2175,47 @@ function fmtMoneyInt(n) {
 
     // ---- 学习：专注计时 + 本月累计 ----
     // ---- 学习：学习时长（简洁记录） ----
+    // ---- 学习时长：方式一(起止时间,多条) + 方式二(手动分钟) + 旧滑块字段(历史兼容) ----
+    function toMin(t) {
+      var m = String(t == null ? '' : t).match(/^(\d{1,2}):(\d{2})$/);
+      if (!m) return null;
+      var h = parseInt(m[1], 10), mi = parseInt(m[2], 10);
+      if (isNaN(h) || isNaN(mi) || h > 23 || mi > 59) return null;
+      return h * 60 + mi;
+    }
+    // 归一 fields['学习时段'] 为 [{s,e}]（兼容历史字符串/单对象/数组）
+    function toStudySessions(raw) {
+      if (!raw) return [];
+      var arr;
+      if (Array.isArray(raw)) arr = raw;
+      else if (typeof raw === 'string') { try { var a = JSON.parse(raw); arr = Array.isArray(a) ? a : [raw]; } catch (e) { arr = [raw]; } }
+      else arr = [raw];
+      return arr.map(function (x) {
+        if (typeof x === 'string') { var p = x.split('-'); return { s: (p[0] || '').trim(), e: (p[1] || '').trim() }; }
+        return { s: (x.s || x.start || x[0] || ''), e: (x.e || x.end || x[1] || '') };
+      }).filter(function (x) { return toMin(x.s) != null || toMin(x.e) != null; });
+    }
+    // 环形时钟差（分钟）：end>start 直接差；跨午夜 end<=start 取 (end+1440-start) 的正值
+    // 例：23:30→00:30 = 60 分钟（1 小时），绝不出现 25 小时
+    function durBetween(s, e) {
+      var a = toMin(s), b = toMin(e);
+      if (a == null || b == null) return 0;
+      return ((b - a) + 1440) % 1440;
+    }
+    function fmtDur(m) {
+      m = Math.max(0, Math.round(m || 0));
+      if (m < 60) return m + ' 分钟';
+      var h = Math.floor(m / 60), mm = m % 60;
+      return mm ? (h + ' 小时 ' + mm + ' 分') : (h + ' 小时');
+    }
     function studyMinsOf(f) {
       if (!f) return 0;
       let m = 0;
+      // 方式一：多条起止时段求和
+      toStudySessions(f['学习时段']).forEach(function (x) { m += durBetween(x.s, x.e); });
+      // 方式二：手动分钟
+      if (f['学习时长(手动)']) m += parseInt((String(f['学习时长(手动)']).match(/\d+/) || [0])[0], 10) || 0;
+      // 旧字段兼容（历史记录保留并继续计入）
       if (f['学习计时']) m += parseInt((String(f['学习计时']).match(/\d+/) || [0])[0], 10) || 0;
       if (f['自主时长']) m += parseInt((String(f['自主时长']).match(/\d+/) || [0])[0], 10) || 0;
       if (f['学习时长']) {
@@ -2178,32 +2225,111 @@ function fmtMoneyInt(n) {
       }
       return m;
     }
-    // 学习时长卡片：读取/设置当日学习时长（分钟）
-    function getStudyDuration() {
-      const inp = document.getElementById('studyDurationInput');
-      return inp ? (parseInt(inp.value, 10) || 0) : 0;
+    // ---- 方式一：起止时段（默认 1 行，点「+ 增加」手动追加；空行不写入数据） ----
+    var STUDY_MIN_ROWS = 1;   // 至少显示 1 行
+    var STUDY_MAX_ROWS = 12;  // 上限保护
+    function readStudySessions() {
+      var list = document.getElementById('studySessionList');
+      if (!list) return [];
+      return Array.prototype.map.call(list.querySelectorAll('.study-session-row'), function (row) {
+        var sEl = row.querySelector('input[data-role="s"]'), eEl = row.querySelector('input[data-role="e"]');
+        return { s: sEl ? sEl.value : '', e: eEl ? eEl.value : '' };
+      }).filter(function (x) { return x.s || x.e; });   // 空行不写入
     }
-    function setStudyDuration(v) {
-      v = Math.max(0, Math.min(600, Math.round(v / 5) * 5));
-      const inp = document.getElementById('studyDurationInput');
-      if (inp) inp.value = v;
-      const valEl = document.getElementById('studyDurationVal');
-      if (valEl) valEl.textContent = v + ' 分钟';
-      const slider = document.getElementById('studyDurationSlider');
-      if (slider) slider.value = v;
-      const wrap = document.getElementById('studyDurPresets');
-      if (wrap) wrap.querySelectorAll('.preset-pill').forEach(function (x) { x.classList.toggle('active', parseInt(x.dataset.min, 10) === v); });
+    function sessionRowHtml(x, idx) {
+      x = x || { s: '', e: '' };
+      var dur = durBetween(x.s, x.e);
+      return '<div class="study-session-row" data-idx="' + idx + '">'
+        + '<div class="ssr-head"><span class="ssr-idx">时段 ' + idx + '</span></div>'
+        + '<div class="ssr-times">'
+        + '<div class="ssr-time-item"><span class="ssr-time-label">开始</span>'
+        + '<input type="time" class="field-input study-session-time" data-role="s" value="' + escapeAttr(x.s || '') + '"></div>'
+        + '<span class="study-session-sep">→</span>'
+        + '<div class="ssr-time-item"><span class="ssr-time-label">结束</span>'
+        + '<input type="time" class="field-input study-session-time" data-role="e" value="' + escapeAttr(x.e || '') + '"></div>'
+        + '</div>'
+        + '<div class="ssr-actions"><span class="study-session-dur">'
+        + (dur ? fmtDur(dur) : '—') + '</span>'
+        + '<button type="button" class="ssr-del" data-del-session="1" title="删除该时段" aria-label="删除该时段">×</button></div>'
+        + '</div>';
     }
-    const studyDurPresets = document.getElementById('studyDurPresets');
-    if (studyDurPresets) studyDurPresets.querySelectorAll('.preset-pill').forEach(function (p) {
-      p.addEventListener('click', function () { setStudyDuration(parseInt(p.dataset.min, 10) || 0); });
+    function renderStudySessions(raw) {
+      var list = document.getElementById('studySessionList');
+      if (!list) return;
+      var arr = toStudySessions(raw).slice(0, STUDY_MAX_ROWS);
+      while (arr.length < STUDY_MIN_ROWS) arr.push({ s: '', e: '' });   // 默认补足 1 行
+      list.innerHTML = arr.map(function (x, i) { return sessionRowHtml(x, i + 1); }).join('');
+      updateStudyTotals();
+    }
+    // 序号重排（增删行后调用，保证「时段 N」连续）
+    function renumberStudySessions() {
+      var list = document.getElementById('studySessionList');
+      if (!list) return;
+      Array.prototype.forEach.call(list.querySelectorAll('.study-session-row'), function (row, i) {
+        row.setAttribute('data-idx', String(i + 1));
+        var idxEl = row.querySelector('.ssr-idx');
+        if (idxEl) idxEl.textContent = '时段 ' + (i + 1);
+      });
+    }
+    function addStudySessionRow() {
+      var list = document.getElementById('studySessionList');
+      if (!list) return;
+      var rows = list.querySelectorAll('.study-session-row');
+      if (rows.length >= STUDY_MAX_ROWS) return false;
+      list.insertAdjacentHTML('beforeend', sessionRowHtml({ s: '', e: '' }, rows.length + 1));
+      renumberStudySessions();
+      updateStudyTotals();
+      return true;
+    }
+    function removeStudySessionRow(row) {
+      var list = document.getElementById('studySessionList');
+      if (!list || !row) return;
+      var rows = list.querySelectorAll('.study-session-row');
+      if (rows.length <= 1) {
+        // 至少保留 1 行：只清空内容，不删除行
+        Array.prototype.forEach.call(row.querySelectorAll('input[data-role]'), function (inp) { inp.value = ''; });
+      } else {
+        row.remove();
+      }
+      renumberStudySessions();
+      updateStudyTotals();
+      saveStudySessions();
+    }
+    function updateStudyTotals() {
+      var list = document.getElementById('studySessionList');
+      var m1 = 0;
+      if (list) Array.prototype.forEach.call(list.querySelectorAll('.study-session-row'), function (row) {
+        var sEl = row.querySelector('input[data-role="s"]'), eEl = row.querySelector('input[data-role="e"]');
+        var d = durBetween(sEl ? sEl.value : '', eEl ? eEl.value : '');
+        var durEl = row.querySelector('.study-session-dur');
+        if (durEl) durEl.textContent = d ? fmtDur(d) : '—';
+        m1 += d;
+      });
+      var mi = document.getElementById('studyManualInput');
+      var m2 = mi ? Math.max(0, parseInt(mi.value, 10) || 0) : 0;
+      var t1 = document.getElementById('studyMethod1Total');
+      if (t1) t1.textContent = '方式一合计：' + fmtDur(m1) + '（' + m1 + ' 分钟）';
+      var t2 = document.getElementById('studyTotalResult');
+      if (t2) t2.textContent = '今日学习合计：' + (m1 + m2) + ' 分钟（方式一 ' + m1 + ' + 方式二 ' + m2 + '）';
+    }
+    function saveStudySessions() { try { scheduleAutoSave('study'); } catch (e) {} }
+    // 「+ 增加时段」按钮 + 行内删除
+    (function () {
+      var addBtn = document.getElementById('btnAddStudySession');
+      if (addBtn) addBtn.addEventListener('click', function (e) { e.preventDefault(); addStudySessionRow(); });
+      var list = document.getElementById('studySessionList');
+      if (list) list.addEventListener('click', function (e) {
+        var del = e.target && e.target.closest ? e.target.closest('.ssr-del') : null;
+        if (!del) return;
+        e.preventDefault();
+        removeStudySessionRow(del.closest('.study-session-row'));
+      });
+    })();
+    ['input', 'change'].forEach(function (evt) {
+      document.addEventListener(evt, function (e) {
+        if (e.target && e.target.closest && (e.target.closest('#studySessionList') || e.target.id === 'studyManualInput')) { updateStudyTotals(); saveStudySessions(); }
+      });
     });
-    const studyDurSlider = document.getElementById('studyDurationSlider');
-    if (studyDurSlider) studyDurSlider.addEventListener('input', function () { setStudyDuration(parseInt(studyDurSlider.value, 10) || 0); });
-    const studyDurMinus = document.getElementById('studyDurMinus');
-    if (studyDurMinus) studyDurMinus.addEventListener('click', function () { setStudyDuration(getStudyDuration() - 15); });
-    const studyDurPlus = document.getElementById('studyDurPlus');
-    if (studyDurPlus) studyDurPlus.addEventListener('click', function () { setStudyDuration(getStudyDuration() + 15); });
 
     // ---- 学习标签：可编辑 / 可删减 ----
     var STUDY_TAG_KEY = 'zqdd:study_tags';
@@ -2259,7 +2385,16 @@ function fmtMoneyInt(n) {
       const ds = ymd(new Date());
       const rec = store[ds + '|study'];
       const f = rec ? rec.fields : {};
-      setStudyDuration(studyMinsOf(f));
+      try {
+        var mi = document.getElementById('studyManualInput');
+        if (mi) mi.value = f['学习时长(手动)'] || '';
+        renderStudySessions(f['学习时段']);
+      } catch (e) {}
+      // 兜底：确保列表至少 2 行（正常已由 renderStudySessions / 静态骨架保证）
+      try {
+        var lst = document.getElementById('studySessionList');
+        if (lst && !lst.querySelector('.study-session-row')) renderStudySessions([]);
+      } catch (e) {}
     }
 
     // 学习时间卡片：日/周/月 tab 切换
@@ -5510,8 +5645,8 @@ function fmtMoneyInt(n) {
         { label: '身体变化', field: '身体变化' }
       ],
       study: [
-        { label: '专注计时', field: '专注计时' },
-        { label: '自主计时', field: '自主时长' },
+        { label: '时段记录', field: '__sessions__' },
+        { label: '手动时长(分钟)', field: '学习时长(手动)' },
         { label: '学习时长(合计)', field: '__duration__' },
         { label: '正在阅读', field: '正在阅读' },
         { label: '已阅读', field: '已阅读' }
@@ -5579,8 +5714,11 @@ function fmtMoneyInt(n) {
           return wm.length ? wm.join('；') : '(无)';
         }
         if (cardField === '__duration__') {
-          var f = Number((r.fields && r.fields['专注计时']) || 0), s = Number((r.fields && r.fields['自主时长']) || 0);
-          return '专注 ' + f + ' 分 + 自主 ' + s + ' 分 = ' + (f + s) + ' 分';
+          return '合计 ' + studyMinsOf(r.fields) + ' 分钟';
+        }
+        if (cardField === '__sessions__') {
+          var ss2 = toStudySessions(r.fields && r.fields['学习时段']);
+          return ss2.length ? ss2.map(function (x) { return x.s + '~' + x.e; }).join('、') : '(无)';
         }
         var v = r.fields ? r.fields[cardField] : undefined;
         if (v === undefined || v === '') return '(无)';
